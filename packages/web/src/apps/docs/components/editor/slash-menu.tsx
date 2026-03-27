@@ -1,0 +1,347 @@
+import {
+  CheckSquare,
+  Code,
+  Heading1,
+  Heading2,
+  Heading3,
+  List,
+  ListOrdered,
+  Minus,
+  Quote,
+  Type,
+} from "lucide-react";
+import type { TElement } from "platejs";
+import type { PlateElementProps } from "platejs/react";
+import { PlateElement, useEditorRef, useElement } from "platejs/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+
+interface SlashMenuItem {
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+  keywords: string[];
+  action: (editor: ReturnType<typeof useEditorRef>) => void;
+}
+
+interface SlashMenuGroup {
+  label: string;
+  items: SlashMenuItem[];
+}
+
+const ICON_CLASS = "size-4 text-zinc-500 dark:text-zinc-400";
+
+const SLASH_MENU_GROUPS: SlashMenuGroup[] = [
+  {
+    label: "Text",
+    items: [
+      {
+        icon: <Type className={ICON_CLASS} />,
+        label: "Paragraph",
+        description: "Plain text block",
+        keywords: ["text", "paragraph", "plain"],
+        action: (editor) => {
+          editor.tf.setNodes({ type: "p" } as Partial<TElement>);
+        },
+      },
+      {
+        icon: <Heading1 className={ICON_CLASS} />,
+        label: "Heading 1",
+        description: "Large section heading",
+        keywords: ["heading", "h1", "title", "large"],
+        action: (editor) => {
+          editor.tf.setNodes({ type: "h1" } as Partial<TElement>);
+        },
+      },
+      {
+        icon: <Heading2 className={ICON_CLASS} />,
+        label: "Heading 2",
+        description: "Medium section heading",
+        keywords: ["heading", "h2", "subtitle", "medium"],
+        action: (editor) => {
+          editor.tf.setNodes({ type: "h2" } as Partial<TElement>);
+        },
+      },
+      {
+        icon: <Heading3 className={ICON_CLASS} />,
+        label: "Heading 3",
+        description: "Small section heading",
+        keywords: ["heading", "h3", "small"],
+        action: (editor) => {
+          editor.tf.setNodes({ type: "h3" } as Partial<TElement>);
+        },
+      },
+    ],
+  },
+  {
+    label: "Lists",
+    items: [
+      {
+        icon: <List className={ICON_CLASS} />,
+        label: "Bulleted List",
+        description: "Unordered list with bullets",
+        keywords: ["list", "bullet", "unordered", "ul"],
+        action: (editor) => {
+          editor.tf.setNodes({
+            type: "p",
+            listStyleType: "disc",
+            indent: 1,
+          } as Partial<TElement>);
+        },
+      },
+      {
+        icon: <ListOrdered className={ICON_CLASS} />,
+        label: "Numbered List",
+        description: "Ordered list with numbers",
+        keywords: ["list", "number", "ordered", "ol"],
+        action: (editor) => {
+          editor.tf.setNodes({
+            type: "p",
+            listStyleType: "decimal",
+            indent: 1,
+          } as Partial<TElement>);
+        },
+      },
+      {
+        icon: <CheckSquare className={ICON_CLASS} />,
+        label: "To-do List",
+        description: "Checklist with checkboxes",
+        keywords: ["todo", "task", "check", "checkbox"],
+        action: (editor) => {
+          editor.tf.setNodes({
+            type: "p",
+            listStyleType: "disc",
+            indent: 1,
+            checked: false,
+          } as Partial<TElement>);
+        },
+      },
+    ],
+  },
+  {
+    label: "Content",
+    items: [
+      {
+        icon: <Quote className={ICON_CLASS} />,
+        label: "Quote",
+        description: "Highlighted quote block",
+        keywords: ["quote", "blockquote", "citation"],
+        action: (editor) => {
+          editor.tf.setNodes({ type: "blockquote" } as Partial<TElement>);
+        },
+      },
+      {
+        icon: <Code className={ICON_CLASS} />,
+        label: "Code Block",
+        description: "Code with syntax highlighting",
+        keywords: ["code", "codeblock", "snippet", "programming"],
+        action: (editor) => {
+          editor.tf.setNodes({ type: "code_block" } as Partial<TElement>);
+        },
+      },
+      {
+        icon: <Minus className={ICON_CLASS} />,
+        label: "Divider",
+        description: "Horizontal divider line",
+        keywords: ["divider", "hr", "separator", "line", "horizontal"],
+        action: (editor) => {
+          editor.tf.setNodes({ type: "hr" } as Partial<TElement>);
+        },
+      },
+    ],
+  },
+];
+
+function filterItems(
+  groups: SlashMenuGroup[],
+  query: string,
+): SlashMenuGroup[] {
+  if (!query) return groups;
+  const lower = query.toLowerCase();
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) =>
+          item.label.toLowerCase().includes(lower) ||
+          item.keywords.some((k) => k.includes(lower)),
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
+}
+
+function getAllItems(groups: SlashMenuGroup[]): SlashMenuItem[] {
+  return groups.flatMap((g) => g.items);
+}
+
+export function SlashInputElement(props: PlateElementProps) {
+  const editor = useEditorRef();
+  const element = useElement();
+  const inputRef = useRef<HTMLSpanElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const filteredGroups = useMemo(
+    () => filterItems(SLASH_MENU_GROUPS, query),
+    [query],
+  );
+  const flatItems = useMemo(
+    () => getAllItems(filteredGroups),
+    [filteredGroups],
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: query changes should reset selection index
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query]);
+
+  // Auto-focus
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const removeInput = useCallback(() => {
+    const path = editor.api.findPath(element);
+    if (path) {
+      editor.tf.removeNodes({ at: path });
+    }
+  }, [editor, element]);
+
+  const executeItem = useCallback(
+    (item: SlashMenuItem) => {
+      removeInput();
+      item.action(editor);
+    },
+    [editor, removeInput],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedIndex((i) => (i + 1) % Math.max(1, flatItems.length));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedIndex(
+          (i) => (i - 1 + flatItems.length) % Math.max(1, flatItems.length),
+        );
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (flatItems[selectedIndex]) {
+          executeItem(flatItems[selectedIndex]);
+        }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        removeInput();
+      } else if (e.key === "Backspace" && query === "") {
+        e.preventDefault();
+        removeInput();
+      }
+    },
+    [flatItems, selectedIndex, executeItem, removeInput, query],
+  );
+
+  const handleInput = useCallback(() => {
+    const text = inputRef.current?.textContent ?? "";
+    setQuery(text);
+  }, []);
+
+  // Scroll selected item into view
+  // biome-ignore lint/correctness/useExhaustiveDependencies: selectedIndex triggers the scroll
+  useEffect(() => {
+    const menuEl = menuRef.current;
+    if (!menuEl) return;
+    const selected = menuEl.querySelector("[data-selected='true']");
+    if (selected) {
+      selected.scrollIntoView({ block: "nearest" });
+    }
+  }, [selectedIndex]);
+
+  // Menu position: render portal below the inline element
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
+    null,
+  );
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setMenuPos({ top: rect.bottom + 4, left: rect.left });
+  }, []);
+
+  let itemIndex = -1;
+
+  return (
+    <PlateElement {...props} as="span" className="inline">
+      <span
+        ref={inputRef}
+        role="combobox"
+        aria-expanded
+        aria-haspopup="listbox"
+        tabIndex={0}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={handleInput}
+        onKeyDown={handleKeyDown}
+        className="inline text-blue-600 outline-none dark:text-blue-400"
+        data-slate-editor={false}
+      />
+      {props.children}
+      {menuPos &&
+        createPortal(
+          <div
+            ref={menuRef}
+            className="fixed z-[9999] w-72 overflow-y-auto rounded-lg border border-zinc-200 bg-white py-1.5 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+            style={{ top: menuPos.top, left: menuPos.left, maxHeight: 320 }}
+          >
+            {filteredGroups.length === 0 ? (
+              <div className="px-3 py-4 text-center text-sm text-zinc-400">
+                No results
+              </div>
+            ) : (
+              filteredGroups.map((group) => (
+                <div key={group.label}>
+                  <div className="px-3 py-1.5 text-xs font-semibold text-zinc-400 uppercase dark:text-zinc-500">
+                    {group.label}
+                  </div>
+                  {group.items.map((item) => {
+                    itemIndex++;
+                    const isSelected = itemIndex === selectedIndex;
+                    const currentIndex = itemIndex;
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        data-selected={isSelected}
+                        className={`flex w-full items-center gap-3 px-3 py-1.5 text-left text-sm transition-colors ${
+                          isSelected
+                            ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                            : "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
+                        }`}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          executeItem(item);
+                        }}
+                        onMouseEnter={() => setSelectedIndex(currentIndex)}
+                      >
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-white dark:border-zinc-600 dark:bg-zinc-700">
+                          {item.icon}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="font-medium">{item.label}</div>
+                          <div className="truncate text-xs text-zinc-400 dark:text-zinc-500">
+                            {item.description}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))
+            )}
+          </div>,
+          document.body,
+        )}
+    </PlateElement>
+  );
+}
