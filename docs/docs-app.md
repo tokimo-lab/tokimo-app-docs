@@ -204,6 +204,7 @@
 | `db/entities/docs.rs` | Sea-ORM entity |
 | `db/entities/doc_folders.rs` | Sea-ORM entity |
 | `db/entities/doc_versions.rs` | Sea-ORM entity |
+| `services/ai/builtin_tools.rs` | AI 内置工具定义（edit_document） |
 
 ### 前端
 
@@ -224,6 +225,8 @@
 | `components/docs/doc-templates.ts` | 模板定义（8 种） |
 | `generated/rust-api/docs.ts` | API 客户端 |
 | `generated/rust-types/Doc*.ts` | TS 类型（ts-rs 生成） |
+| `lib/ai-assistant-events.ts` | AI 助手事件桥（open/edit/context 事件） |
+| `components/ai-chat/hooks/useClientTools.ts` | 客户端工具执行 hook |
 
 ---
 
@@ -360,14 +363,18 @@ const MermaidPlugin = createSlatePlugin({
 DocAppPage
   ├── handleOpenAi()         → 提取文档全文 → openAiAssistant(context)
   ├── handleAiAction(type)   → 构建特定 prompt → openAiAssistant(prompt)
-  └── getSelectedText()      → 获取选中文本（用于 AI 操作）
+  ├── getSelectedText()      → 获取选中文本
+  └── onAiEditDocument       → 监听 AI 编辑事件 → 替换编辑器内容 → 显示撤销栏
 
          ↓ CustomEvent("open-ai-assistant")
 
-MenuBar → AiAssistant (系统级浮窗)
+MenuBar → AiAssistant (系统级浮窗, 不自动关闭)
   ├── 接收 context/contextLabel
   ├── buildContent(message)  → 拼接上下文 + 用户消息
-  └── 发送至 /api/ai/chat/stream
+  ├── 发送至 /api/ai/chat/stream
+  └── tool_call: edit_document → useClientTools → CustomEvent("ai-edit-document")
+                                                     ↓
+                                                DocAppPage → deserializeMd → 替换内容 → 撤销栏
 ```
 
 ### 入口
@@ -386,6 +393,47 @@ MenuBar → AiAssistant (系统级浮窗)
 | `summarize` | 总结要点... | 摘要 |
 | `continue` | 续写... | 续写 |
 | `fix-grammar` | 修正语法... | 语法修正 |
+
+### AI 直接编辑文档
+
+AI 助手可通过 `edit_document` 工具直接修改文档内容，实现"对话即编辑"的交互模式。
+
+#### 工具定义
+
+后端 `builtin_tools.rs` 定义了 `edit_document` 内置工具，仅在以下条件同时满足时被 AI 调用：
+- 对话上下文中附带了文档内容（用户从文档应用打开 AI 助手）
+- 用户明确要求修改/重新格式化/重写文档
+
+#### 完整流程
+
+```
+1. 用户在文档编辑器中打开 AI 助手（附带文档上下文）
+2. 用户发送编辑指令（如"把这篇文档翻译成英文"）
+3. AI 决定调用 edit_document tool
+4. 后端通过 SSE 发送 tool_call 事件（含 content 和 summary 参数）
+5. 前端 useClientTools hook 接收 tool_call
+6. 触发 CustomEvent("ai-edit-document")，携带 markdown content
+7. DocAppPage 监听事件 → @platejs/markdown deserializeMd → 替换 Slate 编辑器内容
+8. 底部显示撤销栏
+```
+
+#### 撤销机制
+
+- 执行编辑前保存当前编辑器内容（pre-edit snapshot）
+- 底部弹出撤销栏："AI 已编辑文档 · 撤销"按钮
+- 一键点击恢复 pre-edit 内容，撤销 AI 的所有修改
+
+#### 上下文显示优化
+
+- 包含 `[以下是当前文档内容]` 前缀的用户消息，在聊天气泡中自动剥离文档原文
+- 替换为紧凑的 `引用当前文档` 标签徽章，避免大段文档文本占据聊天界面
+- 相同的剥离逻辑应用于 markdown 导出
+
+#### 面板行为
+
+- AI 面板不再因外部点击自动关闭（`useDismiss` 中禁用了 `outsidePress`）
+- 用户经常在 AI 面板和文档编辑器之间切换，自动关闭体验不佳
+- 仍可通过 Escape 键关闭面板
 
 ---
 
