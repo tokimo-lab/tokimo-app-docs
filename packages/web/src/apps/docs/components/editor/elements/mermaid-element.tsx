@@ -2,7 +2,7 @@ import mermaid from "mermaid";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { useThemeContext } from "@/system/appearance/ThemeContext";
+import { useThemeCore } from "@/system/appearance/ThemeContext";
 
 mermaid.initialize({ startOnLoad: false, theme: "default" });
 
@@ -62,7 +62,7 @@ function MermaidRenderer({ code, isDark }: { code: string; isDark: boolean }) {
 export function MermaidElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const element = useElement();
-  const { theme } = useThemeContext();
+  const { theme } = useThemeCore();
   const isDark = theme === "dark";
   const code = ((element as Record<string, unknown>).code as string) || "";
   const [editing, setEditing] = useState(!code);
