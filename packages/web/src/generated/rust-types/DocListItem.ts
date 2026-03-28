@@ -3,4 +3,4 @@
 /**
  * Doc list item (sidebar / list view — no content)
  */
-export type DocListItem = { id: string, appId: string, folderId: string | null, title: string, icon: string | null, isFavorite: boolean, isPinned: boolean, isArchived: boolean, wordCount: number, createdAt: string, updatedAt: string, };
+export type DocListItem = { id: string, appId: string, folderId: string | null, title: string, icon: string | null, tags: Array<string> | null, isFavorite: boolean, isPinned: boolean, isArchived: boolean, wordCount: number, createdAt: string, updatedAt: string, };

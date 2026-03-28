@@ -20,6 +20,7 @@ pub struct DocListItem {
     pub folder_id: Option<Uuid>,
     pub title: String,
     pub icon: Option<String>,
+    pub tags: Option<Vec<String>>,
     pub is_favorite: bool,
     pub is_pinned: bool,
     pub is_archived: bool,
@@ -42,6 +43,7 @@ pub struct DocOutput {
     pub content: Option<serde_json::Value>,
     pub icon: Option<String>,
     pub cover_image: Option<String>,
+    pub tags: Vec<String>,
     pub is_favorite: bool,
     pub is_pinned: bool,
     pub is_archived: bool,
@@ -60,6 +62,7 @@ impl From<docs::Model> for DocOutput {
             content: m.content,
             icon: m.icon,
             cover_image: m.cover_image,
+            tags: m.tags.unwrap_or_default(),
             is_favorite: m.is_favorite,
             is_pinned: m.is_pinned,
             is_archived: m.is_archived,
@@ -89,4 +92,22 @@ pub struct DocFolderOutput {
     pub created_at: DateTimeWithTimeZone,
     #[ts(type = "string")]
     pub updated_at: DateTimeWithTimeZone,
+}
+
+/// Doc comment output
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct DocCommentOutput {
+    pub id: String,
+    pub doc_id: String,
+    pub user_id: String,
+    pub user_name: String,
+    pub comment_key: String,
+    pub content: String,
+    pub is_resolved: bool,
+    pub parent_id: Option<String>,
+    pub replies: Vec<DocCommentOutput>,
+    pub created_at: String,
+    pub updated_at: String,
 }

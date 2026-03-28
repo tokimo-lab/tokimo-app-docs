@@ -6,28 +6,7 @@ impl DocService {
     /// Recursively traverses Slate nodes: for CJK characters each counts as one word,
     /// for Latin text whitespace-separated tokens are counted.
     pub fn count_words(content: &serde_json::Value) -> i32 {
-        fn extract_text(value: &serde_json::Value, buf: &mut String) {
-            match value {
-                serde_json::Value::Object(obj) => {
-                    if let Some(serde_json::Value::String(text)) = obj.get("text") {
-                        buf.push_str(text);
-                        buf.push(' ');
-                    }
-                    if let Some(children) = obj.get("children") {
-                        extract_text(children, buf);
-                    }
-                }
-                serde_json::Value::Array(arr) => {
-                    for item in arr {
-                        extract_text(item, buf);
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        let mut text = String::new();
-        extract_text(content, &mut text);
+        let text = Self::extract_text(content);
 
         // Mixed CJK + Latin word count:
         // - Each CJK character counts as 1
@@ -54,6 +33,33 @@ impl DocService {
         }
 
         count
+    }
+
+    /// Extract plaintext from Slate JSON for full-text search.
+    pub fn extract_text(content: &serde_json::Value) -> String {
+        fn collect(value: &serde_json::Value, buf: &mut String) {
+            match value {
+                serde_json::Value::Object(obj) => {
+                    if let Some(serde_json::Value::String(text)) = obj.get("text") {
+                        buf.push_str(text);
+                        buf.push(' ');
+                    }
+                    if let Some(children) = obj.get("children") {
+                        collect(children, buf);
+                    }
+                }
+                serde_json::Value::Array(arr) => {
+                    for item in arr {
+                        collect(item, buf);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        let mut text = String::new();
+        collect(content, &mut text);
+        text
     }
 }
 

@@ -9,11 +9,12 @@ use uuid::Uuid;
 
 use crate::{
     db::entities::doc_folders,
-    db::models::doc::{DocFolderOutput, DocOutput},
+    db::models::doc::{DocCommentOutput, DocFolderOutput, DocOutput},
     db::pagination::PageInput,
-    db::repos::doc_repo::{DocFolderRepo, DocRepo},
+    db::repos::doc_repo::{DocCommentRepo, DocFolderRepo, DocRepo},
     error::AppError,
     handlers::{ok, ok_empty, ApiResponse},
+    handlers::user::AuthUser,
     services::doc_service::DocService,
     AppState,
 };
@@ -35,6 +36,7 @@ pub struct ListDocsQuery {
     pub search: Option<String>,
     pub folder_id: Option<String>,
     pub favorites_only: Option<bool>,
+    pub tags: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -51,6 +53,7 @@ pub struct UpdateDocInput {
     pub content: Option<Option<serde_json::Value>>,
     pub icon: Option<Option<String>>,
     pub cover_image: Option<Option<String>>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -75,6 +78,20 @@ pub struct UpdateFolderInput {
     pub sort_order: Option<i32>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateCommentInput {
+    pub comment_key: String,
+    pub content: String,
+    pub parent_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolveCommentInput {
+    pub resolved: bool,
+}
+
 // ── Doc handlers ─────────────────────────────────────────────────────────────
 
 /// GET /api/apps/{id}/docs
@@ -92,6 +109,12 @@ pub async fn list_docs(
         .folder_id
         .as_deref()
         .and_then(|s| s.parse::<Uuid>().ok());
+    let tags_filter: Option<Vec<String>> = q.tags.as_ref().map(|t| {
+        t.split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect()
+    });
     let result = DocRepo::list(
         &state.db,
         app_id,
@@ -101,6 +124,7 @@ pub async fn list_docs(
         q.search.as_deref(),
         folder_id,
         q.favorites_only.unwrap_or(false),
+        tags_filter.as_deref(),
     )
     .await?;
     Ok(ok(serde_json::json!({
@@ -110,6 +134,16 @@ pub async fn list_docs(
         "pageSize": result.page_size,
         "totalPages": result.total_pages,
     })))
+}
+
+/// GET /api/apps/{id}/doc-tags
+pub async fn list_tags(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<Json<ApiResponse<Vec<String>>>, AppError> {
+    let app_id = parse_uuid(&id)?;
+    let tags = DocRepo::list_tags(&state.db, app_id).await?;
+    Ok(ok(tags))
 }
 
 /// POST /api/apps/{id}/docs
@@ -149,11 +183,17 @@ pub async fn update_doc(
 ) -> Result<Json<ApiResponse<DocOutput>>, AppError> {
     let doc_id = parse_uuid(&id)?;
 
-    // Compute word count if content is being updated
+    // Compute word count and search text if content is being updated
     let word_count = input.content.as_ref().and_then(|opt_content| {
         opt_content
             .as_ref()
             .map(|c| DocService::count_words(c))
+    });
+
+    let search_text = input.content.as_ref().and_then(|opt_content| {
+        opt_content
+            .as_ref()
+            .map(|c| DocService::extract_text(c))
     });
 
     let doc = DocRepo::update(
@@ -164,6 +204,8 @@ pub async fn update_doc(
         input.icon,
         input.cover_image,
         word_count,
+        search_text,
+        input.tags,
     )
     .await?
     .ok_or_else(|| AppError::NotFound("doc not found".into()))?;
@@ -222,6 +264,76 @@ pub async fn move_doc(
     let moved = DocRepo::move_to_folder(&state.db, doc_id, folder_id).await?;
     if !moved {
         return Err(AppError::NotFound("doc not found".into()));
+    }
+    Ok(ok_empty())
+}
+
+// ── Comment handlers ─────────────────────────────────────────────────────────
+
+/// GET /api/docs/{id}/comments
+pub async fn list_comments(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<Json<ApiResponse<Vec<DocCommentOutput>>>, AppError> {
+    let doc_id = parse_uuid(&id)?;
+    let comments = DocCommentRepo::list_by_doc(&state.db, doc_id).await?;
+    Ok(ok(comments))
+}
+
+/// POST /api/docs/{id}/comments
+pub async fn create_comment(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    auth_user: AuthUser,
+    Json(input): Json<CreateCommentInput>,
+) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+    let doc_id = parse_uuid(&id)?;
+    let user_id = parse_uuid(&auth_user.0.user_id)?;
+    let parent_id = input
+        .parent_id
+        .as_deref()
+        .map(parse_uuid)
+        .transpose()?;
+    let comment = DocCommentRepo::create(
+        &state.db,
+        doc_id,
+        user_id,
+        input.comment_key,
+        input.content,
+        parent_id,
+    )
+    .await?;
+
+    Ok(ok(serde_json::json!({
+        "id": comment.id.to_string(),
+        "commentKey": comment.comment_key,
+        "createdAt": comment.created_at.to_rfc3339(),
+    })))
+}
+
+/// PATCH /api/doc-comments/{id}/resolve
+pub async fn resolve_comment(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Json(input): Json<ResolveCommentInput>,
+) -> Result<Json<ApiResponse<()>>, AppError> {
+    let comment_id = parse_uuid(&id)?;
+    let resolved = DocCommentRepo::resolve(&state.db, comment_id, input.resolved).await?;
+    if !resolved {
+        return Err(AppError::NotFound("comment not found".into()));
+    }
+    Ok(ok_empty())
+}
+
+/// DELETE /api/doc-comments/{id}
+pub async fn delete_comment(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<Json<ApiResponse<()>>, AppError> {
+    let comment_id = parse_uuid(&id)?;
+    let deleted = DocCommentRepo::delete(&state.db, comment_id).await?;
+    if !deleted {
+        return Err(AppError::NotFound("comment not found".into()));
     }
     Ok(ok_empty())
 }

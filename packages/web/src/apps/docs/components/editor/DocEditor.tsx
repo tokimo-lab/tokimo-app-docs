@@ -21,6 +21,7 @@ import {
   CodeLinePlugin,
   CodeSyntaxPlugin,
 } from "@platejs/code-block/react";
+import { CommentPlugin } from "@platejs/comment/react";
 import { DatePlugin } from "@platejs/date/react";
 import { DndPlugin } from "@platejs/dnd";
 import { EmojiInputPlugin, EmojiPlugin } from "@platejs/emoji/react";
@@ -59,6 +60,7 @@ import { CodeBlockElement } from "./elements/code-block-element";
 import { CodeLineElement } from "./elements/code-line-element";
 import { CodeSyntaxLeaf } from "./elements/code-syntax-leaf";
 import { ColumnElement, ColumnGroupElement } from "./elements/column-element";
+import { CommentLeaf } from "./elements/comment-leaf";
 import { DateElement } from "./elements/date-element";
 import { EmojiInputElement } from "./elements/emoji-input-element";
 import {
@@ -92,6 +94,7 @@ export interface DocEditorProps {
   readOnly?: boolean;
   placeholder?: string;
   editorRef?: MutableRefObject<DocEditorHandle | null>;
+  onAddComment?: (commentKey: string) => void;
 }
 
 const EMPTY_VALUE: Value = [{ type: "p", children: [{ text: "" }] }];
@@ -175,6 +178,9 @@ const plugins = [
   }),
   EmojiInputPlugin.withComponent(EmojiInputElement),
 
+  // Comments
+  CommentPlugin.withComponent(CommentLeaf),
+
   // Marks (no withComponent — built-in rendering)
   BoldPlugin,
   ItalicPlugin,
@@ -207,6 +213,7 @@ export function DocEditor({
   readOnly = false,
   placeholder = "输入 '/' 插入内容…",
   editorRef,
+  onAddComment,
 }: DocEditorProps) {
   const initialValue = useMemo(() => value ?? EMPTY_VALUE, [value]);
 
@@ -239,7 +246,7 @@ export function DocEditor({
             placeholder={placeholder}
           />
         </div>
-        {!readOnly && <FloatingToolbar />}
+        {!readOnly && <FloatingToolbar onAddComment={onAddComment} />}
         {!readOnly && <LinkFloatingToolbar />}
       </Plate>
     </DndProvider>

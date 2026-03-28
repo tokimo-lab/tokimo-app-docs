@@ -1,5 +1,6 @@
 import { createPathMutation, createQuery } from "../../lib/rust-api-runtime";
 import type {
+  DocCommentOutput,
   DocFolderOutput,
   DocListItem,
   DocOutput,
@@ -19,6 +20,7 @@ interface UpdateDocInput {
   content?: unknown;
   icon?: string | null;
   coverImage?: string | null;
+  tags?: string[];
 }
 
 interface MoveDocInput {
@@ -49,6 +51,19 @@ interface ListDocsQuery {
   search?: string;
   folderId?: string | null;
   favoritesOnly?: boolean;
+  tags?: string;
+}
+
+interface CreateCommentInput {
+  docId: string;
+  commentKey: string;
+  content: string;
+  parentId?: string | null;
+}
+
+interface ResolveCommentInput {
+  id: string;
+  resolved: boolean;
 }
 
 interface PageResult<T> {
@@ -73,8 +88,14 @@ export const docApi = {
       if (input.search) p.search = input.search;
       if (input.folderId) p.folderId = input.folderId;
       if (input.favoritesOnly) p.favoritesOnly = "true";
+      if (input.tags) p.tags = input.tags;
       return p;
     },
+  }),
+
+  listTags: createQuery<{ appId: string }, string[]>({
+    path: "/api/apps/{appId}/doc-tags",
+    pathFn: (input) => `/api/apps/${encodeURIComponent(input.appId)}/doc-tags`,
   }),
 
   getById: createQuery<{ id: string }, DocOutput>({
@@ -119,6 +140,38 @@ export const docApi = {
     method: "PATCH",
     pathFn: (input) => `/api/docs/${encodeURIComponent(input.id)}/move`,
     bodyFn: (input) => ({ folderId: input.folderId }),
+  }),
+
+  // ── Comments ────────────────────────────────────────────────────────────
+
+  listComments: createQuery<{ docId: string }, DocCommentOutput[]>({
+    path: "/api/docs/{docId}/comments",
+    pathFn: (input) => `/api/docs/${encodeURIComponent(input.docId)}/comments`,
+  }),
+
+  createComment: createPathMutation<
+    CreateCommentInput,
+    { id: string; commentKey: string; createdAt: string }
+  >({
+    method: "POST",
+    pathFn: (input) => `/api/docs/${encodeURIComponent(input.docId)}/comments`,
+    bodyFn: (input) => ({
+      commentKey: input.commentKey,
+      content: input.content,
+      parentId: input.parentId,
+    }),
+  }),
+
+  resolveComment: createPathMutation<ResolveCommentInput, void>({
+    method: "PATCH",
+    pathFn: (input) =>
+      `/api/doc-comments/${encodeURIComponent(input.id)}/resolve`,
+    bodyFn: (input) => ({ resolved: input.resolved }),
+  }),
+
+  deleteComment: createPathMutation<{ id: string }, void>({
+    method: "DELETE",
+    pathFn: (input) => `/api/doc-comments/${encodeURIComponent(input.id)}`,
   }),
 
   // ── Folders ─────────────────────────────────────────────────────────────

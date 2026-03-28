@@ -1,3 +1,4 @@
+import { getCommentKey } from "@platejs/comment";
 import { useFloatingToolbar, useFloatingToolbarState } from "@platejs/floating";
 import { triggerFloatingLinkInsert } from "@platejs/link/react";
 import {
@@ -10,6 +11,7 @@ import {
   Highlighter,
   Italic,
   Link,
+  MessageSquare,
   Pilcrow,
   Quote,
   SquareCode,
@@ -22,6 +24,10 @@ import type { TElement } from "platejs";
 import { useEditorId, useEditorRef, useEventEditorValue } from "platejs/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
+function generateCommentKey(): string {
+  return crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+}
 
 interface MarkButtonProps {
   markKey: string;
@@ -168,7 +174,41 @@ function LinkButton() {
   );
 }
 
-export function FloatingToolbar() {
+function CommentButton({
+  onAddComment,
+}: {
+  onAddComment?: (commentKey: string) => void;
+}) {
+  const editor = useEditorRef();
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const commentKey = generateCommentKey();
+      editor.tf.addMark(getCommentKey(commentKey), true);
+      editor.tf.addMark("comment", true);
+      onAddComment?.(commentKey);
+    },
+    [editor, onAddComment],
+  );
+
+  return (
+    <button
+      type="button"
+      title="评论"
+      onMouseDown={handleMouseDown}
+      className="flex size-8 items-center justify-center rounded text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
+    >
+      <MessageSquare className={ICON_SIZE} />
+    </button>
+  );
+}
+
+export function FloatingToolbar({
+  onAddComment,
+}: {
+  onAddComment?: (commentKey: string) => void;
+} = {}) {
   const editorId = useEditorId();
   const focusedEditorId = useEventEditorValue("focus");
 
@@ -232,6 +272,7 @@ export function FloatingToolbar() {
       />
       <Separator />
       <LinkButton />
+      <CommentButton onAddComment={onAddComment} />
     </div>,
     document.body,
   );

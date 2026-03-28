@@ -24,6 +24,9 @@ pub struct Model {
     pub word_count: i32,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub search_text: Option<String>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -36,6 +39,8 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     Apps,
+    #[sea_orm(has_many = "super::doc_comments::Entity")]
+    DocComments,
     #[sea_orm(
         belongs_to = "super::doc_folders::Entity",
         from = "Column::FolderId",
@@ -49,6 +54,12 @@ pub enum Relation {
 impl Related<super::apps::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Apps.def()
+    }
+}
+
+impl Related<super::doc_comments::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::DocComments.def()
     }
 }
 

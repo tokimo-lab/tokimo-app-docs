@@ -4,4 +4,4 @@ import type { JsonValue } from "./serde_json/JsonValue";
 /**
  * Full doc detail (includes content JSON)
  */
-export type DocOutput = { id: string, appId: string, folderId: string | null, title: string, content: JsonValue | null, icon: string | null, coverImage: string | null, isFavorite: boolean, isPinned: boolean, isArchived: boolean, wordCount: number, createdAt: string, updatedAt: string, };
+export type DocOutput = { id: string, appId: string, folderId: string | null, title: string, content: JsonValue | null, icon: string | null, coverImage: string | null, tags: Array<string>, isFavorite: boolean, isPinned: boolean, isArchived: boolean, wordCount: number, createdAt: string, updatedAt: string, };
