@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   AtSign,
   Calendar,
   CheckSquare,
@@ -11,22 +12,27 @@ import {
   Heading3,
   Image,
   Info,
+  Languages,
   List,
   ListOrdered,
   Minus,
   Quote,
   Sigma,
   Smile,
+  Sparkles,
   Superscript,
   Table,
   TableOfContents,
   Type,
+  Wand2,
+  Zap,
 } from "lucide-react";
 import type { TElement } from "platejs";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useDocEditorContext } from "./DocEditor";
 
 interface SlashMenuItem {
   icon: React.ReactNode;
@@ -34,6 +40,8 @@ interface SlashMenuItem {
   description: string;
   keywords: string[];
   action: (editor: ReturnType<typeof useEditorRef>) => void;
+  /** If set, fires this AI action ID instead of a normal editor action. */
+  aiActionId?: string;
 }
 
 interface SlashMenuGroup {
@@ -383,6 +391,51 @@ const SLASH_MENU_GROUPS: SlashMenuGroup[] = [
       },
     ],
   },
+  {
+    label: "AI",
+    items: [
+      {
+        icon: <Sparkles className={ICON_CLASS} />,
+        label: "AI 写作助手",
+        description: "打开 AI 面板",
+        keywords: ["ai", "assistant", "写作", "助手"],
+        aiActionId: "open-panel",
+        action: () => {},
+      },
+      {
+        icon: <Wand2 className={ICON_CLASS} />,
+        label: "AI 润色优化",
+        description: "优化选中文本",
+        keywords: ["ai", "improve", "polish", "润色", "优化"],
+        aiActionId: "improve",
+        action: () => {},
+      },
+      {
+        icon: <ArrowRight className={ICON_CLASS} />,
+        label: "AI 续写",
+        description: "从当前位置继续写作",
+        keywords: ["ai", "continue", "续写", "继续"],
+        aiActionId: "continue",
+        action: () => {},
+      },
+      {
+        icon: <Zap className={ICON_CLASS} />,
+        label: "AI 总结",
+        description: "生成文档摘要",
+        keywords: ["ai", "summarize", "summary", "总结", "摘要"],
+        aiActionId: "summarize",
+        action: () => {},
+      },
+      {
+        icon: <Languages className={ICON_CLASS} />,
+        label: "AI 翻译",
+        description: "翻译选中文本",
+        keywords: ["ai", "translate", "翻译"],
+        aiActionId: "translate-en",
+        action: () => {},
+      },
+    ],
+  },
 ];
 
 function filterItems(
@@ -408,6 +461,7 @@ function getAllItems(groups: SlashMenuGroup[]): SlashMenuItem[] {
 }
 
 export function SlashInputElement(props: PlateElementProps) {
+  const { onAiAction } = useDocEditorContext();
   const editor = useEditorRef();
   const element = useElement();
   const inputRef = useRef<HTMLSpanElement>(null);
@@ -444,9 +498,13 @@ export function SlashInputElement(props: PlateElementProps) {
   const executeItem = useCallback(
     (item: SlashMenuItem) => {
       removeInput();
-      item.action(editor);
+      if (item.aiActionId && onAiAction) {
+        onAiAction(item.aiActionId);
+      } else {
+        item.action(editor);
+      }
     },
-    [editor, removeInput],
+    [editor, removeInput, onAiAction],
   );
 
   const handleKeyDown = useCallback(

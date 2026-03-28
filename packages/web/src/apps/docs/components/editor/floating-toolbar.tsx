@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Pilcrow,
   Quote,
+  Sparkles,
   SquareCode,
   Strikethrough,
   Subscript,
@@ -204,10 +205,33 @@ function CommentButton({
   );
 }
 
+function AiButton({ onOpenAi }: { onOpenAi?: () => void }) {
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      onOpenAi?.();
+    },
+    [onOpenAi],
+  );
+
+  return (
+    <button
+      type="button"
+      title="AI 助手"
+      onMouseDown={handleMouseDown}
+      className="flex size-8 items-center justify-center rounded text-purple-500 transition-colors hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/30"
+    >
+      <Sparkles className={ICON_SIZE} />
+    </button>
+  );
+}
+
 export function FloatingToolbar({
   onAddComment,
+  onOpenAi,
 }: {
   onAddComment?: (commentKey: string) => void;
+  onOpenAi?: () => void;
 } = {}) {
   const editorId = useEditorId();
   const focusedEditorId = useEventEditorValue("focus");
@@ -273,6 +297,7 @@ export function FloatingToolbar({
       <Separator />
       <LinkButton />
       <CommentButton onAddComment={onAddComment} />
+      <AiButton onOpenAi={onOpenAi} />
     </div>,
     document.body,
   );

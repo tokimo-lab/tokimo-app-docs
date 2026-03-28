@@ -53,7 +53,7 @@ import {
   usePlateEditor,
 } from "platejs/react";
 import type { MutableRefObject } from "react";
-import { useEffect, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { BlockquoteElement } from "./elements/blockquote-element";
@@ -91,6 +91,16 @@ import { SlashInputElement } from "./slash-menu";
 
 export type DocEditorHandle = ReturnType<typeof usePlateEditor>;
 
+/** Context for passing AI actions to slash menu and other editor children. */
+interface DocEditorCtx {
+  onAiAction?: (actionId: string) => void;
+  onOpenAi?: () => void;
+}
+const DocEditorContext = createContext<DocEditorCtx>({});
+export function useDocEditorContext() {
+  return useContext(DocEditorContext);
+}
+
 export interface DocEditorProps {
   value: Value | null;
   onChange: (value: Value) => void;
@@ -98,6 +108,8 @@ export interface DocEditorProps {
   placeholder?: string;
   editorRef?: MutableRefObject<DocEditorHandle | null>;
   onAddComment?: (commentKey: string) => void;
+  onOpenAi?: () => void;
+  onAiAction?: (actionId: string) => void;
 }
 
 const EMPTY_VALUE: Value = [{ type: "p", children: [{ text: "" }] }];
@@ -226,6 +238,8 @@ export function DocEditor({
   placeholder = "输入 '/' 插入内容…",
   editorRef,
   onAddComment,
+  onOpenAi,
+  onAiAction,
 }: DocEditorProps) {
   const initialValue = useMemo(() => value ?? EMPTY_VALUE, [value]);
 
@@ -237,6 +251,11 @@ export function DocEditor({
     if (editorRef) editorRef.current = editor;
   }, [editor, editorRef]);
 
+  const editorCtx = useMemo(
+    () => ({ onAiAction, onOpenAi }),
+    [onAiAction, onOpenAi],
+  );
+
   if (!editor) {
     return (
       <div className="flex min-h-[200px] items-center justify-center text-zinc-400">
@@ -246,21 +265,25 @@ export function DocEditor({
   }
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <Plate
-        editor={editor}
-        onValueChange={({ value: newValue }) => onChange(newValue)}
-        readOnly={readOnly}
-      >
-        <div className="relative mx-auto w-full max-w-3xl px-6 py-8">
-          <PlateContent
-            className="doc-editor-content min-h-[200px] outline-none [&_[data-slate-placeholder]]:!text-zinc-400 [&_[data-slate-placeholder]]:!opacity-100 dark:[&_[data-slate-placeholder]]:!text-zinc-500"
-            placeholder={placeholder}
-          />
-        </div>
-        {!readOnly && <FloatingToolbar onAddComment={onAddComment} />}
-        {!readOnly && <LinkFloatingToolbar />}
-      </Plate>
-    </DndProvider>
+    <DocEditorContext.Provider value={editorCtx}>
+      <DndProvider backend={HTML5Backend}>
+        <Plate
+          editor={editor}
+          onValueChange={({ value: newValue }) => onChange(newValue)}
+          readOnly={readOnly}
+        >
+          <div className="relative mx-auto w-full max-w-3xl px-6 py-8">
+            <PlateContent
+              className="doc-editor-content min-h-[200px] outline-none [&_[data-slate-placeholder]]:!text-zinc-400 [&_[data-slate-placeholder]]:!opacity-100 dark:[&_[data-slate-placeholder]]:!text-zinc-500"
+              placeholder={placeholder}
+            />
+          </div>
+          {!readOnly && (
+            <FloatingToolbar onAddComment={onAddComment} onOpenAi={onOpenAi} />
+          )}
+          {!readOnly && <LinkFloatingToolbar />}
+        </Plate>
+      </DndProvider>
+    </DocEditorContext.Provider>
   );
 }
