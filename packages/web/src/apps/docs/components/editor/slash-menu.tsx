@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Code,
   Columns2,
+  GitBranch,
   Heading1,
   Heading2,
   Heading3,
@@ -337,6 +338,19 @@ const SLASH_MENU_GROUPS: SlashMenuGroup[] = [
           editor.tf.insertNodes({
             type: "inline_equation",
             texExpression: "",
+            children: [{ text: "" }],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <GitBranch className={ICON_CLASS} />,
+        label: "Mermaid 图表",
+        description: "流程图、序列图、甘特图等",
+        keywords: ["mermaid", "diagram", "flowchart", "图表", "流程图"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "mermaid",
+            code: "graph TD\n  A[开始] --> B{判断}\n  B -->|是| C[结果1]\n  B -->|否| D[结果2]",
             children: [{ text: "" }],
           } as unknown as TElement);
         },

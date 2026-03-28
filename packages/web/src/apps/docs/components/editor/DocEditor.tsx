@@ -45,6 +45,7 @@ import { TogglePlugin } from "@platejs/toggle/react";
 import "katex/dist/katex.min.css";
 import { common, createLowlight } from "lowlight";
 import type { Value } from "platejs";
+import { createSlatePlugin } from "platejs";
 import {
   ParagraphPlugin,
   Plate,
@@ -74,6 +75,7 @@ import { ImageElement } from "./elements/image-element";
 import { LinkElement } from "./elements/link-element";
 import { MentionElement } from "./elements/mention-element";
 import { MentionInputElement } from "./elements/mention-input-element";
+import { MermaidElement } from "./elements/mermaid-element";
 import { ParagraphElement } from "./elements/paragraph-element";
 import {
   TableCellElement,
@@ -166,6 +168,12 @@ const plugins = [
   // Equations
   EquationPlugin.withComponent(EquationElement),
   InlineEquationPlugin.withComponent(InlineEquationElement),
+
+  // Mermaid diagrams
+  createSlatePlugin({
+    key: "mermaid",
+    node: { isElement: true, isVoid: true },
+  }).withComponent(MermaidElement),
 
   // Mention (@)
   MentionPlugin.configure({
