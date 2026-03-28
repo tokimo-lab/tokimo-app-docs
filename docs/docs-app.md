@@ -110,7 +110,7 @@
 
 ## 四、前端架构
 
-### 编辑器插件（30+）
+### 编辑器插件（36+）
 
 **Element 插件：**
 
@@ -118,12 +118,18 @@
 |------|-----------|----------|
 | `ParagraphPlugin` | `p` | `ParagraphElement` |
 | `H1/H2/H3Plugin` | `h1`/`h2`/`h3` | `HeadingElement` |
+| `H4/H5/H6Plugin` | `h4`/`h5`/`h6` | `HeadingElement` |
 | `BlockquotePlugin` | `blockquote` | `BlockquoteElement` |
 | `HorizontalRulePlugin` | `hr` | `HrElement` |
 | `CodeBlockPlugin` | `code_block` | `CodeBlockElement` |
 | `CodeLinePlugin` | `code_line` | `CodeLineElement` |
 | `LinkPlugin` | `a` | `LinkElement` |
 | `ImagePlugin` | `img` | `ImageElement` |
+| `VideoPlugin` (custom) | `video` | `VideoElement` |
+| `AudioPlugin` (custom) | `audio` | `AudioElement` |
+| `FilePlugin` (custom) | `file` | `FileElement` |
+| `MediaEmbedPlugin` | `media_embed` | `MediaEmbedElement` |
+| `BookmarkPlugin` (custom) | `bookmark` | `BookmarkElement` |
 | `TablePlugin` | `table` | `TableElement` |
 | `CalloutPlugin` | `callout` | `CalloutElement` |
 | `TogglePlugin` | `toggle` | `ToggleElement` |
@@ -142,19 +148,21 @@
 
 **功能插件**：ListPlugin, IndentPlugin, SlashPlugin, AutoformatPlugin, DndPlugin, DocxPlugin
 
-### Slash Menu（25+ 项）
+### Slash Menu（29+ 项）
 
 | 分组 | 项目 |
 |------|------|
-| **Text** | Paragraph, H1, H2, H3 |
+| **Text** | Paragraph, H1, H2, H3, H4, H5, H6 |
 | **Lists** | Bulleted, Numbered, To-do, Toggle |
 | **Content** | Quote, Code Block, Divider, Table, Callout, Image |
+| **Media** | Video, Audio, File, Media Embed, Bookmark, VFS File Reference |
 | **Layout** | 2-Column, 3-Column, Table of Contents |
 | **Advanced** | Equation, Inline Equation, Date, @Mention, :Emoji, Mermaid |
+| **AI** | 润色、翻译(中/英)、总结、续写、修正语法 |
 
 ### Floating Toolbar
 
-选中文本浮现：Bold · Italic · Underline · Strikethrough · Code · Highlight · Link · Turn Into (块类型切换) · Comment
+选中文本浮现：Bold · Italic · Underline · Strikethrough · Code · Highlight · Link · Turn Into (块类型切换) · Comment · AI 助手（润色/翻译/总结/续写/语法修正）
 
 ### App Page（`DocAppPage.tsx`）
 
@@ -207,7 +215,8 @@
 | `components/docs/editor/DocEditor.tsx` | Plate 编辑器核心 |
 | `components/docs/editor/slash-menu.tsx` | 斜杠命令菜单 |
 | `components/docs/editor/floating-toolbar.tsx` | 浮动格式化工具栏 |
-| `components/docs/editor/elements/*.tsx` | 各类型元素渲染组件 (20+) |
+| `components/docs/editor/elements/*.tsx` | 各类型元素渲染组件 (26+) |
+| `components/docs/editor/VfsFilePickerModal.tsx` | VFS 文件选择器 |
 | `components/docs/DocTemplateChooser.tsx` | 模板选择器 |
 | `components/docs/DocTagInput.tsx` | 标签编辑器 |
 | `components/docs/DocVersionHistory.tsx` | 版本历史侧边栏 |
@@ -288,18 +297,109 @@ const MermaidPlugin = createSlatePlugin({
 
 ---
 
-## 八、后续规划
+## 八、Phase 4-5 已完成功能
 
-### Phase 4（进行中）
+### Phase 4：AI 与高级功能 ✅
 
-- AI 集成（@platejs/ai + Tokimo /api/ai/*）
-- Yjs 实时协同编辑
-- Track Changes / Suggest 模式
-- DOCX 导出（programmatic）
+#### AI 集成
 
-### Phase 5
+文档编辑器通过系统级 AI 助手实现 AI 功能（非独立面板）：
 
-- 看板视图（Kanban）
-- 思维导图
-- 外部内容嵌入
-- 文档权限管理
+- **上下文传递**：从文档打开 AI 助手时，自动提取编辑器全文并作为上下文注入
+  - `getEditorText()` 递归遍历 Slate 节点提取纯文本
+  - 通过 `openAiAssistant({ context, contextLabel })` 事件传递
+  - AI 消息格式：`[以下是当前文档内容]\n\n{文档全文}\n\n[用户请求]\n{用户消息}`
+  - UI 显示上下文徽章（"已附加：{文档标题}"），可手动解除
+- **AI 操作菜单**：浮动工具栏集成 AI 操作（润色、翻译、总结、续写、修正语法）
+  - 选中文本后通过 `handleAiAction()` 构建 prompt 发送
+
+#### Mermaid 图表
+
+- 自定义 `MermaidPlugin`（`createSlatePlugin`，isVoid + isElement）
+- `MermaidElement`：代码编辑器 + 实时 Mermaid 渲染预览
+- Slash menu 入口：`/mermaid`
+
+#### DOCX 导出
+
+- 使用 `docx` + `file-saver` npm 包
+- Slate JSON → `docx.Document` 编程式转换
+- 支持：标题层级、列表、表格、代码块、引用、链接、图片（base64 嵌入）
+
+#### DOCX 粘贴
+
+- `@platejs/docx` 插件自动清理 Word 粘贴内容
+- 保留结构化元素（标题、列表、表格）
+
+### Phase 5：扩展块类型 ✅
+
+| 块类型 | 插件 | 节点类型 | 渲染组件 | Slash 入口 |
+|--------|------|----------|----------|------------|
+| H4-H6 标题 | `H4Plugin`/`H5Plugin`/`H6Plugin` | `h4`/`h5`/`h6` | `HeadingElement` | `/h4`、`/h5`、`/h6` |
+| 视频 | `VideoPlugin` (custom) | `video` | `VideoElement` | `/video` |
+| 音频 | `AudioPlugin` (custom) | `audio` | `AudioElement` | `/audio` |
+| 文件附件 | `FilePlugin` (custom) | `file` | `FileElement` | `/file` |
+| 媒体嵌入 | `MediaEmbedPlugin` | `media_embed` | `MediaEmbedElement` | `/embed` |
+| 书签链接卡 | `BookmarkPlugin` (custom) | `bookmark` | `BookmarkElement` | `/bookmark` |
+
+#### VFS 文件引用
+
+- 从系统 VFS（虚拟文件系统）引用文件，通过 `VfsFilePickerModal` 选择
+- 文件类型自动识别 → 插入对应块类型（图片→img、视频→video、音频→audio、其他→file）
+- Slash menu 入口：`/vfs` 或 `/文件引用`
+- 前端通过 `onInsertVfsFile` 回调集成到 `DocEditorContext`
+
+---
+
+## 九、系统 AI 助手集成
+
+文档应用的 AI 功能通过 Tokimo 系统级 AI 助手实现，而非内嵌独立 AI 面板。
+
+### 架构
+
+```
+DocAppPage
+  ├── handleOpenAi()         → 提取文档全文 → openAiAssistant(context)
+  ├── handleAiAction(type)   → 构建特定 prompt → openAiAssistant(prompt)
+  └── getSelectedText()      → 获取选中文本（用于 AI 操作）
+
+         ↓ CustomEvent("open-ai-assistant")
+
+MenuBar → AiAssistant (系统级浮窗)
+  ├── 接收 context/contextLabel
+  ├── buildContent(message)  → 拼接上下文 + 用户消息
+  └── 发送至 /api/ai/chat/stream
+```
+
+### 入口
+
+1. **工具栏按钮**：编辑区右上角 `Sparkles` 图标 → 调用 `handleOpenAi()` 传递文档全文
+2. **浮动工具栏**：选中文本后 AI 菜单 → 调用 `handleAiAction(type)` 传递选中文本 + prompt
+3. **Slash 命令**：`/ai` 系列命令（润色、翻译、总结、续写、语法修正）
+
+### AI 操作类型
+
+| 类型 | Prompt | 说明 |
+|------|--------|------|
+| `polish` | 润色以下文本... | 文字润色 |
+| `translate-en` | 翻译为英文... | 翻译 |
+| `translate-zh` | 翻译为中文... | 翻译 |
+| `summarize` | 总结要点... | 摘要 |
+| `continue` | 续写... | 续写 |
+| `fix-grammar` | 修正语法... | 语法修正 |
+
+---
+
+## 十、后续规划
+
+### 已推迟
+
+- **Yjs 实时协同**：需要 WebSocket + Yjs 基础设施，单用户场景优先级低
+- **Track Changes**：Plate 无官方 suggestion 插件，需自建复杂
+
+### 未来迭代
+
+- 数据库视图（看板/画廊/日历）
+- 同步块（Synced Block）
+- 高级表格（列宽调整、排序）
+- 画板/思维导图
+- 演示模式
