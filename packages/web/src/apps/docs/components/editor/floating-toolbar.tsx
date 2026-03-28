@@ -1,14 +1,26 @@
 import { useFloatingToolbar, useFloatingToolbarState } from "@platejs/floating";
+import { triggerFloatingLinkInsert } from "@platejs/link/react";
 import {
   Bold,
+  ChevronDown,
   Code,
+  Heading1,
+  Heading2,
+  Heading3,
   Highlighter,
   Italic,
+  Link,
+  Pilcrow,
+  Quote,
+  SquareCode,
   Strikethrough,
+  Subscript,
+  Superscript,
   Underline,
 } from "lucide-react";
+import type { TElement } from "platejs";
 import { useEditorId, useEditorRef, useEventEditorValue } from "platejs/react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface MarkButtonProps {
@@ -49,7 +61,112 @@ function MarkButton({ markKey, icon, title }: MarkButtonProps) {
   );
 }
 
+function Separator() {
+  return <div className="mx-0.5 h-5 w-px bg-zinc-200 dark:bg-zinc-700" />;
+}
+
 const ICON_SIZE = "size-4";
+
+const BLOCK_TYPES = [
+  { type: "p", label: "Paragraph", icon: Pilcrow },
+  { type: "h1", label: "Heading 1", icon: Heading1 },
+  { type: "h2", label: "Heading 2", icon: Heading2 },
+  { type: "h3", label: "Heading 3", icon: Heading3 },
+  { type: "blockquote", label: "Quote", icon: Quote },
+  { type: "code_block", label: "Code Block", icon: SquareCode },
+] as const;
+
+function TurnIntoDropdown() {
+  const editor = useEditorRef();
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const blockEntry = editor.api.block();
+  const currentType = (blockEntry?.[0]?.type as string) ?? "p";
+  const currentBlock = BLOCK_TYPES.find((b) => b.type === currentType);
+  const CurrentIcon = currentBlock?.icon ?? Pilcrow;
+
+  useEffect(() => {
+    if (!open) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (!wrapperRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [open]);
+
+  const handleSelect = useCallback(
+    (type: string) => {
+      editor.tf.setNodes({ type } as Partial<TElement>);
+      setOpen(false);
+    },
+    [editor],
+  );
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <button
+        type="button"
+        title="Turn into…"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setOpen((v) => !v);
+        }}
+        className="flex h-8 items-center gap-0.5 rounded px-1.5 text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
+      >
+        <CurrentIcon className={ICON_SIZE} />
+        <ChevronDown className="size-3" />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 z-[9999] mt-1 min-w-[160px] rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
+          {BLOCK_TYPES.map(({ type, label, icon: Icon }) => (
+            <button
+              key={type}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleSelect(type);
+              }}
+              className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors ${
+                currentType === type
+                  ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                  : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700"
+              }`}
+            >
+              <Icon className={ICON_SIZE} />
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LinkButton() {
+  const editor = useEditorRef();
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      triggerFloatingLinkInsert(editor, { focused: true });
+    },
+    [editor],
+  );
+
+  return (
+    <button
+      type="button"
+      title="Link (⌘K)"
+      onMouseDown={handleMouseDown}
+      className="flex size-8 items-center justify-center rounded text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
+    >
+      <Link className={ICON_SIZE} />
+    </button>
+  );
+}
 
 export function FloatingToolbar() {
   const editorId = useEditorId();
@@ -70,6 +187,8 @@ export function FloatingToolbar() {
       className="z-[9999] flex items-center gap-0.5 rounded-lg border border-zinc-200 bg-white px-1 py-0.5 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
       {...props}
     >
+      <TurnIntoDropdown />
+      <Separator />
       <MarkButton
         markKey="bold"
         icon={<Bold className={ICON_SIZE} />}
@@ -90,7 +209,7 @@ export function FloatingToolbar() {
         icon={<Strikethrough className={ICON_SIZE} />}
         title="Strikethrough"
       />
-      <div className="mx-0.5 h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
+      <Separator />
       <MarkButton
         markKey="code"
         icon={<Code className={ICON_SIZE} />}
@@ -101,6 +220,18 @@ export function FloatingToolbar() {
         icon={<Highlighter className={ICON_SIZE} />}
         title="Highlight"
       />
+      <MarkButton
+        markKey="superscript"
+        icon={<Superscript className={ICON_SIZE} />}
+        title="Superscript"
+      />
+      <MarkButton
+        markKey="subscript"
+        icon={<Subscript className={ICON_SIZE} />}
+        title="Subscript"
+      />
+      <Separator />
+      <LinkButton />
     </div>,
     document.body,
   );

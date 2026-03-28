@@ -75,6 +75,7 @@ import {
 import { TocElement } from "./elements/toc-element";
 import { ToggleElement } from "./elements/toggle-element";
 import { FloatingToolbar } from "./floating-toolbar";
+import { LinkFloatingToolbar } from "./link-floating";
 import { SlashInputElement } from "./slash-menu";
 
 export type DocEditorHandle = ReturnType<typeof usePlateEditor>;
@@ -221,6 +222,7 @@ export function DocEditor({
           />
         </div>
         {!readOnly && <FloatingToolbar />}
+        {!readOnly && <LinkFloatingToolbar />}
       </Plate>
     </DndProvider>
   );
