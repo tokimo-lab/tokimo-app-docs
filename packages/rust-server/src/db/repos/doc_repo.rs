@@ -21,6 +21,7 @@ impl DocRepo {
         folder_id: Option<Uuid>,
         favorites_only: bool,
         tags_filter: Option<&[String]>,
+        archived: bool,
     ) -> Result<Page<DocListItem>, AppError> {
         let mut query = docs::Entity::find().filter(docs::Column::AppId.eq(app_id));
 
@@ -33,8 +34,8 @@ impl DocRepo {
             query = query.filter(docs::Column::IsFavorite.eq(true));
         }
 
-        // Exclude archived by default
-        query = query.filter(docs::Column::IsArchived.eq(false));
+        // Filter by archived status
+        query = query.filter(docs::Column::IsArchived.eq(archived));
 
         // Full-text search: title + content
         if let Some(term) = search {

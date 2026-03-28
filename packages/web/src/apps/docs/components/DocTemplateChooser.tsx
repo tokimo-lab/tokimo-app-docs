@@ -1,0 +1,88 @@
+/**
+ * DocTemplateChooser — Modal dialog for choosing a document template.
+ *
+ * Displays template cards in a responsive grid. On selection, the parent
+ * creates a new doc and populates its content from the chosen template.
+ */
+
+import { cn, Modal } from "@tokiomo/components";
+import {
+  BookOpen,
+  Calendar,
+  ClipboardList,
+  FileText,
+  LayoutTemplate,
+  Lightbulb,
+  ListChecks,
+  Pencil,
+} from "lucide-react";
+import type { ReactNode } from "react";
+import { DOC_TEMPLATES, type DocTemplate } from "./doc-templates";
+
+// ── Icon mapping ─────────────────────────────────────────────────────────────
+
+const ICON_MAP: Record<string, ReactNode> = {
+  FileText: <FileText size={22} />,
+  Calendar: <Calendar size={22} />,
+  ClipboardList: <ClipboardList size={22} />,
+  LayoutTemplate: <LayoutTemplate size={22} />,
+  ListChecks: <ListChecks size={22} />,
+  Lightbulb: <Lightbulb size={22} />,
+  BookOpen: <BookOpen size={22} />,
+  Pencil: <Pencil size={22} />,
+};
+
+// ── Props ────────────────────────────────────────────────────────────────────
+
+interface DocTemplateChooserProps {
+  open: boolean;
+  onClose: () => void;
+  onSelect: (template: DocTemplate) => void;
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
+
+export function DocTemplateChooser({
+  open,
+  onClose,
+  onSelect,
+}: DocTemplateChooserProps) {
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      title="选择模板"
+      size="large"
+      footer={null}
+    >
+      <div className="grid grid-cols-2 gap-3 p-2 sm:grid-cols-3 md:grid-cols-4">
+        {DOC_TEMPLATES.map((tpl) => (
+          <button
+            key={tpl.id}
+            type="button"
+            onClick={() => {
+              onSelect(tpl);
+              onClose();
+            }}
+            className={cn(
+              "flex flex-col items-center gap-2 rounded-lg border px-4 py-5 text-center transition-all",
+              "border-zinc-200 bg-white hover:border-blue-400 hover:shadow-md",
+              "dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-blue-500 dark:hover:shadow-blue-900/20",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+            )}
+          >
+            <span className="flex size-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+              {ICON_MAP[tpl.icon] ?? <FileText size={22} />}
+            </span>
+            <span className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
+              {tpl.name}
+            </span>
+            <span className="line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
+              {tpl.description}
+            </span>
+          </button>
+        ))}
+      </div>
+    </Modal>
+  );
+}

@@ -23,6 +23,11 @@ pub fn build_doc_routes() -> Router<Arc<AppState>> {
         .route("/api/docs/{id}/favorite", patch(doc::toggle_favorite))
         .route("/api/docs/{id}/pin", patch(doc::toggle_pin))
         .route("/api/docs/{id}/move", patch(doc::move_doc))
+        .route("/api/docs/{id}/restore", patch(doc::restore_doc))
+        .route(
+            "/api/docs/{id}/permanent",
+            axum::routing::delete(doc::permanent_delete_doc),
+        )
         .route(
             "/api/docs/{id}/comments",
             get(doc::list_comments).post(doc::create_comment),

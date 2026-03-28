@@ -52,6 +52,7 @@ interface ListDocsQuery {
   folderId?: string | null;
   favoritesOnly?: boolean;
   tags?: string;
+  archived?: boolean;
 }
 
 interface CreateCommentInput {
@@ -89,6 +90,7 @@ export const docApi = {
       if (input.folderId) p.folderId = input.folderId;
       if (input.favoritesOnly) p.favoritesOnly = "true";
       if (input.tags) p.tags = input.tags;
+      if (input.archived) p.archived = "true";
       return p;
     },
   }),
@@ -124,6 +126,16 @@ export const docApi = {
   delete: createPathMutation<{ id: string }, void>({
     method: "DELETE",
     pathFn: (input) => `/api/docs/${encodeURIComponent(input.id)}`,
+  }),
+
+  restore: createPathMutation<{ id: string }, void>({
+    method: "PATCH",
+    pathFn: (input) => `/api/docs/${encodeURIComponent(input.id)}/restore`,
+  }),
+
+  permanentDelete: createPathMutation<{ id: string }, void>({
+    method: "DELETE",
+    pathFn: (input) => `/api/docs/${encodeURIComponent(input.id)}/permanent`,
   }),
 
   toggleFavorite: createPathMutation<{ id: string }, { isFavorite: boolean }>({

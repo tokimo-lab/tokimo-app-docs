@@ -37,6 +37,7 @@ pub struct ListDocsQuery {
     pub folder_id: Option<String>,
     pub favorites_only: Option<bool>,
     pub tags: Option<String>,
+    pub archived: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -125,6 +126,7 @@ pub async fn list_docs(
         folder_id,
         q.favorites_only.unwrap_or(false),
         tags_filter.as_deref(),
+        q.archived.unwrap_or(false),
     )
     .await?;
     Ok(ok(serde_json::json!({
@@ -212,8 +214,34 @@ pub async fn update_doc(
     Ok(ok(DocOutput::from(doc)))
 }
 
-/// DELETE /api/docs/{id}
+/// DELETE /api/docs/{id} — soft delete (archive)
 pub async fn delete_doc(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<Json<ApiResponse<()>>, AppError> {
+    let doc_id = parse_uuid(&id)?;
+    let archived = DocRepo::archive(&state.db, doc_id, true).await?;
+    if !archived {
+        return Err(AppError::NotFound("doc not found".into()));
+    }
+    Ok(ok_empty())
+}
+
+/// PATCH /api/docs/{id}/restore
+pub async fn restore_doc(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<Json<ApiResponse<()>>, AppError> {
+    let doc_id = parse_uuid(&id)?;
+    let restored = DocRepo::archive(&state.db, doc_id, false).await?;
+    if !restored {
+        return Err(AppError::NotFound("doc not found".into()));
+    }
+    Ok(ok_empty())
+}
+
+/// DELETE /api/docs/{id}/permanent — hard delete
+pub async fn permanent_delete_doc(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
