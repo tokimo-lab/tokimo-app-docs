@@ -146,10 +146,10 @@ function saveProviderModel(provider: string, model: string) {
 interface DocAiPanelProps {
   open: boolean;
   onClose: () => void;
-  /** Selected text from the editor (if any). */
-  selectedText: string;
-  /** Full document text for context. */
-  fullText: string;
+  /** Getter for selected text from the editor (called on demand). */
+  getSelectedText: () => string;
+  /** Getter for full document text (called on demand). */
+  getFullText: () => string;
   /** Called when user wants to insert AI result at cursor. */
   onInsert: (text: string) => void;
   /** Called when user wants to replace selection with AI result. */
@@ -159,8 +159,8 @@ interface DocAiPanelProps {
 export function DocAiPanel({
   open,
   onClose,
-  selectedText,
-  fullText,
+  getSelectedText,
+  getFullText,
   onInsert,
   onReplace,
 }: DocAiPanelProps) {
@@ -227,6 +227,8 @@ export function DocAiPanel({
   const runAction = useCallback(
     (action: AiAction) => {
       if (!provider || !model) return;
+      const selectedText = getSelectedText();
+      const fullText = getFullText();
       const text = action.needsSelection ? selectedText : fullText;
       if (!text.trim()) return;
       reset();
@@ -239,11 +241,13 @@ export function DocAiPanel({
         maxTokens: 4000,
       });
     },
-    [provider, model, selectedText, fullText, complete, reset],
+    [provider, model, getSelectedText, getFullText, complete, reset],
   );
 
   const runCustom = useCallback(() => {
     if (!provider || !model || !customPrompt.trim()) return;
+    const selectedText = getSelectedText();
+    const fullText = getFullText();
     const context = selectedText || fullText;
     const prompt = context
       ? `${customPrompt}\n\n---\n\n${context.slice(0, 4000)}`
@@ -258,7 +262,15 @@ export function DocAiPanel({
       temperature: 0.7,
       maxTokens: 4000,
     });
-  }, [provider, model, customPrompt, selectedText, fullText, complete, reset]);
+  }, [
+    provider,
+    model,
+    customPrompt,
+    getSelectedText,
+    getFullText,
+    complete,
+    reset,
+  ]);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(content);
@@ -278,7 +290,6 @@ export function DocAiPanel({
 
   if (!open) return null;
 
-  const hasSelection = selectedText.trim().length > 0;
   const hasResult = content.length > 0 || isStreaming;
   const noProvider = enabledProviders.length === 0;
 
@@ -363,15 +374,6 @@ export function DocAiPanel({
             )}
           </div>
 
-          {/* Selection indicator */}
-          {hasSelection && (
-            <div className="border-b border-zinc-100 px-3 py-1.5 dark:border-zinc-800">
-              <span className="text-[11px] text-purple-600 dark:text-purple-400">
-                ✦ 已选中 {selectedText.length} 个字符
-              </span>
-            </div>
-          )}
-
           {/* Quick actions */}
           <div className="flex-1 overflow-y-auto">
             {!hasResult && (
@@ -381,17 +383,15 @@ export function DocAiPanel({
                 </div>
                 <div className="grid grid-cols-2 gap-1.5">
                   {AI_ACTIONS.map((action) => {
-                    const disabled =
-                      action.needsSelection && !hasSelection && !fullText;
                     return (
                       <button
                         key={action.id}
                         type="button"
-                        disabled={disabled || isStreaming}
+                        disabled={isStreaming}
                         onClick={() => runAction(action)}
                         className={cn(
                           "flex items-center gap-1.5 rounded-md border px-2 py-2 text-left text-xs transition-colors",
-                          disabled
+                          isStreaming
                             ? "cursor-not-allowed border-zinc-100 text-zinc-300 dark:border-zinc-800 dark:text-zinc-600"
                             : "border-zinc-200 text-zinc-600 hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-purple-800 dark:hover:bg-purple-900/20 dark:hover:text-purple-300",
                         )}
@@ -440,7 +440,7 @@ export function DocAiPanel({
                 {/* Action buttons */}
                 {!isStreaming && content && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {hasSelection && (
+                    {getSelectedText().length > 0 && (
                       <button
                         type="button"
                         onClick={() => onReplace(content)}
