@@ -101,16 +101,18 @@ import {
 } from "./elements/table-element";
 import { TocElement } from "./elements/toc-element";
 import { ToggleElement } from "./elements/toggle-element";
+import { VfsFileElement } from "./elements/vfs-file-element";
 import { FloatingToolbar } from "./floating-toolbar";
 import { LinkFloatingToolbar } from "./link-floating";
 import { SlashInputElement } from "./slash-menu";
 
 export type DocEditorHandle = ReturnType<typeof usePlateEditor>;
 
-/** Context for passing AI actions to slash menu and other editor children. */
+/** Context for passing AI actions and VFS picker to slash menu and other editor children. */
 interface DocEditorCtx {
   onAiAction?: (actionId: string) => void;
   onOpenAi?: () => void;
+  onInsertVfsFile?: () => void;
 }
 const DocEditorContext = createContext<DocEditorCtx>({});
 export function useDocEditorContext() {
@@ -126,6 +128,7 @@ export interface DocEditorProps {
   onAddComment?: (commentKey: string) => void;
   onOpenAi?: () => void;
   onAiAction?: (actionId: string) => void;
+  onInsertVfsFile?: () => void;
 }
 
 const EMPTY_VALUE: Value = [{ type: "p", children: [{ text: "" }] }];
@@ -227,6 +230,12 @@ const plugins = [
     node: { isElement: true, isVoid: true },
   }).withComponent(BookmarkElement),
 
+  // VFS file reference
+  createSlatePlugin({
+    key: "vfs_file",
+    node: { isElement: true, isVoid: true },
+  }).withComponent(VfsFileElement),
+
   // Mention (@)
   MentionPlugin.configure({
     options: { trigger: "@", insertSpaceAfterMention: true },
@@ -280,6 +289,7 @@ export function DocEditor({
   onAddComment,
   onOpenAi,
   onAiAction,
+  onInsertVfsFile,
 }: DocEditorProps) {
   const initialValue = useMemo(() => value ?? EMPTY_VALUE, [value]);
 
@@ -292,8 +302,8 @@ export function DocEditor({
   }, [editor, editorRef]);
 
   const editorCtx = useMemo(
-    () => ({ onAiAction, onOpenAi }),
-    [onAiAction, onOpenAi],
+    () => ({ onAiAction, onOpenAi, onInsertVfsFile }),
+    [onAiAction, onOpenAi, onInsertVfsFile],
   );
 
   if (!editor) {

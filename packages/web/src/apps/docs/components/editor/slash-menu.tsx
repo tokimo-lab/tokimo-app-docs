@@ -9,6 +9,7 @@ import {
   ExternalLink,
   FileIcon,
   GitBranch,
+  HardDrive,
   Heading1,
   Heading2,
   Heading3,
@@ -49,6 +50,8 @@ interface SlashMenuItem {
   action: (editor: ReturnType<typeof useEditorRef>) => void;
   /** If set, fires this AI action ID instead of a normal editor action. */
   aiActionId?: string;
+  /** If true, opens VFS file picker instead of a normal editor action. */
+  vfsAction?: boolean;
 }
 
 interface SlashMenuGroup {
@@ -361,6 +364,22 @@ const SLASH_MENU_GROUPS: SlashMenuGroup[] = [
         },
       },
       {
+        icon: <HardDrive className={ICON_CLASS} />,
+        label: "VFS File",
+        description: "Reference a file from storage",
+        keywords: [
+          "vfs",
+          "file",
+          "reference",
+          "storage",
+          "引用",
+          "文件",
+          "存储",
+        ],
+        vfsAction: true,
+        action: () => {},
+      },
+      {
         icon: <Columns2 className={ICON_CLASS} />,
         label: "2 Columns",
         description: "Two column layout",
@@ -561,7 +580,7 @@ function getAllItems(groups: SlashMenuGroup[]): SlashMenuItem[] {
 }
 
 export function SlashInputElement(props: PlateElementProps) {
-  const { onAiAction } = useDocEditorContext();
+  const { onAiAction, onInsertVfsFile } = useDocEditorContext();
   const editor = useEditorRef();
   const element = useElement();
   const inputRef = useRef<HTMLSpanElement>(null);
@@ -598,13 +617,15 @@ export function SlashInputElement(props: PlateElementProps) {
   const executeItem = useCallback(
     (item: SlashMenuItem) => {
       removeInput();
-      if (item.aiActionId && onAiAction) {
+      if (item.vfsAction && onInsertVfsFile) {
+        onInsertVfsFile();
+      } else if (item.aiActionId && onAiAction) {
         onAiAction(item.aiActionId);
       } else {
         item.action(editor);
       }
     },
-    [editor, removeInput, onAiAction],
+    [editor, removeInput, onAiAction, onInsertVfsFile],
   );
 
   const handleKeyDown = useCallback(
