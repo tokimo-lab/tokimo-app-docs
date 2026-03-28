@@ -23,12 +23,14 @@ import {
 } from "@platejs/code-block/react";
 import { DatePlugin } from "@platejs/date/react";
 import { DndPlugin } from "@platejs/dnd";
+import { EmojiInputPlugin, EmojiPlugin } from "@platejs/emoji/react";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ColumnItemPlugin, ColumnPlugin } from "@platejs/layout/react";
 import { LinkPlugin } from "@platejs/link/react";
 import { ListPlugin } from "@platejs/list/react";
 import { EquationPlugin, InlineEquationPlugin } from "@platejs/math/react";
 import { ImagePlugin } from "@platejs/media/react";
+import { MentionInputPlugin, MentionPlugin } from "@platejs/mention/react";
 import { SlashInputPlugin, SlashPlugin } from "@platejs/slash-command/react";
 import {
   TableCellHeaderPlugin,
@@ -38,6 +40,7 @@ import {
 } from "@platejs/table/react";
 import { TocPlugin } from "@platejs/toc/react";
 import { TogglePlugin } from "@platejs/toggle/react";
+import "katex/dist/katex.min.css";
 import { common, createLowlight } from "lowlight";
 import type { Value } from "platejs";
 import {
@@ -57,6 +60,7 @@ import { CodeLineElement } from "./elements/code-line-element";
 import { CodeSyntaxLeaf } from "./elements/code-syntax-leaf";
 import { ColumnElement, ColumnGroupElement } from "./elements/column-element";
 import { DateElement } from "./elements/date-element";
+import { EmojiInputElement } from "./elements/emoji-input-element";
 import {
   EquationElement,
   InlineEquationElement,
@@ -65,6 +69,8 @@ import { HeadingElement } from "./elements/heading-element";
 import { HrElement } from "./elements/hr-element";
 import { ImageElement } from "./elements/image-element";
 import { LinkElement } from "./elements/link-element";
+import { MentionElement } from "./elements/mention-element";
+import { MentionInputElement } from "./elements/mention-input-element";
 import { ParagraphElement } from "./elements/paragraph-element";
 import {
   TableCellElement,
@@ -156,6 +162,18 @@ const plugins = [
   // Equations
   EquationPlugin.withComponent(EquationElement),
   InlineEquationPlugin.withComponent(InlineEquationElement),
+
+  // Mention (@)
+  MentionPlugin.configure({
+    options: { trigger: "@", insertSpaceAfterMention: true },
+  }).withComponent(MentionElement),
+  MentionInputPlugin.withComponent(MentionInputElement),
+
+  // Emoji (:)
+  EmojiPlugin.configure({
+    options: { trigger: ":" },
+  }),
+  EmojiInputPlugin.withComponent(EmojiInputElement),
 
   // Marks (no withComponent — built-in rendering)
   BoldPlugin,

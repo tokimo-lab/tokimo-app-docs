@@ -1,4 +1,5 @@
 import {
+  AtSign,
   Calendar,
   CheckSquare,
   ChevronRight,
@@ -14,6 +15,8 @@ import {
   Minus,
   Quote,
   Sigma,
+  Smile,
+  Superscript,
   Table,
   TableOfContents,
   Type,
@@ -315,12 +318,51 @@ const SLASH_MENU_GROUPS: SlashMenuGroup[] = [
       {
         icon: <Sigma className={ICON_CLASS} />,
         label: "Equation",
-        description: "LaTeX math equation",
+        description: "LaTeX math equation block",
         keywords: ["equation", "math", "latex", "formula"],
         action: (editor) => {
           editor.tf.insertNodes({
             type: "equation",
             texExpression: "",
+            children: [{ text: "" }],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <Superscript className={ICON_CLASS} />,
+        label: "Inline Equation",
+        description: "Inline LaTeX formula",
+        keywords: ["inline", "equation", "math", "formula"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "inline_equation",
+            texExpression: "",
+            children: [{ text: "" }],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <AtSign className={ICON_CLASS} />,
+        label: "Mention",
+        description: "Mention a user with @",
+        keywords: ["mention", "at", "user", "person"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "mention_input",
+            trigger: "@",
+            children: [{ text: "" }],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <Smile className={ICON_CLASS} />,
+        label: "Emoji",
+        description: "Insert an emoji",
+        keywords: ["emoji", "emoticon", "smiley", "face"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "emoji_input",
+            trigger: ":",
             children: [{ text: "" }],
           } as unknown as TElement);
         },

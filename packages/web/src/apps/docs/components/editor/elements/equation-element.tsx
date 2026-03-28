@@ -1,21 +1,106 @@
+import katex from "katex";
 import type { PlateElementProps } from "platejs/react";
-import { PlateElement, useElement } from "platejs/react";
+import { PlateElement, useEditorRef, useElement } from "platejs/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+function KatexRenderer({
+  tex,
+  displayMode,
+}: {
+  tex: string;
+  displayMode: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    if (!tex) {
+      ref.current.innerHTML = "";
+      return;
+    }
+    try {
+      katex.render(tex, ref.current, {
+        displayMode,
+        throwOnError: false,
+        output: "html",
+      });
+    } catch {
+      ref.current.textContent = tex;
+    }
+  }, [tex, displayMode]);
+
+  return <div ref={ref} />;
+}
 
 export function EquationElement(props: PlateElementProps) {
+  const editor = useEditorRef();
   const element = useElement();
   const tex =
     ((element as Record<string, unknown>).texExpression as string) || "";
+  const [editing, setEditing] = useState(!tex);
+  const [draft, setDraft] = useState(tex);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const commitEdit = useCallback(() => {
+    const path = editor.api.findPath(element);
+    if (path) {
+      editor.tf.setNodes({ texExpression: draft } as Record<string, unknown>, {
+        at: path,
+      });
+    }
+    setEditing(false);
+  }, [editor, element, draft]);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
 
   return (
     <PlateElement
-      className="my-4 flex justify-center rounded bg-zinc-50 p-4 dark:bg-zinc-900"
+      className="group my-4 rounded bg-zinc-50 p-4 dark:bg-zinc-900"
       {...props}
     >
-      <div
-        contentEditable={false}
-        className="select-none font-mono text-sm text-zinc-700 dark:text-zinc-300"
-      >
-        {tex || "Empty equation"}
+      <div contentEditable={false} className="select-none">
+        {editing ? (
+          <div className="flex flex-col items-center gap-2">
+            <textarea
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  commitEdit();
+                }
+                if (e.key === "Escape") {
+                  setDraft(tex);
+                  setEditing(false);
+                }
+              }}
+              placeholder="E = mc^2"
+              className="w-full max-w-lg resize-none rounded border border-zinc-300 bg-white px-3 py-2 font-mono text-sm outline-none focus:border-blue-400 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+              rows={2}
+            />
+            <p className="text-xs text-zinc-400">⌘+Enter 确认 · Esc 取消</p>
+          </div>
+        ) : (
+          // biome-ignore lint/a11y/useKeyWithClickEvents: equation click to edit
+          // biome-ignore lint/a11y/noStaticElementInteractions: equation click to edit
+          <div
+            className="flex cursor-pointer justify-center"
+            onClick={() => {
+              setDraft(tex);
+              setEditing(true);
+            }}
+          >
+            {tex ? (
+              <KatexRenderer tex={tex} displayMode />
+            ) : (
+              <span className="text-sm text-zinc-400 italic">点击输入公式</span>
+            )}
+          </div>
+        )}
       </div>
       {props.children}
     </PlateElement>
@@ -23,18 +108,71 @@ export function EquationElement(props: PlateElementProps) {
 }
 
 export function InlineEquationElement(props: PlateElementProps) {
+  const editor = useEditorRef();
   const element = useElement();
   const tex =
     ((element as Record<string, unknown>).texExpression as string) || "";
+  const [editing, setEditing] = useState(!tex);
+  const [draft, setDraft] = useState(tex);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const commitEdit = useCallback(() => {
+    const path = editor.api.findPath(element);
+    if (path) {
+      editor.tf.setNodes({ texExpression: draft } as Record<string, unknown>, {
+        at: path,
+      });
+    }
+    setEditing(false);
+  }, [editor, element, draft]);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
 
   return (
     <PlateElement
       as="span"
-      className="inline rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-sm dark:bg-zinc-800"
+      className="inline-flex items-center rounded bg-zinc-100 px-1 dark:bg-zinc-800"
       {...props}
     >
       <span contentEditable={false} className="select-none">
-        {tex || "∅"}
+        {editing ? (
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitEdit();
+              }
+              if (e.key === "Escape") {
+                setDraft(tex);
+                setEditing(false);
+              }
+            }}
+            placeholder="x^2"
+            className="w-24 border-none bg-transparent font-mono text-sm outline-none"
+          />
+        ) : (
+          // biome-ignore lint/a11y/useKeyWithClickEvents: inline equation click to edit
+          // biome-ignore lint/a11y/noStaticElementInteractions: inline equation click to edit
+          <span
+            className="cursor-pointer"
+            onClick={() => {
+              setDraft(tex);
+              setEditing(true);
+            }}
+          >
+            {tex ? (
+              <KatexRenderer tex={tex} displayMode={false} />
+            ) : (
+              <span className="text-zinc-400 italic">∅</span>
+            )}
+          </span>
+        )}
       </span>
       {props.children}
     </PlateElement>

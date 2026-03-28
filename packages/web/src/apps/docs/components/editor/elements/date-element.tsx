@@ -1,9 +1,13 @@
 import type { PlateElementProps } from "platejs/react";
-import { PlateElement, useElement } from "platejs/react";
+import { PlateElement, useEditorRef, useElement } from "platejs/react";
+import { useCallback, useRef, useState } from "react";
 
 export function DateElement(props: PlateElementProps) {
+  const editor = useEditorRef();
   const element = useElement();
   const date = (element as Record<string, unknown>).date as string;
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const formatted = date
     ? new Date(date).toLocaleDateString("zh-CN", {
@@ -13,14 +17,46 @@ export function DateElement(props: PlateElementProps) {
       })
     : "选择日期";
 
+  const handleDateChange = useCallback(
+    (newDate: string) => {
+      const path = editor.api.findPath(element);
+      if (path) {
+        editor.tf.setNodes({ date: newDate } as Record<string, unknown>, {
+          at: path,
+        });
+      }
+      setPickerOpen(false);
+    },
+    [editor, element],
+  );
+
   return (
     <PlateElement
       as="span"
-      className="inline-flex cursor-pointer items-center rounded bg-zinc-100 px-1.5 py-0.5 text-sm text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+      className="relative inline-flex cursor-pointer items-center rounded bg-zinc-100 px-1.5 py-0.5 text-sm text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
       {...props}
     >
-      <span contentEditable={false} className="select-none">
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: date element click */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: date element click */}
+      <span
+        contentEditable={false}
+        className="select-none"
+        onClick={() => {
+          setPickerOpen(true);
+          setTimeout(() => inputRef.current?.showPicker(), 0);
+        }}
+      >
         📅 {formatted}
+        {pickerOpen && (
+          <input
+            ref={inputRef}
+            type="date"
+            value={date || ""}
+            onChange={(e) => handleDateChange(e.target.value)}
+            onBlur={() => setPickerOpen(false)}
+            className="absolute top-full left-0 z-50 mt-1 rounded border border-zinc-300 bg-white px-2 py-1 text-sm shadow-lg dark:border-zinc-600 dark:bg-zinc-800"
+          />
+        )}
       </span>
       {props.children}
     </PlateElement>
