@@ -16,8 +16,13 @@ import {
   UnderlinePlugin,
 } from "@platejs/basic-nodes/react";
 import { CalloutPlugin } from "@platejs/callout/react";
-import { CodeBlockPlugin, CodeLinePlugin } from "@platejs/code-block/react";
+import {
+  CodeBlockPlugin,
+  CodeLinePlugin,
+  CodeSyntaxPlugin,
+} from "@platejs/code-block/react";
 import { DatePlugin } from "@platejs/date/react";
+import { DndPlugin } from "@platejs/dnd";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ColumnItemPlugin, ColumnPlugin } from "@platejs/layout/react";
 import { LinkPlugin } from "@platejs/link/react";
@@ -33,6 +38,7 @@ import {
 } from "@platejs/table/react";
 import { TocPlugin } from "@platejs/toc/react";
 import { TogglePlugin } from "@platejs/toggle/react";
+import { common, createLowlight } from "lowlight";
 import type { Value } from "platejs";
 import {
   ParagraphPlugin,
@@ -40,11 +46,15 @@ import {
   PlateContent,
   usePlateEditor,
 } from "platejs/react";
-import { useMemo } from "react";
+import type { MutableRefObject } from "react";
+import { useEffect, useMemo } from "react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import { BlockquoteElement } from "./elements/blockquote-element";
 import { CalloutElement } from "./elements/callout-element";
 import { CodeBlockElement } from "./elements/code-block-element";
 import { CodeLineElement } from "./elements/code-line-element";
+import { CodeSyntaxLeaf } from "./elements/code-syntax-leaf";
 import { ColumnElement, ColumnGroupElement } from "./elements/column-element";
 import { DateElement } from "./elements/date-element";
 import {
@@ -67,11 +77,14 @@ import { ToggleElement } from "./elements/toggle-element";
 import { FloatingToolbar } from "./floating-toolbar";
 import { SlashInputElement } from "./slash-menu";
 
+export type DocEditorHandle = ReturnType<typeof usePlateEditor>;
+
 export interface DocEditorProps {
   value: Value | null;
   onChange: (value: Value) => void;
   readOnly?: boolean;
   placeholder?: string;
+  editorRef?: MutableRefObject<DocEditorHandle | null>;
 }
 
 const EMPTY_VALUE: Value = [{ type: "p", children: [{ text: "" }] }];
@@ -107,8 +120,11 @@ const plugins = [
   H3Plugin.withComponent(HeadingElement),
   BlockquotePlugin.withComponent(BlockquoteElement),
   HorizontalRulePlugin.withComponent(HrElement),
-  CodeBlockPlugin.withComponent(CodeBlockElement),
+  CodeBlockPlugin.configure({
+    options: { lowlight: createLowlight(common) },
+  }).withComponent(CodeBlockElement),
   CodeLinePlugin.withComponent(CodeLineElement),
+  CodeSyntaxPlugin.withComponent(CodeSyntaxLeaf),
   LinkPlugin.withComponent(LinkElement),
 
   // Table
@@ -161,6 +177,9 @@ const plugins = [
 
   // Autoformat
   AutoformatPlugin.configure({ options: { rules: autoformatRules } }),
+
+  // Drag & drop block reordering
+  DndPlugin,
 ];
 
 export function DocEditor({
@@ -168,12 +187,17 @@ export function DocEditor({
   onChange,
   readOnly = false,
   placeholder = "输入 '/' 插入内容…",
+  editorRef,
 }: DocEditorProps) {
   const initialValue = useMemo(() => value ?? EMPTY_VALUE, [value]);
 
   const editor = usePlateEditor({ plugins, value: initialValue }, [
     initialValue,
   ]);
+
+  useEffect(() => {
+    if (editorRef) editorRef.current = editor;
+  }, [editor, editorRef]);
 
   if (!editor) {
     return (
@@ -184,18 +208,20 @@ export function DocEditor({
   }
 
   return (
-    <Plate
-      editor={editor}
-      onValueChange={({ value: newValue }) => onChange(newValue)}
-      readOnly={readOnly}
-    >
-      <div className="relative mx-auto w-full max-w-3xl px-6 py-8">
-        <PlateContent
-          className="min-h-[200px] outline-none [&_[data-slate-placeholder]]:!text-zinc-400 [&_[data-slate-placeholder]]:!opacity-100 dark:[&_[data-slate-placeholder]]:!text-zinc-500"
-          placeholder={placeholder}
-        />
-      </div>
-      {!readOnly && <FloatingToolbar />}
-    </Plate>
+    <DndProvider backend={HTML5Backend}>
+      <Plate
+        editor={editor}
+        onValueChange={({ value: newValue }) => onChange(newValue)}
+        readOnly={readOnly}
+      >
+        <div className="relative mx-auto w-full max-w-3xl px-6 py-8">
+          <PlateContent
+            className="doc-editor-content min-h-[200px] outline-none [&_[data-slate-placeholder]]:!text-zinc-400 [&_[data-slate-placeholder]]:!opacity-100 dark:[&_[data-slate-placeholder]]:!text-zinc-500"
+            placeholder={placeholder}
+          />
+        </div>
+        {!readOnly && <FloatingToolbar />}
+      </Plate>
+    </DndProvider>
   );
 }

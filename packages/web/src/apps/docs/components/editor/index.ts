@@ -1,2 +1,2 @@
-export type { DocEditorProps } from "./DocEditor";
+export type { DocEditorHandle, DocEditorProps } from "./DocEditor";
 export { DocEditor } from "./DocEditor";
