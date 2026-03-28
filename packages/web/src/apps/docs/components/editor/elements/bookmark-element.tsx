@@ -1,7 +1,15 @@
 import { ExternalLink } from "lucide-react";
 import type { PlateElementProps } from "platejs/react";
-import { PlateElement, useElement } from "platejs/react";
+import { PlateElement, useEditorRef, useElement } from "platejs/react";
 import { useCallback, useState } from "react";
+
+function safeHostname(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
 
 /**
  * BookmarkElement — Displays a URL as a styled link card.
@@ -10,28 +18,26 @@ import { useCallback, useState } from "react";
  * The user can click to edit the URL/title inline.
  */
 export function BookmarkElement(props: PlateElementProps) {
+  const editor = useEditorRef();
   const element = useElement();
   const el = element as Record<string, unknown>;
   const url = (el.url as string) || "";
   const title = (el.title as string) || "";
   const description = (el.description as string) || "";
-  const hostname = url ? new URL(url).hostname : "";
+  const hostname = url ? safeHostname(url) : "";
 
   const [editing, setEditing] = useState(!url);
   const [draft, setDraft] = useState(url);
 
   const handleSave = useCallback(() => {
     if (draft.trim()) {
-      // Update the element data via Slate transforms
-      const path = props.editor?.api.findPath(element);
+      const path = editor.api.findPath(element);
       if (path) {
-        props.editor?.tf.setNodes({ url: draft.trim() } as never, {
-          at: path,
-        });
+        editor.tf.setNodes({ url: draft.trim() } as never, { at: path });
       }
     }
     setEditing(false);
-  }, [draft, element, props.editor]);
+  }, [draft, element, editor]);
 
   if (editing) {
     return (
