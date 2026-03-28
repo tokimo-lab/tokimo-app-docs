@@ -1,13 +1,21 @@
 import {
+  Calendar,
   CheckSquare,
+  ChevronRight,
   Code,
+  Columns2,
   Heading1,
   Heading2,
   Heading3,
+  Image,
+  Info,
   List,
   ListOrdered,
   Minus,
   Quote,
+  Sigma,
+  Table,
+  TableOfContents,
   Type,
 } from "lucide-react";
 import type { TElement } from "platejs";
@@ -146,6 +154,175 @@ const SLASH_MENU_GROUPS: SlashMenuGroup[] = [
         keywords: ["divider", "hr", "separator", "line", "horizontal"],
         action: (editor) => {
           editor.tf.setNodes({ type: "hr" } as Partial<TElement>);
+        },
+      },
+    ],
+  },
+  {
+    label: "Blocks",
+    items: [
+      {
+        icon: <Table className={ICON_CLASS} />,
+        label: "Table",
+        description: "Insert a table",
+        keywords: ["table", "grid", "spreadsheet"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "table",
+            children: [
+              {
+                type: "tr",
+                children: [
+                  { type: "th", children: [{ text: "" }] },
+                  { type: "th", children: [{ text: "" }] },
+                  { type: "th", children: [{ text: "" }] },
+                ],
+              },
+              {
+                type: "tr",
+                children: [
+                  { type: "td", children: [{ text: "" }] },
+                  { type: "td", children: [{ text: "" }] },
+                  { type: "td", children: [{ text: "" }] },
+                ],
+              },
+              {
+                type: "tr",
+                children: [
+                  { type: "td", children: [{ text: "" }] },
+                  { type: "td", children: [{ text: "" }] },
+                  { type: "td", children: [{ text: "" }] },
+                ],
+              },
+            ],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <Info className={ICON_CLASS} />,
+        label: "Callout",
+        description: "Highlighted info block",
+        keywords: ["callout", "info", "note", "alert", "warning"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "callout",
+            variant: "info",
+            children: [{ text: "" }],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <ChevronRight className={ICON_CLASS} />,
+        label: "Toggle",
+        description: "Collapsible toggle block",
+        keywords: ["toggle", "collapse", "fold", "expand"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "toggle",
+            children: [{ type: "p", children: [{ text: "" }] }],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <TableOfContents className={ICON_CLASS} />,
+        label: "Table of Contents",
+        description: "Auto-generated from headings",
+        keywords: ["toc", "table of contents", "outline", "navigation"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "toc",
+            children: [{ text: "" }],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <Image className={ICON_CLASS} />,
+        label: "Image",
+        description: "Insert an image",
+        keywords: ["image", "img", "photo", "picture"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "img",
+            url: "",
+            children: [{ text: "" }],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <Columns2 className={ICON_CLASS} />,
+        label: "2 Columns",
+        description: "Two column layout",
+        keywords: ["column", "layout", "side", "split"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "column_group",
+            children: [
+              {
+                type: "column",
+                children: [{ type: "p", children: [{ text: "" }] }],
+              },
+              {
+                type: "column",
+                children: [{ type: "p", children: [{ text: "" }] }],
+              },
+            ],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <Columns2 className={ICON_CLASS} />,
+        label: "3 Columns",
+        description: "Three column layout",
+        keywords: ["column", "layout", "three", "triple"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "column_group",
+            children: [
+              {
+                type: "column",
+                children: [{ type: "p", children: [{ text: "" }] }],
+              },
+              {
+                type: "column",
+                children: [{ type: "p", children: [{ text: "" }] }],
+              },
+              {
+                type: "column",
+                children: [{ type: "p", children: [{ text: "" }] }],
+              },
+            ],
+          } as unknown as TElement);
+        },
+      },
+    ],
+  },
+  {
+    label: "Advanced",
+    items: [
+      {
+        icon: <Calendar className={ICON_CLASS} />,
+        label: "Date",
+        description: "Insert current date",
+        keywords: ["date", "calendar", "time", "today"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "date",
+            date: new Date().toISOString().split("T")[0],
+            children: [{ text: "" }],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <Sigma className={ICON_CLASS} />,
+        label: "Equation",
+        description: "LaTeX math equation",
+        keywords: ["equation", "math", "latex", "formula"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "equation",
+            texExpression: "",
+            children: [{ text: "" }],
+          } as unknown as TElement);
         },
       },
     ],

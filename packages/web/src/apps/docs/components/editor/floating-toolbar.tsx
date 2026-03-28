@@ -1,5 +1,12 @@
 import { useFloatingToolbar, useFloatingToolbarState } from "@platejs/floating";
-import { Bold, Code, Italic, Strikethrough, Underline } from "lucide-react";
+import {
+  Bold,
+  Code,
+  Highlighter,
+  Italic,
+  Strikethrough,
+  Underline,
+} from "lucide-react";
 import { useEditorId, useEditorRef, useEventEditorValue } from "platejs/react";
 import { useCallback } from "react";
 import { createPortal } from "react-dom";
@@ -88,6 +95,11 @@ export function FloatingToolbar() {
         markKey="code"
         icon={<Code className={ICON_SIZE} />}
         title="Inline Code (⌘E)"
+      />
+      <MarkButton
+        markKey="highlight"
+        icon={<Highlighter className={ICON_SIZE} />}
+        title="Highlight"
       />
     </div>,
     document.body,
