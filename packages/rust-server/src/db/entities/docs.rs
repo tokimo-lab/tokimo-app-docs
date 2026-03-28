@@ -49,6 +49,8 @@ pub enum Relation {
         on_delete = "SetNull"
     )]
     DocFolders,
+    #[sea_orm(has_many = "super::doc_versions::Entity")]
+    DocVersions,
 }
 
 impl Related<super::apps::Entity> for Entity {
@@ -66,6 +68,12 @@ impl Related<super::doc_comments::Entity> for Entity {
 impl Related<super::doc_folders::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::DocFolders.def()
+    }
+}
+
+impl Related<super::doc_versions::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::DocVersions.def()
     }
 }
 

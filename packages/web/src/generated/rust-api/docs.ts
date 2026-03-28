@@ -4,6 +4,8 @@ import type {
   DocFolderOutput,
   DocListItem,
   DocOutput,
+  DocVersionDetailOutput,
+  DocVersionOutput,
 } from "../rust-types/index";
 
 // ── Input types (not from Rust DTOs) ────────────────────────────────────────
@@ -184,6 +186,28 @@ export const docApi = {
   deleteComment: createPathMutation<{ id: string }, void>({
     method: "DELETE",
     pathFn: (input) => `/api/doc-comments/${encodeURIComponent(input.id)}`,
+  }),
+
+  // ── Versions ─────────────────────────────────────────────────────────────
+
+  listVersions: createQuery<{ docId: string }, DocVersionOutput[]>({
+    path: "/api/docs/{docId}/versions",
+    pathFn: (input) => `/api/docs/${encodeURIComponent(input.docId)}/versions`,
+  }),
+
+  getVersion: createQuery<{ versionId: string }, DocVersionDetailOutput>({
+    path: "/api/doc-versions/{versionId}",
+    pathFn: (input) =>
+      `/api/doc-versions/${encodeURIComponent(input.versionId)}`,
+  }),
+
+  restoreVersion: createPathMutation<
+    { docId: string; versionId: string },
+    DocOutput
+  >({
+    method: "POST",
+    pathFn: (input) =>
+      `/api/docs/${encodeURIComponent(input.docId)}/versions/${encodeURIComponent(input.versionId)}/restore`,
   }),
 
   // ── Folders ─────────────────────────────────────────────────────────────

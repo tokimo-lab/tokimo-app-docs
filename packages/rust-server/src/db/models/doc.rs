@@ -4,7 +4,7 @@ use serde::Serialize;
 use ts_rs::TS;
 use uuid::Uuid;
 
-use crate::db::entities::{doc_folders, docs};
+use crate::db::entities::{doc_folders, doc_versions, docs};
 
 /// Doc list item (sidebar / list view — no content)
 #[derive(Debug, Clone, Serialize, DerivePartialModel, TS)]
@@ -92,6 +92,60 @@ pub struct DocFolderOutput {
     pub created_at: DateTimeWithTimeZone,
     #[ts(type = "string")]
     pub updated_at: DateTimeWithTimeZone,
+}
+
+/// Doc version list item (without content)
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct DocVersionOutput {
+    pub id: String,
+    pub doc_id: String,
+    pub version: i32,
+    pub title: String,
+    pub word_count: i32,
+    pub created_at: String,
+}
+
+impl From<doc_versions::Model> for DocVersionOutput {
+    fn from(m: doc_versions::Model) -> Self {
+        Self {
+            id: m.id.to_string(),
+            doc_id: m.doc_id.to_string(),
+            version: m.version,
+            title: m.title,
+            word_count: m.word_count,
+            created_at: m.created_at.to_rfc3339(),
+        }
+    }
+}
+
+/// Doc version detail (includes content for preview/restore)
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct DocVersionDetailOutput {
+    pub id: String,
+    pub doc_id: String,
+    pub version: i32,
+    pub title: String,
+    pub content: Option<serde_json::Value>,
+    pub word_count: i32,
+    pub created_at: String,
+}
+
+impl From<doc_versions::Model> for DocVersionDetailOutput {
+    fn from(m: doc_versions::Model) -> Self {
+        Self {
+            id: m.id.to_string(),
+            doc_id: m.doc_id.to_string(),
+            version: m.version,
+            title: m.title,
+            content: m.content,
+            word_count: m.word_count,
+            created_at: m.created_at.to_rfc3339(),
+        }
+    }
 }
 
 /// Doc comment output

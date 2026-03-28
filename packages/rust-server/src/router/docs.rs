@@ -1,5 +1,5 @@
 use axum::{
-    routing::{get, patch},
+    routing::{get, patch, post},
     Router,
 };
 use std::sync::Arc;
@@ -31,6 +31,15 @@ pub fn build_doc_routes() -> Router<Arc<AppState>> {
         .route(
             "/api/docs/{id}/comments",
             get(doc::list_comments).post(doc::create_comment),
+        )
+        .route(
+            "/api/docs/{id}/versions",
+            get(doc::list_versions),
+        )
+        .route("/api/doc-versions/{id}", get(doc::get_version))
+        .route(
+            "/api/docs/{id}/versions/{version_id}/restore",
+            post(doc::restore_version),
         )
         .route(
             "/api/doc-comments/{id}/resolve",

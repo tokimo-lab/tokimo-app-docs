@@ -1,6 +1,64 @@
+use crate::db::repos::doc_repo::{DocRepo, DocVersionRepo};
+use crate::error::AppError;
+use sea_orm::DatabaseConnection;
+use uuid::Uuid;
+
 pub struct DocService;
 
 impl DocService {
+    /// Update a doc and create a version snapshot if enough time has passed.
+    pub async fn update_doc_with_version(
+        db: &DatabaseConnection,
+        doc_id: Uuid,
+        title: Option<String>,
+        content: Option<Option<serde_json::Value>>,
+        icon: Option<Option<String>>,
+        cover_image: Option<Option<String>>,
+        tags: Option<Vec<String>>,
+    ) -> Result<crate::db::entities::docs::Model, AppError> {
+        // Compute word count and search text if content is being updated
+        let word_count = content.as_ref().and_then(|opt_content| {
+            opt_content.as_ref().map(|c| Self::count_words(c))
+        });
+
+        let search_text = content.as_ref().and_then(|opt_content| {
+            opt_content.as_ref().map(|c| Self::extract_text(c))
+        });
+
+        // If content changed, snapshot a version before applying
+        if content.is_some() {
+            if let Some(existing) = DocRepo::get_by_id(db, doc_id).await? {
+                let snap_title = title.as_deref().unwrap_or(&existing.title).to_string();
+                let snap_content = existing.content.clone();
+                let snap_word_count = existing.word_count;
+                let _ = DocVersionRepo::create_if_due(
+                    db,
+                    doc_id,
+                    snap_title,
+                    snap_content,
+                    snap_word_count,
+                )
+                .await;
+            }
+        }
+
+        let doc = DocRepo::update(
+            db,
+            doc_id,
+            title,
+            content,
+            icon,
+            cover_image,
+            word_count,
+            search_text,
+            tags,
+        )
+        .await?
+        .ok_or_else(|| AppError::NotFound("doc not found".into()))?;
+
+        Ok(doc)
+    }
+
     /// Extract word count from Slate JSON content.
     ///
     /// Recursively traverses Slate nodes: for CJK characters each counts as one word,

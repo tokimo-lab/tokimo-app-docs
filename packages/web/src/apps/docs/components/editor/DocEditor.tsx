@@ -24,6 +24,7 @@ import {
 import { CommentPlugin } from "@platejs/comment/react";
 import { DatePlugin } from "@platejs/date/react";
 import { DndPlugin } from "@platejs/dnd";
+import { DocxPlugin } from "@platejs/docx";
 import { EmojiInputPlugin, EmojiPlugin } from "@platejs/emoji/react";
 import { IndentPlugin } from "@platejs/indent/react";
 import { ColumnItemPlugin, ColumnPlugin } from "@platejs/layout/react";
@@ -180,6 +181,9 @@ const plugins = [
 
   // Comments
   CommentPlugin.withComponent(CommentLeaf),
+
+  // DOCX paste support (cleans Word HTML on paste)
+  DocxPlugin,
 
   // Marks (no withComponent — built-in rendering)
   BoldPlugin,

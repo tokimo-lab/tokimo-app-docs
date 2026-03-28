@@ -9,9 +9,11 @@ use uuid::Uuid;
 
 use crate::{
     db::entities::doc_folders,
-    db::models::doc::{DocCommentOutput, DocFolderOutput, DocOutput},
+    db::models::doc::{
+        DocCommentOutput, DocFolderOutput, DocOutput, DocVersionDetailOutput, DocVersionOutput,
+    },
     db::pagination::PageInput,
-    db::repos::doc_repo::{DocCommentRepo, DocFolderRepo, DocRepo},
+    db::repos::doc_repo::{DocCommentRepo, DocFolderRepo, DocRepo, DocVersionRepo},
     error::AppError,
     handlers::{ok, ok_empty, ApiResponse},
     handlers::user::AuthUser,
@@ -184,33 +186,16 @@ pub async fn update_doc(
     Json(input): Json<UpdateDocInput>,
 ) -> Result<Json<ApiResponse<DocOutput>>, AppError> {
     let doc_id = parse_uuid(&id)?;
-
-    // Compute word count and search text if content is being updated
-    let word_count = input.content.as_ref().and_then(|opt_content| {
-        opt_content
-            .as_ref()
-            .map(|c| DocService::count_words(c))
-    });
-
-    let search_text = input.content.as_ref().and_then(|opt_content| {
-        opt_content
-            .as_ref()
-            .map(|c| DocService::extract_text(c))
-    });
-
-    let doc = DocRepo::update(
+    let doc = DocService::update_doc_with_version(
         &state.db,
         doc_id,
         input.title,
         input.content,
         input.icon,
         input.cover_image,
-        word_count,
-        search_text,
         input.tags,
     )
-    .await?
-    .ok_or_else(|| AppError::NotFound("doc not found".into()))?;
+    .await?;
     Ok(ok(DocOutput::from(doc)))
 }
 
@@ -364,6 +349,63 @@ pub async fn delete_comment(
         return Err(AppError::NotFound("comment not found".into()));
     }
     Ok(ok_empty())
+}
+
+// ── Version handlers ─────────────────────────────────────────────────────────
+
+/// GET /api/docs/{id}/versions
+pub async fn list_versions(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<Json<ApiResponse<Vec<DocVersionOutput>>>, AppError> {
+    let doc_id = parse_uuid(&id)?;
+    let versions = DocVersionRepo::list(&state.db, doc_id).await?;
+    let outputs: Vec<DocVersionOutput> = versions.into_iter().map(DocVersionOutput::from).collect();
+    Ok(ok(outputs))
+}
+
+/// GET /api/doc-versions/{id}
+pub async fn get_version(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<Json<ApiResponse<DocVersionDetailOutput>>, AppError> {
+    let version_id = parse_uuid(&id)?;
+    let version = DocVersionRepo::get_by_id(&state.db, version_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("version not found".into()))?;
+    Ok(ok(DocVersionDetailOutput::from(version)))
+}
+
+/// POST /api/docs/{id}/versions/{version_id}/restore
+pub async fn restore_version(
+    State(state): State<Arc<AppState>>,
+    Path((id, version_id)): Path<(String, String)>,
+) -> Result<Json<ApiResponse<DocOutput>>, AppError> {
+    let doc_id = parse_uuid(&id)?;
+    let vid = parse_uuid(&version_id)?;
+
+    let version = DocVersionRepo::get_by_id(&state.db, vid)
+        .await?
+        .ok_or_else(|| AppError::NotFound("version not found".into()))?;
+
+    if version.doc_id != doc_id {
+        return Err(AppError::BadRequest(
+            "version does not belong to this doc".into(),
+        ));
+    }
+
+    // Restore: update doc with version's content and title
+    let doc = DocService::update_doc_with_version(
+        &state.db,
+        doc_id,
+        Some(version.title),
+        Some(version.content),
+        None,
+        None,
+        None,
+    )
+    .await?;
+    Ok(ok(DocOutput::from(doc)))
 }
 
 // ── Folder handlers ──────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@ use sea_orm::prelude::Expr;
 use sea_orm::*;
 use uuid::Uuid;
 
-use crate::db::entities::{doc_comments, doc_folders, docs, users};
+use crate::db::entities::{doc_comments, doc_folders, doc_versions, docs, users};
 use crate::db::models::doc::{DocCommentOutput, DocFolderOutput, DocListItem};
 use crate::db::pagination::{Page, PageInput};
 use crate::error::AppError;
@@ -503,5 +503,122 @@ impl DocFolderRepo {
 
         doc_folders::Entity::delete_by_id(id).exec(db).await?;
         Ok(true)
+    }
+}
+
+pub struct DocVersionRepo;
+
+impl DocVersionRepo {
+    /// Create a new version snapshot for a doc.
+    /// Auto-increments version number based on existing max.
+    pub async fn create(
+        db: &DatabaseConnection,
+        doc_id: Uuid,
+        title: String,
+        content: Option<serde_json::Value>,
+        word_count: i32,
+    ) -> Result<doc_versions::Model, AppError> {
+        let max_version = doc_versions::Entity::find()
+            .filter(doc_versions::Column::DocId.eq(doc_id))
+            .order_by_desc(doc_versions::Column::Version)
+            .one(db)
+            .await?
+            .map(|v| v.version)
+            .unwrap_or(0);
+
+        let now = chrono::Utc::now().fixed_offset();
+        let id = Uuid::new_v4();
+        let model = doc_versions::ActiveModel {
+            id: Set(id),
+            doc_id: Set(doc_id),
+            version: Set(max_version + 1),
+            title: Set(title),
+            content: Set(content),
+            word_count: Set(word_count),
+            created_at: Set(now),
+        };
+        doc_versions::Entity::insert(model).exec(db).await?;
+        doc_versions::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::Internal("failed to fetch created version".into()))
+    }
+
+    /// Create a version only if enough time has passed since the last one (10 minutes).
+    pub async fn create_if_due(
+        db: &DatabaseConnection,
+        doc_id: Uuid,
+        title: String,
+        content: Option<serde_json::Value>,
+        word_count: i32,
+    ) -> Result<Option<doc_versions::Model>, AppError> {
+        let latest = doc_versions::Entity::find()
+            .filter(doc_versions::Column::DocId.eq(doc_id))
+            .order_by_desc(doc_versions::Column::Version)
+            .one(db)
+            .await?;
+
+        let now = chrono::Utc::now().fixed_offset();
+        let should_create = match latest {
+            Some(ref v) => {
+                let elapsed = now - v.created_at;
+                elapsed.num_minutes() >= 10
+            }
+            None => true,
+        };
+
+        if should_create {
+            let version = Self::create(db, doc_id, title, content, word_count).await?;
+            // Clean up old versions, keep at most 50
+            Self::delete_old_versions(db, doc_id, 50).await?;
+            Ok(Some(version))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// List all versions for a doc (without content), ordered by version DESC.
+    pub async fn list(
+        db: &DatabaseConnection,
+        doc_id: Uuid,
+    ) -> Result<Vec<doc_versions::Model>, AppError> {
+        let versions = doc_versions::Entity::find()
+            .filter(doc_versions::Column::DocId.eq(doc_id))
+            .order_by_desc(doc_versions::Column::Version)
+            .all(db)
+            .await?;
+        Ok(versions)
+    }
+
+    /// Get a single version by ID (with content).
+    pub async fn get_by_id(
+        db: &DatabaseConnection,
+        id: Uuid,
+    ) -> Result<Option<doc_versions::Model>, AppError> {
+        Ok(doc_versions::Entity::find_by_id(id).one(db).await?)
+    }
+
+    /// Keep only the latest N versions for a doc, deleting older ones.
+    pub async fn delete_old_versions(
+        db: &DatabaseConnection,
+        doc_id: Uuid,
+        keep_count: usize,
+    ) -> Result<u64, AppError> {
+        let versions = doc_versions::Entity::find()
+            .filter(doc_versions::Column::DocId.eq(doc_id))
+            .order_by_desc(doc_versions::Column::Version)
+            .all(db)
+            .await?;
+
+        if versions.len() <= keep_count {
+            return Ok(0);
+        }
+
+        let to_delete: Vec<Uuid> = versions[keep_count..].iter().map(|v| v.id).collect();
+        let result = doc_versions::Entity::delete_many()
+            .filter(doc_versions::Column::Id.is_in(to_delete))
+            .exec(db)
+            .await?;
+        Ok(result.rows_affected)
     }
 }
