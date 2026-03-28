@@ -6,16 +6,22 @@ import {
   ChevronRight,
   Code,
   Columns2,
+  ExternalLink,
+  FileIcon,
   GitBranch,
   Heading1,
   Heading2,
   Heading3,
+  Heading4,
+  Heading5,
+  Heading6,
   Image,
   Info,
   Languages,
   List,
   ListOrdered,
   Minus,
+  Music,
   Quote,
   Sigma,
   Smile,
@@ -24,6 +30,7 @@ import {
   Table,
   TableOfContents,
   Type,
+  Video,
   Wand2,
   Zap,
 } from "lucide-react";
@@ -89,6 +96,33 @@ const SLASH_MENU_GROUPS: SlashMenuGroup[] = [
         keywords: ["heading", "h3", "small"],
         action: (editor) => {
           editor.tf.setNodes({ type: "h3" } as Partial<TElement>);
+        },
+      },
+      {
+        icon: <Heading4 className={ICON_CLASS} />,
+        label: "Heading 4",
+        description: "Sub-section heading",
+        keywords: ["heading", "h4"],
+        action: (editor) => {
+          editor.tf.setNodes({ type: "h4" } as Partial<TElement>);
+        },
+      },
+      {
+        icon: <Heading5 className={ICON_CLASS} />,
+        label: "Heading 5",
+        description: "Minor heading",
+        keywords: ["heading", "h5"],
+        action: (editor) => {
+          editor.tf.setNodes({ type: "h5" } as Partial<TElement>);
+        },
+      },
+      {
+        icon: <Heading6 className={ICON_CLASS} />,
+        label: "Heading 6",
+        description: "Smallest heading",
+        keywords: ["heading", "h6"],
+        action: (editor) => {
+          editor.tf.setNodes({ type: "h6" } as Partial<TElement>);
         },
       },
     ],
@@ -255,6 +289,72 @@ const SLASH_MENU_GROUPS: SlashMenuGroup[] = [
         action: (editor) => {
           editor.tf.insertNodes({
             type: "img",
+            url: "",
+            children: [{ text: "" }],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <Video className={ICON_CLASS} />,
+        label: "Video",
+        description: "Embed a video",
+        keywords: ["video", "movie", "clip", "mp4"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "video",
+            url: "",
+            children: [{ text: "" }],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <Music className={ICON_CLASS} />,
+        label: "Audio",
+        description: "Embed an audio file",
+        keywords: ["audio", "music", "sound", "mp3"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "audio",
+            url: "",
+            children: [{ text: "" }],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <FileIcon className={ICON_CLASS} />,
+        label: "File",
+        description: "Attach a file",
+        keywords: ["file", "attachment", "upload", "download"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "file",
+            url: "",
+            name: "Untitled",
+            children: [{ text: "" }],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <ExternalLink className={ICON_CLASS} />,
+        label: "Embed",
+        description: "Embed external content",
+        keywords: ["embed", "iframe", "external", "website", "url"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "media_embed",
+            url: "",
+            children: [{ text: "" }],
+          } as unknown as TElement);
+        },
+      },
+      {
+        icon: <ExternalLink className={ICON_CLASS} />,
+        label: "Bookmark",
+        description: "Link preview card",
+        keywords: ["bookmark", "link", "preview", "card", "url"],
+        action: (editor) => {
+          editor.tf.insertNodes({
+            type: "bookmark",
             url: "",
             children: [{ text: "" }],
           } as unknown as TElement);

@@ -6,6 +6,9 @@ import {
   H1Plugin,
   H2Plugin,
   H3Plugin,
+  H4Plugin,
+  H5Plugin,
+  H6Plugin,
   HighlightPlugin,
   HorizontalRulePlugin,
   ItalicPlugin,
@@ -31,7 +34,13 @@ import { ColumnItemPlugin, ColumnPlugin } from "@platejs/layout/react";
 import { LinkPlugin } from "@platejs/link/react";
 import { ListPlugin } from "@platejs/list/react";
 import { EquationPlugin, InlineEquationPlugin } from "@platejs/math/react";
-import { ImagePlugin } from "@platejs/media/react";
+import {
+  AudioPlugin,
+  FilePlugin,
+  ImagePlugin,
+  MediaEmbedPlugin,
+  VideoPlugin,
+} from "@platejs/media/react";
 import { MentionInputPlugin, MentionPlugin } from "@platejs/mention/react";
 import { SlashInputPlugin, SlashPlugin } from "@platejs/slash-command/react";
 import {
@@ -57,6 +66,7 @@ import { createContext, useContext, useEffect, useMemo } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { BlockquoteElement } from "./elements/blockquote-element";
+import { BookmarkElement } from "./elements/bookmark-element";
 import { CalloutElement } from "./elements/callout-element";
 import { CodeBlockElement } from "./elements/code-block-element";
 import { CodeLineElement } from "./elements/code-line-element";
@@ -73,6 +83,12 @@ import { HeadingElement } from "./elements/heading-element";
 import { HrElement } from "./elements/hr-element";
 import { ImageElement } from "./elements/image-element";
 import { LinkElement } from "./elements/link-element";
+import {
+  AudioElement,
+  FileElement,
+  MediaEmbedElement,
+  VideoElement,
+} from "./elements/media-elements";
 import { MentionElement } from "./elements/mention-element";
 import { MentionInputElement } from "./elements/mention-input-element";
 import { MermaidElement } from "./elements/mermaid-element";
@@ -118,6 +134,9 @@ const autoformatRules = [
   { mode: "block" as const, match: "# ", type: "h1" },
   { mode: "block" as const, match: "## ", type: "h2" },
   { mode: "block" as const, match: "### ", type: "h3" },
+  { mode: "block" as const, match: "#### ", type: "h4" },
+  { mode: "block" as const, match: "##### ", type: "h5" },
+  { mode: "block" as const, match: "###### ", type: "h6" },
   { mode: "block" as const, match: "> ", type: "blockquote" },
   { mode: "block" as const, match: "--- ", type: "hr" },
   { mode: "mark" as const, match: { start: "**", end: "**" }, type: "bold" },
@@ -143,6 +162,9 @@ const plugins = [
   H1Plugin.withComponent(HeadingElement),
   H2Plugin.withComponent(HeadingElement),
   H3Plugin.withComponent(HeadingElement),
+  H4Plugin.withComponent(HeadingElement),
+  H5Plugin.withComponent(HeadingElement),
+  H6Plugin.withComponent(HeadingElement),
   BlockquotePlugin.withComponent(BlockquoteElement),
   HorizontalRulePlugin.withComponent(HrElement),
   CodeBlockPlugin.configure({
@@ -174,6 +196,18 @@ const plugins = [
   // Image
   ImagePlugin.withComponent(ImageElement),
 
+  // Video
+  VideoPlugin.withComponent(VideoElement),
+
+  // Audio
+  AudioPlugin.withComponent(AudioElement),
+
+  // File attachment
+  FilePlugin.withComponent(FileElement),
+
+  // Media embed (iframe)
+  MediaEmbedPlugin.withComponent(MediaEmbedElement),
+
   // Date
   DatePlugin.withComponent(DateElement),
 
@@ -186,6 +220,12 @@ const plugins = [
     key: "mermaid",
     node: { isElement: true, isVoid: true },
   }).withComponent(MermaidElement),
+
+  // Bookmark (link preview card)
+  createSlatePlugin({
+    key: "bookmark",
+    node: { isElement: true, isVoid: true },
+  }).withComponent(BookmarkElement),
 
   // Mention (@)
   MentionPlugin.configure({
