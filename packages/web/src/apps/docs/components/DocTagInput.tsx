@@ -15,7 +15,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { api } from "../../generated/rust-api";
+import { api } from "@/generated/rust-api";
 
 const MAX_TAG_LENGTH = 30;
 

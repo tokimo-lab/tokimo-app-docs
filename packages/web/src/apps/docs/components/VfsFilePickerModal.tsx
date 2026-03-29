@@ -7,9 +7,9 @@ import {
   HardDrive,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MaterialFileIcon } from "@/components/icons";
 import type { FileSystemDto } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
+import { MaterialFileIcon } from "@/shared/components/icons";
 
 export interface VfsFileSelection {
   fileSystemId: string;

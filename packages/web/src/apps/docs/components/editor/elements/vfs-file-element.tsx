@@ -1,8 +1,8 @@
 import { ExternalLink, FileIcon, HardDrive } from "lucide-react";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useElement } from "platejs/react";
-import { MaterialFileIcon } from "@/components/icons";
 import { rustUrl } from "@/lib/rust-api-runtime";
+import { MaterialFileIcon } from "@/shared/components/icons";
 
 function formatFileSize(bytes: number | null | undefined): string {
   if (bytes == null) return "";
