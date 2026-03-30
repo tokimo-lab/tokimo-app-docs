@@ -64,7 +64,7 @@ export default function VfsFilePickerModal({
     enabled: open,
   });
 
-  const fileSystems = (fsListQuery.data ?? []).filter((fs) => fs.isEnabled);
+  const fileSystems = fsListQuery.data ?? [];
 
   const handleSelectFs = useCallback((fs: FileSystemDto) => {
     setSelectedFs(fs);
