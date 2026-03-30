@@ -28,9 +28,10 @@ import type { TElement } from "platejs";
 import { useEditorId, useEditorRef, useEventEditorValue } from "platejs/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { randomUUID } from "@/lib/uuid";
 
 function generateCommentKey(): string {
-  return crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+  return randomUUID().replace(/-/g, "").slice(0, 12);
 }
 
 interface MarkButtonProps {
