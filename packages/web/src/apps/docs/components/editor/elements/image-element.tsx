@@ -22,7 +22,6 @@ export function ImageElement(props: PlateElementProps) {
             alt={caption || ""}
             className="max-w-full rounded"
             style={width ? { width } : undefined}
-            draggable={false}
           />
         ) : (
           <div className="flex h-32 w-full items-center justify-center rounded border-2 border-dashed border-zinc-300 text-zinc-400 dark:border-zinc-600">

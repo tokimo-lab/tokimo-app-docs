@@ -10,12 +10,7 @@ export function VideoElement(props: PlateElementProps) {
     <PlateElement className="my-4" {...props}>
       <div contentEditable={false} className="flex justify-center">
         {url ? (
-          <video
-            src={url}
-            controls
-            className="max-w-full rounded"
-            draggable={false}
-          >
+          <video src={url} controls className="max-w-full rounded">
             <track kind="captions" />
           </video>
         ) : (
