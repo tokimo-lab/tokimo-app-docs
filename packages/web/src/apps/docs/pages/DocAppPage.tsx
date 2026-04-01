@@ -100,8 +100,8 @@ export default function DocAppPage() {
 }
 
 function DocAppPageInner() {
-  const { params } = useWindowNav();
-  const appId = params.appId as string | undefined;
+  const { metadata } = useWindowNav();
+  const appId = metadata.appId as string | undefined;
   const message = useMessage();
 
   const [tab, setTab] = useState<SidebarTab>("all");
