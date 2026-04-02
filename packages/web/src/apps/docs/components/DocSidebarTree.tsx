@@ -97,6 +97,8 @@ export function FolderTreeNode({
   onMoveDoc,
   renamingFolderId,
   allFolders,
+  activeFolderId,
+  onNavigateFolder,
 }: {
   node: FolderNode;
   depth: number;
@@ -115,6 +117,10 @@ export function FolderTreeNode({
   onMoveDoc: (docId: string, folderId: string | null) => void;
   renamingFolderId: string | null;
   allFolders: DocFolderOutput[];
+  /** Currently browsed folder (for active highlight) */
+  activeFolderId?: string | null;
+  /** Navigate browser view to this folder */
+  onNavigateFolder?: (folderId: string | null) => void;
 }) {
   const isExpanded = expandedFolders.has(node.folder.id);
   const isRenaming = renamingFolderId === node.folder.id;
@@ -187,10 +193,15 @@ export function FolderTreeNode({
         <div
           className={cn(
             "group flex w-full cursor-pointer items-center gap-1 rounded-md py-1 pr-2 text-left text-sm transition-colors",
-            "text-fg-secondary hover:bg-fill-tertiary",
+            activeFolderId === node.folder.id
+              ? "bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+              : "text-fg-secondary hover:bg-fill-tertiary",
           )}
           style={{ paddingLeft: `${depth * 20 + 8}px` }}
-          onClick={() => onToggleFolder(node.folder.id)}
+          onClick={() => {
+            onToggleFolder(node.folder.id);
+            onNavigateFolder?.(node.folder.id);
+          }}
         >
           <span className="flex h-4 w-4 shrink-0 items-center justify-center text-fg-muted">
             {hasContent ? (
@@ -297,6 +308,8 @@ export function FolderTreeNode({
               onMoveDoc={onMoveDoc}
               renamingFolderId={renamingFolderId}
               allFolders={allFolders}
+              activeFolderId={activeFolderId}
+              onNavigateFolder={onNavigateFolder}
             />
           ))}
           {node.docs.map((doc) => (

@@ -78,6 +78,9 @@ interface DocSidebarProps {
   onToggleCollapsed: () => void;
   filterTags: string[];
   onSetFilterTags: (tags: string[]) => void;
+  /** Navigate the browser view to a folder */
+  currentFolderId: string | null;
+  onNavigateFolder: (folderId: string | null) => void;
 }
 
 // ── Sort labels ────────────────────────────────────────────────────────────
@@ -129,6 +132,8 @@ export function DocSidebar({
   onToggleCollapsed,
   filterTags,
   onSetFilterTags,
+  currentFolderId,
+  onNavigateFolder,
 }: DocSidebarProps) {
   const message = useMessage();
 
@@ -561,6 +566,8 @@ export function DocSidebar({
                 onMoveDoc={handleMoveDoc}
                 renamingFolderId={renamingFolderId}
                 allFolders={folders}
+                activeFolderId={currentFolderId}
+                onNavigateFolder={onNavigateFolder}
               />
             ))}
             {tree.rootDocs.map((doc) => (

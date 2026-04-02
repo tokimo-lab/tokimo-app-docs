@@ -7,15 +7,14 @@
 
 import { deserializeMd, serializeMd } from "@platejs/markdown";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button, Empty, Spin } from "@tokiomo/components";
+import { Empty, Spin } from "@tokiomo/components";
 import {
+  ArrowLeft,
   Clock,
   Download,
-  FileText,
   FileType,
   Folder,
   MessageSquare,
-  Plus,
   Sparkles,
   Upload,
 } from "lucide-react";
@@ -31,6 +30,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { DocBrowserView } from "@/apps/docs/components/DocBrowserView";
 import {
   DocSidebar,
   type SidebarTab,
@@ -108,6 +108,7 @@ function DocAppPageInner() {
   const [tab, setTab] = useState<SidebarTab>("all");
   const [search, setSearch] = useState("");
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>("updatedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -221,6 +222,33 @@ function DocAppPageInner() {
 
   const favoriteMutation = api.doc.toggleFavorite.useMutation({
     onSuccess: () => listQuery.refetch(),
+  });
+
+  // ── Folder mutations (shared between sidebar & browser view) ──────
+  const createFolderMut = api.doc.createFolder.useMutation({
+    onSuccess: () => {
+      foldersQuery.refetch();
+      message.success("文件夹已创建");
+    },
+    onError: () => message.error("创建文件夹失败"),
+  });
+  const updateFolderMut = api.doc.updateFolder.useMutation({
+    onSuccess: () => foldersQuery.refetch(),
+  });
+  const deleteFolderMut = api.doc.deleteFolder.useMutation({
+    onSuccess: () => {
+      foldersQuery.refetch();
+      listQuery.refetch();
+      message.success("文件夹已删除");
+    },
+    onError: () => message.error("删除文件夹失败"),
+  });
+  const moveMut = api.doc.move.useMutation({
+    onSuccess: () => {
+      listQuery.refetch();
+      message.success("文档已移动");
+    },
+    onError: () => message.error("移动失败"),
   });
 
   // ── Refs for stable callbacks (avoid infinite useMenuBar re-register) ──
@@ -575,16 +603,36 @@ function DocAppPageInner() {
         onToggleCollapsed={toggleSidebar}
         filterTags={filterTags}
         onSetFilterTags={setFilterTags}
+        currentFolderId={currentFolderId}
+        onNavigateFolder={(fid) => {
+          setCurrentFolderId(fid);
+          setSelectedDocId(null);
+        }}
       />
 
-      {/* ── Editor area ──────────────────────────────────────────────── */}
+      {/* ── Main area ────────────────────────────────────────────────── */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {selectedDoc ? (
           <>
-            {/* Toolbar: breadcrumb + comment + version history toggles */}
+            {/* Toolbar: back + breadcrumb + comment + version history toggles */}
             <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
+              <button
+                type="button"
+                onClick={() => setSelectedDocId(null)}
+                className="mr-1 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary"
+                title="返回文档列表"
+              >
+                <ArrowLeft size={14} />
+              </button>
               {/* Breadcrumb */}
-              <DocBreadcrumb doc={selectedDoc} folders={folders} />
+              <DocBreadcrumb
+                doc={selectedDoc}
+                folders={folders}
+                onNavigateFolder={(fid) => {
+                  setCurrentFolderId(fid);
+                  setSelectedDocId(null);
+                }}
+              />
               <div className="flex-1" />
               <button
                 type="button"
@@ -699,17 +747,41 @@ function DocAppPageInner() {
             )}
           </>
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-4 text-fg-muted">
-            <FileText size={48} strokeWidth={1} />
-            <p className="text-sm">选择一个文档开始编辑</p>
-            <Button
-              variant="primary"
-              icon={<Plus size={16} />}
-              onClick={() => handleCreate()}
-            >
-              新建文档
-            </Button>
-          </div>
+          <DocBrowserView
+            docs={docs}
+            folders={folders}
+            currentFolderId={currentFolderId}
+            onNavigateFolder={setCurrentFolderId}
+            onOpenDoc={(id) => {
+              setSelectedDocId(id);
+              setPreviewingVersionId(null);
+            }}
+            onCreateDoc={handleCreate}
+            onCreateFolder={(parentId) => {
+              if (!appId) return;
+              createFolderMut.mutate({
+                appId,
+                name: "新文件夹",
+                parentId: parentId ?? null,
+              });
+            }}
+            onFavoriteDoc={(id) => favoriteMutation.mutate({ id })}
+            onDeleteDoc={(id) => deleteMutation.mutate({ id })}
+            onMoveDoc={(docId, folderId) =>
+              moveMut.mutate({ id: docId, folderId })
+            }
+            onRenameFolder={(id, name) => updateFolderMut.mutate({ id, name })}
+            onDeleteFolder={(id) => {
+              deleteFolderMut.mutate({ id });
+              if (currentFolderId === id) setCurrentFolderId(null);
+            }}
+            sortField={effectiveSortField}
+            sortDir={effectiveSortDir}
+            onSetSortField={setSortField}
+            onSetSortDir={setSortDir}
+            isLoading={listQuery.isLoading}
+            viewMode={tab}
+          />
         )}
       </div>
 
@@ -859,9 +931,11 @@ function DocEditorArea({
 function DocBreadcrumb({
   doc,
   folders,
+  onNavigateFolder,
 }: {
   doc: DocOutput;
   folders: DocFolderOutput[];
+  onNavigateFolder?: (folderId: string | null) => void;
 }) {
   const path = useMemo(() => {
     if (!doc.folderId) return [];
@@ -878,16 +952,31 @@ function DocBreadcrumb({
   return (
     <div className="flex items-center gap-1 text-xs text-fg-muted">
       <Folder size={12} />
-      <span className="hover:text-fg-secondary">我的文档</span>
+      <button
+        type="button"
+        className="hover:text-fg-secondary"
+        onClick={() => onNavigateFolder?.(null)}
+      >
+        文档
+      </button>
       {path.map((folder) => (
         <span key={folder.id} className="flex items-center gap-1">
           <span className="text-fg-muted">/</span>
-          <span className="hover:text-fg-secondary">
+          <button
+            type="button"
+            className="hover:text-fg-secondary"
+            onClick={() => onNavigateFolder?.(folder.id)}
+          >
             {folder.icon ? `${folder.icon} ` : ""}
             {folder.name}
-          </span>
+          </button>
         </span>
       ))}
+      <span className="text-fg-muted">/</span>
+      <span className="text-fg-secondary">
+        {doc.icon ? `${doc.icon} ` : ""}
+        {doc.title || "无标题"}
+      </span>
     </div>
   );
 }
