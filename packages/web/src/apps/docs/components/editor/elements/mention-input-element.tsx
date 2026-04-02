@@ -124,7 +124,7 @@ export function MentionInputElement(props: PlateElementProps) {
             style={{ top: menuPos.top, left: menuPos.left, maxHeight: 200 }}
           >
             {filtered.length === 0 ? (
-              <div className="px-3 py-3 text-center text-sm text-zinc-400">
+              <div className="px-3 py-3 text-center text-sm text-fg-muted">
                 没有匹配的用户
               </div>
             ) : (
@@ -136,7 +136,7 @@ export function MentionInputElement(props: PlateElementProps) {
                   className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors ${
                     idx === selectedIndex
                       ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                      : "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
+                      : "text-fg-secondary hover:bg-zinc-50  dark:hover:bg-zinc-700/50"
                   }`}
                   onMouseDown={(e) => {
                     e.preventDefault();

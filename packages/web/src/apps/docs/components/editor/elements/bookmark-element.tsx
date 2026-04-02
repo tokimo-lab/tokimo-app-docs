@@ -46,7 +46,7 @@ export function BookmarkElement(props: PlateElementProps) {
           contentEditable={false}
           className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/60"
         >
-          <ExternalLink size={16} className="shrink-0 text-zinc-400" />
+          <ExternalLink size={16} className="shrink-0 text-fg-muted" />
           <input
             type="url"
             value={draft}
@@ -59,7 +59,7 @@ export function BookmarkElement(props: PlateElementProps) {
               }
             }}
             placeholder="Enter URL..."
-            className="flex-1 border-none bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400 dark:text-zinc-200 dark:placeholder:text-zinc-500"
+            className="flex-1 border-none bg-transparent text-sm text-fg-secondary outline-none placeholder:text-fg-muted  "
             // biome-ignore lint/a11y/noAutofocus: intentional focus when entering bookmark URL
             autoFocus
           />
@@ -84,21 +84,18 @@ export function BookmarkElement(props: PlateElementProps) {
         }}
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-zinc-200 dark:bg-zinc-700">
-          <ExternalLink
-            size={14}
-            className="text-zinc-500 dark:text-zinc-400"
-          />
+          <ExternalLink size={14} className="text-fg-muted" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-zinc-700 dark:text-zinc-200">
+          <p className="truncate text-sm font-medium text-fg-secondary">
             {title || url}
           </p>
           {description && (
-            <p className="mt-0.5 line-clamp-1 text-xs text-zinc-400">
+            <p className="mt-0.5 line-clamp-1 text-xs text-fg-muted">
               {description}
             </p>
           )}
-          <p className="mt-0.5 text-xs text-zinc-400">{hostname}</p>
+          <p className="mt-0.5 text-xs text-fg-muted">{hostname}</p>
         </div>
       </a>
       {props.children}

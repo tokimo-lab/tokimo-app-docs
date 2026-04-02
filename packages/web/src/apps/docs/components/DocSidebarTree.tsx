@@ -141,14 +141,14 @@ export function FolderTreeNode({
       <div
         className={cn(
           "group flex w-full cursor-pointer items-center gap-1 rounded-md py-1.5 pr-2 text-left text-sm transition-colors",
-          "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
+          "text-fg-secondary hover:bg-zinc-100  dark:hover:bg-zinc-800",
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={() => onToggleFolder(node.folder.id)}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
       >
-        <span className="flex h-4 w-4 shrink-0 items-center justify-center text-zinc-400">
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center text-fg-muted">
           {hasContent ? (
             isExpanded ? (
               <ChevronDown size={14} />
@@ -160,7 +160,7 @@ export function FolderTreeNode({
           )}
         </span>
 
-        <span className="shrink-0 text-zinc-500 dark:text-zinc-400">
+        <span className="shrink-0 text-fg-muted">
           {isExpanded ? <FolderOpen size={15} /> : <Folder size={15} />}
         </span>
 
@@ -213,7 +213,7 @@ export function FolderTreeNode({
           >
             <button
               type="button"
-              className="rounded p-0.5 text-zinc-400 hover:text-sky-500"
+              className="rounded p-0.5 text-fg-muted hover:text-sky-500"
               onClick={() => onCreateDoc(node.folder.id)}
               title="在此文件夹新建文档"
             >
@@ -221,7 +221,7 @@ export function FolderTreeNode({
             </button>
             <button
               type="button"
-              className="rounded p-0.5 text-zinc-400 hover:text-sky-500"
+              className="rounded p-0.5 text-fg-muted hover:text-sky-500"
               onClick={() => onCreateSubfolder(node.folder.id)}
               title="新建子文件夹"
             >
@@ -229,7 +229,7 @@ export function FolderTreeNode({
             </button>
             <button
               type="button"
-              className="rounded p-0.5 text-zinc-400 hover:text-sky-500"
+              className="rounded p-0.5 text-fg-muted hover:text-sky-500"
               onClick={() => onStartRename(node.folder)}
               title="重命名"
             >
@@ -237,7 +237,7 @@ export function FolderTreeNode({
             </button>
             <button
               type="button"
-              className="rounded p-0.5 text-zinc-400 hover:text-red-500"
+              className="rounded p-0.5 text-fg-muted hover:text-red-500"
               onClick={() => onDeleteFolder(node.folder.id)}
               title="删除文件夹"
             >
@@ -285,7 +285,7 @@ export function FolderTreeNode({
           ))}
           {node.children.length === 0 && node.docs.length === 0 && (
             <div
-              className="py-1 text-xs text-zinc-400 italic"
+              className="py-1 text-xs text-fg-muted italic"
               style={{ paddingLeft: `${(depth + 1) * 16 + 28}px` }}
             >
               空文件夹
@@ -361,7 +361,7 @@ export function DocListItemRow({
         "group flex w-full cursor-pointer items-center gap-2 rounded-md py-2 pr-2.5 text-left text-sm transition-colors",
         isActive
           ? "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"
-          : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
+          : "text-fg-secondary hover:bg-zinc-100  dark:hover:bg-zinc-800",
       )}
       style={{ paddingLeft: `${depth * 16 + 28}px` }}
       onClick={onClick}
@@ -381,7 +381,7 @@ export function DocListItemRow({
             <Heart size={12} className="shrink-0 fill-red-500 text-red-500" />
           )}
         </div>
-        <span className="text-xs text-zinc-400">
+        <span className="text-xs text-fg-muted">
           {formatRelativeTime(doc.updatedAt)}
           {doc.wordCount > 0 && ` · ${doc.wordCount} 字`}
         </span>
@@ -396,7 +396,7 @@ export function DocListItemRow({
         >
           <button
             type="button"
-            className="rounded p-0.5 text-zinc-400 hover:text-amber-500"
+            className="rounded p-0.5 text-fg-muted hover:text-amber-500"
             onClick={onFavorite}
             title={doc.isFavorite ? "取消收藏" : "收藏"}
           >
@@ -409,7 +409,7 @@ export function DocListItemRow({
           >
             <button
               type="button"
-              className="rounded p-0.5 text-zinc-400 hover:text-sky-500"
+              className="rounded p-0.5 text-fg-muted hover:text-sky-500"
               title="移动到文件夹"
             >
               <FolderInput size={14} />
@@ -417,7 +417,7 @@ export function DocListItemRow({
           </Dropdown>
           <button
             type="button"
-            className="rounded p-0.5 text-zinc-400 hover:text-red-500"
+            className="rounded p-0.5 text-fg-muted hover:text-red-500"
             onClick={onDelete}
             title="删除"
           >
@@ -454,18 +454,18 @@ export function ArchivedDocRow({
         "group flex w-full cursor-pointer items-center gap-2 rounded-md py-2 pr-2.5 pl-7 text-left text-sm transition-colors",
         isActive
           ? "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"
-          : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
+          : "text-fg-secondary hover:bg-zinc-100  dark:hover:bg-zinc-800",
       )}
       onClick={onClick}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate font-medium text-zinc-400 dark:text-zinc-500">
+        <span className="truncate font-medium text-fg-muted">
           {doc.icon ? `${doc.icon} ` : ""}
           {doc.title || "无标题"}
         </span>
-        <span className="text-xs text-zinc-400">
+        <span className="text-xs text-fg-muted">
           {formatRelativeTime(doc.updatedAt)}
           {doc.wordCount > 0 && ` · ${doc.wordCount} 字`}
         </span>
@@ -480,7 +480,7 @@ export function ArchivedDocRow({
         >
           <button
             type="button"
-            className="rounded p-0.5 text-zinc-400 hover:text-green-500"
+            className="rounded p-0.5 text-fg-muted hover:text-green-500"
             onClick={onRestore}
             title="恢复"
           >
@@ -488,7 +488,7 @@ export function ArchivedDocRow({
           </button>
           <button
             type="button"
-            className="rounded p-0.5 text-zinc-400 hover:text-red-500"
+            className="rounded p-0.5 text-fg-muted hover:text-red-500"
             onClick={onPermanentDelete}
             title="永久删除"
           >

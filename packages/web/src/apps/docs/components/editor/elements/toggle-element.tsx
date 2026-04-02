@@ -13,7 +13,7 @@ export function ToggleElement(props: PlateElementProps) {
       <div className="flex items-start gap-1">
         <button
           type="button"
-          className="mt-1 flex size-5 shrink-0 items-center justify-center rounded text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+          className="mt-1 flex size-5 shrink-0 items-center justify-center rounded text-fg-muted hover:bg-zinc-100 dark:hover:bg-zinc-700"
           {...buttonProps}
           contentEditable={false}
         >

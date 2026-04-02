@@ -133,7 +133,7 @@ export function MermaidElement(props: PlateElementProps) {
                   setDraft(code);
                   setEditing(false);
                 }}
-                className="rounded bg-zinc-200 px-3 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+                className="rounded bg-zinc-200 px-3 py-1 text-xs font-medium text-fg-muted hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
               >
                 取消 (Esc)
               </button>
@@ -159,7 +159,7 @@ export function MermaidElement(props: PlateElementProps) {
                 </div>
               </div>
             ) : (
-              <span className="text-sm text-zinc-400 italic">
+              <span className="text-sm text-fg-muted italic">
                 点击输入 Mermaid 图表
               </span>
             )}

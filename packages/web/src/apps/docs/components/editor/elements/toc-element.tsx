@@ -12,11 +12,11 @@ export function TocElement(props: PlateElementProps) {
       {...props}
     >
       <div contentEditable={false} className="select-none">
-        <div className="mb-2 text-xs font-semibold text-zinc-400 uppercase">
+        <div className="mb-2 text-xs font-semibold text-fg-muted uppercase">
           Table of Contents
         </div>
         {headings.length === 0 ? (
-          <div className="text-sm text-zinc-400 italic">
+          <div className="text-sm text-fg-muted italic">
             Add headings to see table of contents
           </div>
         ) : (

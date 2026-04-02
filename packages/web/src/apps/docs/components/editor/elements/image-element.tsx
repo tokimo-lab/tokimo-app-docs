@@ -24,12 +24,12 @@ export function ImageElement(props: PlateElementProps) {
             style={width ? { width } : undefined}
           />
         ) : (
-          <div className="flex h-32 w-full items-center justify-center rounded border-2 border-dashed border-zinc-300 text-zinc-400 dark:border-zinc-600">
+          <div className="flex h-32 w-full items-center justify-center rounded border-2 border-dashed border-zinc-300 text-fg-muted dark:border-zinc-600">
             Click to add image
           </div>
         )}
         {caption && (
-          <figcaption className="mt-1 text-center text-xs text-zinc-400">
+          <figcaption className="mt-1 text-center text-xs text-fg-muted">
             {caption}
           </figcaption>
         )}

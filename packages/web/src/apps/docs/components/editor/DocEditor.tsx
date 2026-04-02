@@ -308,7 +308,7 @@ export function DocEditor({
 
   if (!editor) {
     return (
-      <div className="flex min-h-[200px] items-center justify-center text-zinc-400">
+      <div className="flex min-h-[200px] items-center justify-center text-fg-muted">
         Loading editor…
       </div>
     );
@@ -324,7 +324,7 @@ export function DocEditor({
         >
           <div className="relative mx-auto w-full max-w-3xl px-6 py-8">
             <PlateContent
-              className="doc-editor-content min-h-[200px] outline-none [&_[data-slate-placeholder]]:!text-zinc-400 [&_[data-slate-placeholder]]:!opacity-100 dark:[&_[data-slate-placeholder]]:!text-zinc-500"
+              className="doc-editor-content min-h-[200px] outline-none [&_[data-slate-placeholder]]:!text-fg-muted [&_[data-slate-placeholder]]:!opacity-100 dark:[&_[data-slate-placeholder]]:!text-fg-muted"
               placeholder={placeholder}
             />
           </div>

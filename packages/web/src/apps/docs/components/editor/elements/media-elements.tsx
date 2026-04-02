@@ -14,7 +14,7 @@ export function VideoElement(props: PlateElementProps) {
             <track kind="captions" />
           </video>
         ) : (
-          <div className="flex h-40 w-full items-center justify-center rounded border-2 border-dashed border-zinc-300 text-zinc-400 dark:border-zinc-600">
+          <div className="flex h-40 w-full items-center justify-center rounded border-2 border-dashed border-zinc-300 text-fg-muted dark:border-zinc-600">
             Paste or enter a video URL
           </div>
         )}
@@ -36,7 +36,7 @@ export function AudioElement(props: PlateElementProps) {
             <track kind="captions" />
           </audio>
         ) : (
-          <div className="flex h-16 w-full items-center justify-center rounded border-2 border-dashed border-zinc-300 text-zinc-400 dark:border-zinc-600">
+          <div className="flex h-16 w-full items-center justify-center rounded border-2 border-dashed border-zinc-300 text-fg-muted dark:border-zinc-600">
             Paste or enter an audio URL
           </div>
         )}
@@ -66,12 +66,12 @@ export function FileElement(props: PlateElementProps) {
         contentEditable={false}
         className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/60"
       >
-        <FileIcon size={20} className="shrink-0 text-zinc-400" />
+        <FileIcon size={20} className="shrink-0 text-fg-muted" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-zinc-700 dark:text-zinc-200">
+          <p className="truncate text-sm font-medium text-fg-secondary">
             {name}
           </p>
-          {sizeLabel && <p className="text-xs text-zinc-400">{sizeLabel}</p>}
+          {sizeLabel && <p className="text-xs text-fg-muted">{sizeLabel}</p>}
         </div>
         {url && (
           <a
@@ -81,7 +81,7 @@ export function FileElement(props: PlateElementProps) {
             rel="noopener noreferrer"
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded hover:bg-zinc-200 dark:hover:bg-zinc-700"
           >
-            <Download size={14} className="text-zinc-500" />
+            <Download size={14} className="text-fg-muted" />
           </a>
         )}
       </div>
@@ -108,7 +108,7 @@ export function MediaEmbedElement(props: PlateElementProps) {
             />
           </div>
         ) : (
-          <div className="flex h-40 w-full items-center justify-center rounded border-2 border-dashed border-zinc-300 text-zinc-400 dark:border-zinc-600">
+          <div className="flex h-40 w-full items-center justify-center rounded border-2 border-dashed border-zinc-300 text-fg-muted dark:border-zinc-600">
             Paste a URL to embed
           </div>
         )}

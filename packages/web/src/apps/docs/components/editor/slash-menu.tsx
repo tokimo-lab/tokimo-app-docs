@@ -59,7 +59,7 @@ interface SlashMenuGroup {
   items: SlashMenuItem[];
 }
 
-const ICON_CLASS = "size-4 text-zinc-500 dark:text-zinc-400";
+const ICON_CLASS = "size-4 text-fg-muted";
 
 const SLASH_MENU_GROUPS: SlashMenuGroup[] = [
   {
@@ -707,13 +707,13 @@ export function SlashInputElement(props: PlateElementProps) {
             style={{ top: menuPos.top, left: menuPos.left, maxHeight: 320 }}
           >
             {filteredGroups.length === 0 ? (
-              <div className="px-3 py-4 text-center text-sm text-zinc-400">
+              <div className="px-3 py-4 text-center text-sm text-fg-muted">
                 No results
               </div>
             ) : (
               filteredGroups.map((group) => (
                 <div key={group.label}>
-                  <div className="px-3 py-1.5 text-xs font-semibold text-zinc-400 uppercase dark:text-zinc-500">
+                  <div className="px-3 py-1.5 text-xs font-semibold text-fg-muted uppercase">
                     {group.label}
                   </div>
                   {group.items.map((item) => {
@@ -728,7 +728,7 @@ export function SlashInputElement(props: PlateElementProps) {
                         className={`flex w-full items-center gap-3 px-3 py-1.5 text-left text-sm transition-colors ${
                           isSelected
                             ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                            : "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
+                            : "text-fg-secondary hover:bg-zinc-50  dark:hover:bg-zinc-700/50"
                         }`}
                         onMouseDown={(e) => {
                           e.preventDefault();
@@ -741,7 +741,7 @@ export function SlashInputElement(props: PlateElementProps) {
                         </span>
                         <div className="min-w-0">
                           <div className="font-medium">{item.label}</div>
-                          <div className="truncate text-xs text-zinc-400 dark:text-zinc-500">
+                          <div className="truncate text-xs text-fg-muted">
                             {item.description}
                           </div>
                         </div>

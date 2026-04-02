@@ -17,10 +17,10 @@ import { useCallback } from "react";
 import { createPortal } from "react-dom";
 
 const INPUT_CLASS =
-  "h-8 w-60 rounded border border-zinc-300 bg-transparent px-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:text-zinc-100 dark:placeholder:text-zinc-500";
+  "h-8 w-60 rounded border border-zinc-300 bg-transparent px-2 text-sm text-zinc-900 placeholder:text-fg-muted focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:text-zinc-100 ";
 
 const BTN_CLASS =
-  "flex size-8 items-center justify-center rounded text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700";
+  "flex size-8 items-center justify-center rounded text-fg-muted transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700";
 
 const PANEL_CLASS =
   "z-[9999] flex items-center gap-1 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800";
@@ -154,7 +154,7 @@ function LinkEditPanel() {
       className={PANEL_CLASS}
     >
       <span
-        className="max-w-[200px] truncate px-2 text-sm text-zinc-500 dark:text-zinc-400"
+        className="max-w-[200px] truncate px-2 text-sm text-fg-muted"
         title={url}
       >
         {displayUrl}

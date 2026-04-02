@@ -135,7 +135,7 @@ function FileSystemList({
 
   if (fileSystems.length === 0) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 text-zinc-400">
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 text-fg-muted">
         <HardDrive size={32} />
         <p className="text-sm">No file systems configured</p>
         <p className="text-xs">Add a file system in Settings → File Systems</p>
@@ -145,7 +145,7 @@ function FileSystemList({
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <p className="px-4 py-2 text-xs font-medium text-zinc-400">选择存储源</p>
+      <p className="px-4 py-2 text-xs font-medium text-fg-muted">选择存储源</p>
       {fileSystems.map((fs) => (
         <button
           key={fs.id}
@@ -157,15 +157,12 @@ function FileSystemList({
             <HardDrive size={18} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-zinc-700 dark:text-zinc-200">
+            <p className="truncate text-sm font-medium text-fg-secondary">
               {fs.name}
             </p>
-            <p className="truncate text-xs text-zinc-400">{fs.type}</p>
+            <p className="truncate text-xs text-fg-muted">{fs.type}</p>
           </div>
-          <ChevronRight
-            size={16}
-            className="shrink-0 text-zinc-300 dark:text-zinc-600"
-          />
+          <ChevronRight size={16} className="shrink-0 text-fg-muted" />
         </button>
       ))}
     </div>
@@ -247,7 +244,7 @@ function FileBrowser({
       <div className="flex items-center gap-1 border-b border-zinc-200 px-3 py-1.5 dark:border-zinc-700">
         <button
           type="button"
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-transparent border-0 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-transparent border-0 text-fg-muted hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
           onClick={onBack}
           title="Back to file systems"
         >
@@ -256,20 +253,17 @@ function FileBrowser({
         <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto text-xs">
           <button
             type="button"
-            className="shrink-0 rounded bg-transparent border-0 px-1 py-0.5 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+            className="shrink-0 rounded bg-transparent border-0 px-1 py-0.5 text-fg-muted hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
             onClick={() => onNavigate("/")}
           >
             {fileSystem.name}
           </button>
           {pathSegments.map((seg) => (
             <span key={seg.path} className="flex items-center gap-0.5">
-              <ChevronRight
-                size={10}
-                className="shrink-0 text-zinc-300 dark:text-zinc-600"
-              />
+              <ChevronRight size={10} className="shrink-0 text-fg-muted" />
               <button
                 type="button"
-                className="shrink-0 truncate rounded bg-transparent border-0 px-1 py-0.5 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                className="shrink-0 truncate rounded bg-transparent border-0 px-1 py-0.5 text-fg-muted hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
                 onClick={() => onNavigate(seg.path)}
               >
                 {seg.name}
@@ -286,7 +280,7 @@ function FileBrowser({
             <Spin size="small" />
           </div>
         ) : rows.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm text-zinc-400">
+          <div className="flex h-full items-center justify-center text-sm text-fg-muted">
             Empty directory
           </div>
         ) : (
@@ -334,7 +328,7 @@ function FileBrowser({
                       </span>
                       <FolderOpen
                         size={12}
-                        className="shrink-0 text-zinc-300 dark:text-zinc-600"
+                        className="shrink-0 text-fg-muted"
                       />
                     </button>
                   ) : (
@@ -363,7 +357,7 @@ function FileBrowser({
                       <span className="min-w-0 flex-1 truncate">
                         {row.entry.name}
                       </span>
-                      <span className="shrink-0 text-xs text-zinc-400">
+                      <span className="shrink-0 text-xs text-fg-muted">
                         {formatFileSize(row.entry.size)}
                       </span>
                     </button>
@@ -377,7 +371,7 @@ function FileBrowser({
 
       {/* Footer */}
       <div className="flex items-center justify-between border-t border-zinc-200 px-3 py-2 dark:border-zinc-700">
-        <span className="truncate text-xs text-zinc-400">
+        <span className="truncate text-xs text-fg-muted">
           {selectedEntry ? selectedEntry.name : "Select a file"}
         </span>
         <Button

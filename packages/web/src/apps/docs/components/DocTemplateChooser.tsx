@@ -71,13 +71,13 @@ export function DocTemplateChooser({
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
             )}
           >
-            <span className="flex size-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+            <span className="flex size-10 items-center justify-center rounded-lg bg-zinc-100 text-fg-muted dark:bg-zinc-700 dark:text-zinc-300">
               {ICON_MAP[tpl.icon] ?? <FileText size={22} />}
             </span>
             <span className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
               {tpl.name}
             </span>
-            <span className="line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="line-clamp-2 text-xs text-fg-muted">
               {tpl.description}
             </span>
           </button>

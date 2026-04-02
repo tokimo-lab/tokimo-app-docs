@@ -82,7 +82,7 @@ export function EquationElement(props: PlateElementProps) {
               className="w-full max-w-lg resize-none rounded border border-zinc-300 bg-white px-3 py-2 font-mono text-sm outline-none focus:border-blue-400 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
               rows={2}
             />
-            <p className="text-xs text-zinc-400">⌘+Enter 确认 · Esc 取消</p>
+            <p className="text-xs text-fg-muted">⌘+Enter 确认 · Esc 取消</p>
           </div>
         ) : (
           // biome-ignore lint/a11y/useKeyWithClickEvents: equation click to edit
@@ -97,7 +97,7 @@ export function EquationElement(props: PlateElementProps) {
             {tex ? (
               <KatexRenderer tex={tex} displayMode />
             ) : (
-              <span className="text-sm text-zinc-400 italic">点击输入公式</span>
+              <span className="text-sm text-fg-muted italic">点击输入公式</span>
             )}
           </div>
         )}
@@ -169,7 +169,7 @@ export function InlineEquationElement(props: PlateElementProps) {
             {tex ? (
               <KatexRenderer tex={tex} displayMode={false} />
             ) : (
-              <span className="text-zinc-400 italic">∅</span>
+              <span className="text-fg-muted italic">∅</span>
             )}
           </span>
         )}

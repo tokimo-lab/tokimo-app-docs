@@ -16,7 +16,7 @@ const STYLE_MAP: Record<string, string> = {
   h3: "mt-4 mb-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100",
   h4: "mt-3 mb-1.5 text-lg font-semibold text-zinc-900 dark:text-zinc-100",
   h5: "mt-2 mb-1 text-base font-semibold text-zinc-900 dark:text-zinc-200",
-  h6: "mt-2 mb-1 text-sm font-semibold text-zinc-500 dark:text-zinc-400",
+  h6: "mt-2 mb-1 text-sm font-semibold text-fg-muted",
 };
 
 export function HeadingElement({ element, ...props }: PlateElementProps) {

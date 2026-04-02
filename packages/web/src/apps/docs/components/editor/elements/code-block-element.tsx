@@ -12,7 +12,7 @@ export function CodeBlockElement({ element, ...props }: PlateElementProps) {
       className="relative my-4 overflow-x-auto rounded-lg bg-zinc-950 p-4 font-mono text-sm text-zinc-100 dark:bg-zinc-900"
     >
       {lang && (
-        <span className="absolute top-2 right-3 select-none text-xs text-zinc-500">
+        <span className="absolute top-2 right-3 select-none text-xs text-fg-muted">
           {lang}
         </span>
       )}

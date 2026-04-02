@@ -63,7 +63,7 @@ export function VfsFileElement(props: PlateElementProps) {
           <p className="truncate text-sm font-medium text-zinc-800 dark:text-zinc-200">
             {fileName}
           </p>
-          <div className="mt-0.5 flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+          <div className="mt-0.5 flex items-center gap-2 text-xs text-fg-muted">
             {fileSystemName && (
               <span className="flex items-center gap-1">
                 <HardDrive size={10} />
@@ -84,13 +84,13 @@ export function VfsFileElement(props: PlateElementProps) {
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md opacity-0 transition-opacity hover:bg-zinc-200 group-hover:opacity-100 dark:hover:bg-zinc-700"
             title="Open file"
           >
-            <ExternalLink size={14} className="text-zinc-500" />
+            <ExternalLink size={14} className="text-fg-muted" />
           </a>
         )}
 
         {/* Fallback icon when no file selected */}
         {!fileSystemId && (
-          <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+          <div className="flex items-center gap-1.5 text-xs text-fg-muted">
             <FileIcon size={14} />
             <span>Select a file from VFS</span>
           </div>

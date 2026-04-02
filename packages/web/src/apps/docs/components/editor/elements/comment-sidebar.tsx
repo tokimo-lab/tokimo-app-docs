@@ -45,7 +45,7 @@ export function CommentSidebar({ docId, open, onClose }: CommentSidebarProps) {
     <div className="flex w-72 shrink-0 flex-col border-l border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2 dark:border-zinc-700">
-        <div className="flex items-center gap-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <div className="flex items-center gap-1.5 text-sm font-medium text-fg-secondary">
           <MessageSquare className="size-4" />
           <span>评论</span>
           {activeComments.length > 0 && (
@@ -57,7 +57,7 @@ export function CommentSidebar({ docId, open, onClose }: CommentSidebarProps) {
         <button
           type="button"
           onClick={onClose}
-          className="flex size-6 items-center justify-center rounded text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          className="flex size-6 items-center justify-center rounded text-fg-muted transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
         >
           <X className="size-4" />
         </button>
@@ -66,14 +66,14 @@ export function CommentSidebar({ docId, open, onClose }: CommentSidebarProps) {
       {/* Comment list */}
       <div className="flex-1 overflow-y-auto">
         {commentsQuery.isLoading ? (
-          <div className="flex items-center justify-center py-12 text-sm text-zinc-400">
+          <div className="flex items-center justify-center py-12 text-sm text-fg-muted">
             加载中…
           </div>
         ) : activeComments.length === 0 && resolvedComments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-12 text-zinc-400">
+          <div className="flex flex-col items-center justify-center gap-2 py-12 text-fg-muted">
             <MessageSquare className="size-8" strokeWidth={1} />
             <p className="text-sm">暂无评论</p>
-            <p className="px-4 text-center text-xs text-zinc-400 dark:text-zinc-500">
+            <p className="px-4 text-center text-xs text-fg-muted">
               选择文本后点击工具栏中的评论按钮添加评论
             </p>
           </div>
@@ -96,7 +96,7 @@ export function CommentSidebar({ docId, open, onClose }: CommentSidebarProps) {
                 {/* biome-ignore lint/a11y/useKeyWithClickEvents: toggle */}
                 {/* biome-ignore lint/a11y/noStaticElementInteractions: toggle */}
                 <div
-                  className="flex cursor-pointer items-center gap-1.5 px-3 py-2 text-xs text-zinc-500 transition-colors hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+                  className="flex cursor-pointer items-center gap-1.5 px-3 py-2 text-xs text-fg-muted transition-colors hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
                   onClick={() => setShowResolved((v) => !v)}
                 >
                   {showResolved ? (
@@ -217,7 +217,7 @@ function CommentThread({
         <button
           type="button"
           onClick={() => setShowReplyInput((v) => !v)}
-          className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-fg-muted transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
         >
           <Reply className="size-3" />
           回复
@@ -229,7 +229,7 @@ function CommentThread({
             "flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors",
             resolved
               ? "text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
-              : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300",
+              : "text-fg-muted hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300",
           )}
         >
           <Check className="size-3" />
@@ -251,7 +251,7 @@ function CommentThread({
               }
             }}
             placeholder="输入回复…"
-            className="flex-1 rounded border border-zinc-200 bg-transparent px-2 py-1 text-xs text-zinc-800 outline-none placeholder:text-zinc-400 focus:border-blue-400 dark:border-zinc-700 dark:text-zinc-200 dark:placeholder:text-zinc-500 dark:focus:border-blue-500"
+            className="flex-1 rounded border border-zinc-200 bg-transparent px-2 py-1 text-xs text-zinc-800 outline-none placeholder:text-fg-muted focus:border-blue-400 dark:border-zinc-700 dark:text-zinc-200  dark:focus:border-blue-500"
           />
           <button
             type="button"
@@ -284,14 +284,10 @@ function CommentItem({
     <div className={cn("group", isReply && "mt-1.5")}>
       <div className="flex items-start justify-between gap-1">
         <div className="flex items-center gap-1.5">
-          <span
-            className={cn(
-              "text-xs font-medium text-zinc-700 dark:text-zinc-300",
-            )}
-          >
+          <span className={cn("text-xs font-medium text-fg-secondary")}>
             {comment.userName}
           </span>
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+          <span className="text-[10px] text-fg-muted">
             {formatTime(comment.createdAt)}
           </span>
         </div>
@@ -299,14 +295,14 @@ function CommentItem({
           <button
             type="button"
             onClick={onDelete}
-            className="flex size-5 items-center justify-center rounded text-zinc-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+            className="flex size-5 items-center justify-center rounded text-fg-muted opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 dark:hover:bg-red-900/20 dark:hover:text-red-400"
             title="删除"
           >
             <Trash2 className="size-3" />
           </button>
         )}
       </div>
-      <p className="mt-0.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+      <p className="mt-0.5 text-xs leading-relaxed text-fg-muted">
         {comment.content}
       </p>
     </div>

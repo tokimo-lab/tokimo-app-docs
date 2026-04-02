@@ -115,7 +115,7 @@ export function EmojiInputElement(props: PlateElementProps) {
 
   return (
     <PlateElement {...props} as="span" className="inline">
-      <span className="text-zinc-400">:</span>
+      <span className="text-fg-muted">:</span>
       <span
         ref={inputRef}
         role="combobox"
@@ -126,7 +126,7 @@ export function EmojiInputElement(props: PlateElementProps) {
         suppressContentEditableWarning
         onInput={handleInput}
         onKeyDown={handleKeyDown}
-        className="inline text-zinc-600 outline-none dark:text-zinc-400"
+        className="inline text-fg-muted outline-none dark:text-zinc-400"
         data-slate-editor={false}
       />
       {props.children}
@@ -138,7 +138,7 @@ export function EmojiInputElement(props: PlateElementProps) {
             style={{ top: menuPos.top, left: menuPos.left, maxHeight: 280 }}
           >
             {filtered.length === 0 ? (
-              <div className="px-3 py-3 text-center text-sm text-zinc-400">
+              <div className="px-3 py-3 text-center text-sm text-fg-muted">
                 没有匹配的表情
               </div>
             ) : (
@@ -166,7 +166,7 @@ export function EmojiInputElement(props: PlateElementProps) {
               </div>
             )}
             {query && filtered.length > 0 && (
-              <div className="border-t border-zinc-200 px-3 py-1.5 text-xs text-zinc-400 dark:border-zinc-700">
+              <div className="border-t border-zinc-200 px-3 py-1.5 text-xs text-fg-muted dark:border-zinc-700">
                 {filtered[selectedIndex]?.name}
               </div>
             )}

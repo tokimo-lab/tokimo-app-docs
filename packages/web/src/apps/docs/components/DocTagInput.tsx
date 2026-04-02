@@ -121,7 +121,7 @@ export function DocTagInput({
     return (
       <button
         type="button"
-        className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+        className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-fg-muted hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
         onClick={() => {
           setIsEditing(true);
           requestAnimationFrame(() => inputRef.current?.focus());
@@ -141,12 +141,12 @@ export function DocTagInput({
       {tags.map((tag) => (
         <span
           key={tag}
-          className="inline-flex items-center gap-0.5 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+          className="inline-flex items-center gap-0.5 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-fg-secondary dark:bg-zinc-800 "
         >
           {tag}
           <button
             type="button"
-            className="ml-0.5 rounded-full p-0.5 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+            className="ml-0.5 rounded-full p-0.5 text-fg-muted hover:bg-zinc-200 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
             onClick={() => removeTag(tag)}
           >
             <X size={10} />
@@ -164,7 +164,7 @@ export function DocTagInput({
             onKeyDown={handleKeyDown}
             maxLength={MAX_TAG_LENGTH}
             placeholder="输入标签…"
-            className="min-w-[80px] border-none bg-transparent py-0.5 text-xs text-zinc-700 outline-none placeholder:text-zinc-400 dark:text-zinc-300 dark:placeholder:text-zinc-500"
+            className="min-w-[80px] border-none bg-transparent py-0.5 text-xs text-fg-secondary outline-none placeholder:text-fg-muted  "
           />
           {suggestions.length > 0 && (
             <div className="absolute top-full left-0 z-50 mt-1 w-48 rounded-md border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
@@ -176,7 +176,7 @@ export function DocTagInput({
                     "flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs",
                     i === highlightedIdx
                       ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-                      : "text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800/50",
+                      : "text-fg-muted hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800/50",
                   )}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -194,7 +194,7 @@ export function DocTagInput({
       ) : (
         <button
           type="button"
-          className="rounded p-0.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          className="rounded p-0.5 text-fg-muted hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
           onClick={() => {
             setIsEditing(true);
             requestAnimationFrame(() => inputRef.current?.focus());

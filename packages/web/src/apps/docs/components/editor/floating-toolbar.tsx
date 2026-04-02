@@ -64,7 +64,7 @@ function MarkButton({ markKey, icon, title }: MarkButtonProps) {
       className={`flex size-8 items-center justify-center rounded transition-colors ${
         isActive
           ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-          : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
+          : "text-fg-muted hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
       }`}
     >
       {icon}
@@ -128,7 +128,7 @@ function TurnIntoDropdown() {
           e.preventDefault();
           setOpen((v) => !v);
         }}
-        className="flex h-8 items-center gap-0.5 rounded px-1.5 text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
+        className="flex h-8 items-center gap-0.5 rounded px-1.5 text-fg-muted transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
       >
         <CurrentIcon className={ICON_SIZE} />
         <ChevronDown className="size-3" />
@@ -146,7 +146,7 @@ function TurnIntoDropdown() {
               className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors ${
                 currentType === type
                   ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                  : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                  : "text-fg-secondary hover:bg-zinc-100  dark:hover:bg-zinc-700"
               }`}
             >
               <Icon className={ICON_SIZE} />
@@ -175,7 +175,7 @@ function LinkButton() {
       type="button"
       title="Link (⌘K)"
       onMouseDown={handleMouseDown}
-      className="flex size-8 items-center justify-center rounded text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
+      className="flex size-8 items-center justify-center rounded text-fg-muted transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
     >
       <Link className={ICON_SIZE} />
     </button>
@@ -205,7 +205,7 @@ function CommentButton({
       type="button"
       title="评论"
       onMouseDown={handleMouseDown}
-      className="flex size-8 items-center justify-center rounded text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
+      className="flex size-8 items-center justify-center rounded text-fg-muted transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
     >
       <MessageSquare className={ICON_SIZE} />
     </button>

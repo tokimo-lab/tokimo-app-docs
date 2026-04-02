@@ -574,7 +574,7 @@ function DocAppPageInner() {
               <button
                 type="button"
                 onClick={handleOpenAi}
-                className="flex items-center gap-1 rounded px-2 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                className="flex items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
               >
                 <Sparkles size={14} />
                 AI 助手
@@ -588,7 +588,7 @@ function DocAppPageInner() {
                 className={`flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
                   versionHistoryOpen
                     ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                    : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                    : "text-fg-muted hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
                 }`}
               >
                 <Clock size={14} />
@@ -600,7 +600,7 @@ function DocAppPageInner() {
                 className={`flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
                   commentSidebarOpen
                     ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                    : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                    : "text-fg-muted hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
                 }`}
               >
                 <MessageSquare size={14} />
@@ -643,7 +643,7 @@ function DocAppPageInner() {
                   <button
                     type="button"
                     onClick={dismissAiUndo}
-                    className="rounded px-2 py-0.5 text-xs text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                    className="rounded px-2 py-0.5 text-xs text-fg-muted hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
                   >
                     确认
                   </button>
@@ -684,7 +684,7 @@ function DocAppPageInner() {
             )}
           </>
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-4 text-zinc-400">
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-fg-muted">
             <FileText size={48} strokeWidth={1} />
             <p className="text-sm">选择一个文档开始编辑</p>
             <Button
@@ -804,7 +804,7 @@ function DocEditorArea({
               (e.target as HTMLInputElement).blur();
             }
           }}
-          className="w-full border-none bg-transparent text-4xl font-bold text-zinc-900 outline-none placeholder:text-zinc-300 dark:text-zinc-100 dark:placeholder:text-zinc-600"
+          className="w-full border-none bg-transparent text-4xl font-bold text-zinc-900 outline-none placeholder:text-fg-muted dark:text-zinc-100 "
           placeholder="无标题"
         />
       </div>

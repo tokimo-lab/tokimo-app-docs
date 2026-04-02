@@ -56,7 +56,7 @@ export function DocVersionHistory({
     <div className="flex w-72 shrink-0 flex-col border-l border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2 dark:border-zinc-700">
-        <div className="flex items-center gap-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <div className="flex items-center gap-1.5 text-sm font-medium text-fg-secondary">
           <Clock className="size-4" />
           <span>版本历史</span>
           {versions.length > 0 && (
@@ -71,7 +71,7 @@ export function DocVersionHistory({
             onClearPreview();
             onClose();
           }}
-          className="flex size-6 items-center justify-center rounded text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          className="flex size-6 items-center justify-center rounded text-fg-muted transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
         >
           <X className="size-4" />
         </button>
@@ -80,14 +80,14 @@ export function DocVersionHistory({
       {/* Version list */}
       <div className="flex-1 overflow-y-auto">
         {versionsQuery.isLoading ? (
-          <div className="flex items-center justify-center py-12 text-sm text-zinc-400">
+          <div className="flex items-center justify-center py-12 text-sm text-fg-muted">
             加载中…
           </div>
         ) : versions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-12 text-zinc-400">
+          <div className="flex flex-col items-center justify-center gap-2 py-12 text-fg-muted">
             <Clock className="size-8" strokeWidth={1} />
             <p className="text-sm">暂无版本历史</p>
-            <p className="px-4 text-center text-xs text-zinc-400 dark:text-zinc-500">
+            <p className="px-4 text-center text-xs text-fg-muted">
               编辑文档时会自动保存版本快照
             </p>
           </div>
@@ -147,16 +147,16 @@ function VersionItem({
                 "text-xs font-medium",
                 isActive
                   ? "text-blue-700 dark:text-blue-400"
-                  : "text-zinc-700 dark:text-zinc-300",
+                  : "text-fg-secondary",
               )}
             >
               版本 {version.version}
             </span>
-            <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+            <span className="text-[10px] text-fg-muted">
               {formatTime(version.createdAt)}
             </span>
           </div>
-          <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+          <span className="text-[11px] text-fg-muted">
             {version.wordCount} 字
           </span>
         </div>

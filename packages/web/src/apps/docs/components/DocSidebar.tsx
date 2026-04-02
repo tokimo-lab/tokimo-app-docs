@@ -296,7 +296,7 @@ export function DocSidebar({
       <div className="flex w-10 shrink-0 flex-col items-center border-r border-zinc-200 bg-zinc-50/50 py-2 dark:border-zinc-700 dark:bg-zinc-900/50">
         <button
           type="button"
-          className="rounded p-1.5 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+          className="rounded p-1.5 text-fg-muted hover:bg-zinc-200 dark:hover:bg-zinc-700"
           onClick={onToggleCollapsed}
           title="展开侧栏"
         >
@@ -334,7 +334,7 @@ export function DocSidebar({
         >
           <button
             type="button"
-            className="rounded p-1 text-zinc-500 hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-700"
+            className="rounded p-1 text-fg-muted hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-700"
             title="排序"
           >
             <ArrowUpDown size={14} />
@@ -355,7 +355,7 @@ export function DocSidebar({
         />
         <button
           type="button"
-          className="rounded p-1 text-zinc-500 hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-700"
+          className="rounded p-1 text-fg-muted hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-700"
           onClick={onToggleCollapsed}
           title="收起侧栏"
         >
@@ -368,7 +368,7 @@ export function DocSidebar({
         <Input
           size="small"
           placeholder="搜索文档…"
-          prefix={<Search size={14} className="text-zinc-400" />}
+          prefix={<Search size={14} className="text-fg-muted" />}
           value={search}
           onChange={(e) => onSetSearch(e.target.value)}
         />
@@ -379,7 +379,7 @@ export function DocSidebar({
         <div className="border-b border-zinc-200 px-3 pb-2 dark:border-zinc-700">
           <button
             type="button"
-            className="flex w-full items-center gap-1 rounded px-1 py-1 text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+            className="flex w-full items-center gap-1 rounded px-1 py-1 text-xs font-medium text-fg-muted hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
             onClick={() => setTagsExpanded((v) => !v)}
           >
             {tagsExpanded ? (
@@ -429,7 +429,7 @@ export function DocSidebar({
                       "rounded-full px-2 py-0.5 text-[11px] transition-colors",
                       isActive
                         ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700",
+                        : "bg-zinc-100 text-fg-muted hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700",
                     )}
                     onClick={() => toggleFilterTag(tag)}
                   >
@@ -440,7 +440,7 @@ export function DocSidebar({
               {filterTags.length > 0 && (
                 <button
                   type="button"
-                  className="rounded-full px-2 py-0.5 text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                  className="rounded-full px-2 py-0.5 text-[11px] text-fg-muted hover:text-zinc-600 dark:hover:text-zinc-300"
                   onClick={() => onSetFilterTags([])}
                 >
                   清除
@@ -458,7 +458,7 @@ export function DocSidebar({
             <Spin size="small" />
           </div>
         ) : docs.length === 0 && folders.length === 0 ? (
-          <div className="px-3 py-8 text-center text-sm text-zinc-400">
+          <div className="px-3 py-8 text-center text-sm text-fg-muted">
             {isTrash
               ? "回收站为空"
               : search
@@ -504,7 +504,7 @@ export function DocSidebar({
             ))}
           </div>
         ) : docs.length === 0 ? (
-          <div className="px-3 py-8 text-center text-sm text-zinc-400">
+          <div className="px-3 py-8 text-center text-sm text-fg-muted">
             {isTrash
               ? "回收站为空"
               : tab === "favorites"
