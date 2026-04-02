@@ -13,6 +13,7 @@ import {
   Download,
   FileText,
   FileType,
+  Folder,
   MessageSquare,
   Plus,
   Sparkles,
@@ -48,7 +49,7 @@ import { CommentSidebar } from "@/apps/docs/components/editor/elements/comment-s
 import VfsFilePickerModal, {
   type VfsFileSelection,
 } from "@/apps/docs/components/VfsFilePickerModal";
-import type { DocOutput } from "@/generated/rust-api";
+import type { DocFolderOutput, DocOutput } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
 import { onAiDocumentEdit, openAiAssistant } from "@/lib/ai-assistant-events";
 import { useMenuBar, useMessage, useWindowNav } from "@/system";
@@ -121,13 +122,17 @@ function DocAppPageInner() {
   const [vfsPickerOpen, setVfsPickerOpen] = useState(false);
   const editorRef = useRef<DocEditorHandle | null>(null);
 
+  // Override sort for "recent" tab
+  const effectiveSortField = tab === "recent" ? "updatedAt" : sortField;
+  const effectiveSortDir = tab === "recent" ? "desc" : sortDir;
+
   // ── Doc list query ─────────────────────────────────────────────────
   const listQuery = api.doc.list.useQuery(
     {
       appId: appId ?? "",
       pageSize: 200,
-      sortBy: sortField,
-      sortDir,
+      sortBy: effectiveSortField,
+      sortDir: effectiveSortDir,
       search: search || undefined,
       favoritesOnly: tab === "favorites" ? true : undefined,
       tags: filterTags.length > 0 ? filterTags.join(",") : undefined,
@@ -137,6 +142,13 @@ function DocAppPageInner() {
   );
 
   const docs = useMemo(() => listQuery.data?.items ?? [], [listQuery.data]);
+
+  // ── Folders (for breadcrumb) ───────────────────────────────────────
+  const foldersQuery = api.doc.listFolders.useQuery(
+    { appId: appId ?? "" },
+    { enabled: !!appId },
+  );
+  const folders = foldersQuery.data ?? [];
 
   // ── Selected doc detail ────────────────────────────────────────────
   const detailQuery = api.doc.getById.useQuery(
@@ -569,8 +581,11 @@ function DocAppPageInner() {
       <div className="flex flex-1 flex-col overflow-hidden">
         {selectedDoc ? (
           <>
-            {/* Toolbar: comment + version history toggles */}
-            <div className="flex items-center justify-end gap-1 border-b border-border-subtle px-3 py-1">
+            {/* Toolbar: breadcrumb + comment + version history toggles */}
+            <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
+              {/* Breadcrumb */}
+              <DocBreadcrumb doc={selectedDoc} folders={folders} />
+              <div className="flex-1" />
               <button
                 type="button"
                 onClick={handleOpenAi}
@@ -835,6 +850,44 @@ function DocEditorArea({
           readOnly={readOnly}
         />
       </div>
+    </div>
+  );
+}
+
+// ── Breadcrumb ─────────────────────────────────────────────────────────────
+
+function DocBreadcrumb({
+  doc,
+  folders,
+}: {
+  doc: DocOutput;
+  folders: DocFolderOutput[];
+}) {
+  const path = useMemo(() => {
+    if (!doc.folderId) return [];
+    const folderMap = new Map(folders.map((f) => [f.id, f]));
+    const result: DocFolderOutput[] = [];
+    let current = folderMap.get(doc.folderId);
+    while (current) {
+      result.unshift(current);
+      current = current.parentId ? folderMap.get(current.parentId) : undefined;
+    }
+    return result;
+  }, [doc.folderId, folders]);
+
+  return (
+    <div className="flex items-center gap-1 text-xs text-fg-muted">
+      <Folder size={12} />
+      <span className="hover:text-fg-secondary">我的文档</span>
+      {path.map((folder) => (
+        <span key={folder.id} className="flex items-center gap-1">
+          <span className="text-fg-muted">/</span>
+          <span className="hover:text-fg-secondary">
+            {folder.icon ? `${folder.icon} ` : ""}
+            {folder.name}
+          </span>
+        </span>
+      ))}
     </div>
   );
 }

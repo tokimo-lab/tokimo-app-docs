@@ -1,12 +1,16 @@
 /**
- * DocSidebar — Folder-tree sidebar for the doc app.
+ * DocSidebar — Feishu-style sidebar for the doc app.
  *
- * Features: folder tree, expand/collapse, folder CRUD,
- * doc-to-folder movement, search, sort, favorites, sidebar collapse.
+ * Layout (top → bottom):
+ *   1. Header: New button + sort + sidebar collapse
+ *   2. Search input
+ *   3. Navigation items: 全部 · 最近 · 收藏 · 回收站
+ *   4. Section header: 我的文档 with +doc / +folder actions
+ *   5. Folder tree (all tab) or flat doc list (other tabs)
+ *   6. Tags filter (collapsible)
  */
 
 import {
-  Button,
   cn,
   Dropdown,
   type DropdownMenuItem,
@@ -18,6 +22,8 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  Clock,
+  FileText,
   FolderPlus,
   PanelLeft,
   PanelLeftClose,
@@ -41,7 +47,7 @@ import {
 
 // ── Exported types ─────────────────────────────────────────────────────────
 
-export type SidebarTab = "all" | "favorites" | "trash";
+export type SidebarTab = "all" | "recent" | "favorites" | "trash";
 export type SortField = "updatedAt" | "createdAt" | "title" | "wordCount";
 export type SortDir = "asc" | "desc";
 
@@ -82,6 +88,19 @@ const SORT_LABELS: Record<SortField, string> = {
   title: "标题",
   wordCount: "字数",
 };
+
+// ── Nav item config ────────────────────────────────────────────────────────
+
+const NAV_ITEMS: {
+  key: SidebarTab;
+  label: string;
+  icon: typeof FileText;
+}[] = [
+  { key: "all", label: "全部文档", icon: FileText },
+  { key: "recent", label: "最近编辑", icon: Clock },
+  { key: "favorites", label: "收藏", icon: Star },
+  { key: "trash", label: "回收站", icon: Trash2 },
+];
 
 // ── DocSidebar ─────────────────────────────────────────────────────────────
 
@@ -136,7 +155,7 @@ export function DocSidebar({
     [filterTags, onSetFilterTags],
   );
 
-  // ── Folder mutations (use refs for stable callbacks) ─────────
+  // ── Folder mutations ─────────────────────────────────────────
   const createFolderMut = api.doc.createFolder.useMutation({
     onSuccess: () => {
       foldersQuery.refetch();
@@ -216,14 +235,12 @@ export function DocSidebar({
     [appId],
   );
 
-  // ── Delete folder ────────────────────────────────────────────
   const handleDeleteFolder = useCallback((folderId: string) => {
     if (window.confirm("确定删除此文件夹？文件夹内的文档将移至根目录。")) {
       deleteFolderRef.current.mutate({ id: folderId });
     }
   }, []);
 
-  // ── Move doc ─────────────────────────────────────────────────
   const handleMoveDoc = useCallback(
     (docId: string, folderId: string | null) => {
       moveRef.current.mutate({ id: docId, folderId });
@@ -231,7 +248,6 @@ export function DocSidebar({
     [],
   );
 
-  // ── Create doc in folder (auto-expand) ───────────────────────
   const handleCreateDocInFolder = useCallback(
     (folderId?: string) => {
       if (folderId) {
@@ -287,16 +303,17 @@ export function DocSidebar({
     return [...fieldItems, { type: "divider" as const }, ...dirItems];
   }, [sortField, sortDir, onSetSortField, onSetSortDir]);
 
-  const showTree = tab === "all" && !search && filterTags.length === 0;
+  const showTree =
+    (tab === "all" || tab === "recent") && !search && filterTags.length === 0;
   const isTrash = tab === "trash";
 
   // ── Collapsed view ───────────────────────────────────────────
   if (collapsed) {
     return (
-      <div className="flex w-10 shrink-0 flex-col items-center border-r border-border-base bg-surface-base/50 py-2/50">
+      <div className="flex w-10 shrink-0 flex-col items-center border-r border-border-base bg-surface-base/50 py-2">
         <button
           type="button"
-          className="rounded p-1.5 text-fg-muted hover:bg-fill-tertiary "
+          className="rounded p-1.5 text-fg-muted hover:bg-fill-tertiary"
           onClick={onToggleCollapsed}
           title="展开侧栏"
         >
@@ -307,25 +324,38 @@ export function DocSidebar({
   }
 
   return (
-    <div className="flex w-64 shrink-0 flex-col border-r border-border-base bg-surface-base/50/50">
-      {/* Header */}
-      <div className="flex items-center gap-1 border-b border-border-base px-3 py-2">
-        <Button
-          size="small"
-          variant="text"
-          icon={<Plus size={16} />}
-          onClick={() => onCreateDoc()}
-          loading={isCreatingDoc}
+    <div className="flex w-64 shrink-0 flex-col border-r border-border-base bg-surface-base/50">
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div className="flex items-center gap-1 px-3 py-2">
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: "doc",
+                label: "新建文档",
+                icon: <FileText size={14} />,
+                onClick: () => onCreateDoc(),
+              },
+              {
+                key: "folder",
+                label: "新建文件夹",
+                icon: <FolderPlus size={14} />,
+                onClick: () => handleCreateFolder(),
+              },
+            ],
+          }}
+          trigger={["click"]}
+          placement="bottomLeft"
         >
-          新建
-        </Button>
-        <Button
-          size="small"
-          variant="text"
-          icon={<FolderPlus size={14} />}
-          onClick={() => handleCreateFolder()}
-          title="新建文件夹"
-        />
+          <button
+            type="button"
+            disabled={isCreatingDoc}
+            className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
+          >
+            <Plus size={14} />
+            新建
+          </button>
+        </Dropdown>
         <div className="flex-1" />
         <Dropdown
           menu={{ items: sortMenuItems }}
@@ -334,28 +364,15 @@ export function DocSidebar({
         >
           <button
             type="button"
-            className="rounded p-1 text-fg-muted hover:bg-fill-tertiary "
+            className="rounded p-1 text-fg-muted hover:bg-fill-tertiary"
             title="排序"
           >
             <ArrowUpDown size={14} />
           </button>
         </Dropdown>
-        <Button
-          size="small"
-          variant={tab === "favorites" ? "primary" : "text"}
-          icon={<Star size={14} />}
-          onClick={() => onSetTab(tab === "favorites" ? "all" : "favorites")}
-        />
-        <Button
-          size="small"
-          variant={tab === "trash" ? "primary" : "text"}
-          icon={<Trash2 size={14} />}
-          onClick={() => onSetTab(tab === "trash" ? "all" : "trash")}
-          title="回收站"
-        />
         <button
           type="button"
-          className="rounded p-1 text-fg-muted hover:bg-fill-tertiary "
+          className="rounded p-1 text-fg-muted hover:bg-fill-tertiary"
           onClick={onToggleCollapsed}
           title="收起侧栏"
         >
@@ -363,8 +380,8 @@ export function DocSidebar({
         </button>
       </div>
 
-      {/* Search */}
-      <div className="px-3 py-2">
+      {/* ── Search ──────────────────────────────────────────── */}
+      <div className="px-3 pb-2">
         <Input
           size="small"
           placeholder="搜索文档…"
@@ -374,9 +391,65 @@ export function DocSidebar({
         />
       </div>
 
-      {/* Tag filter */}
-      {availableTags.length > 0 && (
-        <div className="border-b border-border-base px-3 pb-2">
+      {/* ── Nav items ───────────────────────────────────────── */}
+      <div className="flex flex-col gap-0.5 px-2 pb-2">
+        {NAV_ITEMS.map((item) => {
+          const isActive = tab === item.key;
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              className={cn(
+                "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                isActive
+                  ? "bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                  : "text-fg-secondary hover:bg-fill-tertiary",
+              )}
+              onClick={() => onSetTab(item.key)}
+            >
+              <Icon
+                size={16}
+                className={cn(
+                  isActive
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-fg-muted",
+                )}
+              />
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Section header: 我的文档 ───────────────────────── */}
+      {(tab === "all" || tab === "recent") && (
+        <div className="flex items-center gap-1 px-3 pt-1 pb-1">
+          <span className="flex-1 text-xs font-semibold tracking-wide text-fg-muted uppercase">
+            我的文档
+          </span>
+          <button
+            type="button"
+            className="rounded p-0.5 text-fg-muted hover:text-blue-600 dark:hover:text-blue-400"
+            onClick={() => onCreateDoc()}
+            title="新建文档"
+          >
+            <Plus size={14} />
+          </button>
+          <button
+            type="button"
+            className="rounded p-0.5 text-fg-muted hover:text-blue-600 dark:hover:text-blue-400"
+            onClick={() => handleCreateFolder()}
+            title="新建文件夹"
+          >
+            <FolderPlus size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Tag filter ──────────────────────────────────────── */}
+      {availableTags.length > 0 && (tab === "all" || tab === "recent") && (
+        <div className="px-3 pb-1">
           <button
             type="button"
             className="flex w-full items-center gap-1 rounded px-1 py-1 text-xs font-medium text-fg-muted hover:text-fg-secondary"
@@ -396,7 +469,6 @@ export function DocSidebar({
             )}
           </button>
 
-          {/* Active filter pills (always visible when there are active filters) */}
           {filterTags.length > 0 && !tagsExpanded && (
             <div className="mt-1 flex flex-wrap gap-1">
               {filterTags.map((tag) => (
@@ -429,7 +501,7 @@ export function DocSidebar({
                       "rounded-full px-2 py-0.5 text-[11px] transition-colors",
                       isActive
                         ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                        : "bg-fill-tertiary text-fg-muted hover:bg-fill-tertiary ",
+                        : "bg-fill-tertiary text-fg-muted hover:bg-fill-secondary",
                     )}
                     onClick={() => toggleFilterTag(tag)}
                   >
@@ -451,7 +523,7 @@ export function DocSidebar({
         </div>
       )}
 
-      {/* Content */}
+      {/* ── Content ─────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
         {isLoadingDocs ? (
           <div className="flex justify-center py-8">
@@ -463,9 +535,11 @@ export function DocSidebar({
               ? "回收站为空"
               : search
                 ? "没有匹配的文档"
-                : "暂无文档，点击上方新建"}
+                : tab === "favorites"
+                  ? "暂无收藏文档"
+                  : "暂无文档，点击上方新建"}
           </div>
-        ) : showTree ? (
+        ) : showTree && !search && filterTags.length === 0 ? (
           <div className="flex flex-col gap-0.5 px-1.5 py-1">
             {tree.rootFolders.map((node) => (
               <FolderTreeNode
@@ -502,14 +576,6 @@ export function DocSidebar({
                 allFolders={folders}
               />
             ))}
-          </div>
-        ) : docs.length === 0 ? (
-          <div className="px-3 py-8 text-center text-sm text-fg-muted">
-            {isTrash
-              ? "回收站为空"
-              : tab === "favorites"
-                ? "暂无收藏文档"
-                : "没有匹配的文档"}
           </div>
         ) : isTrash ? (
           <div className="flex flex-col gap-0.5 px-1.5 py-1">
