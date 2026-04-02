@@ -24,7 +24,7 @@ export function ImageElement(props: PlateElementProps) {
             style={width ? { width } : undefined}
           />
         ) : (
-          <div className="flex h-32 w-full items-center justify-center rounded border-2 border-dashed border-zinc-300 text-fg-muted dark:border-zinc-600">
+          <div className="flex h-32 w-full items-center justify-center rounded border-2 border-dashed border-border-base text-fg-muted">
             Click to add image
           </div>
         )}

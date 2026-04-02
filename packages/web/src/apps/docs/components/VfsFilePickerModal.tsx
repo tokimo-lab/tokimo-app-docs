@@ -241,7 +241,7 @@ function FileBrowser({
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Header: back + breadcrumb */}
-      <div className="flex items-center gap-1 border-b border-zinc-200 px-3 py-1.5 dark:border-zinc-700">
+      <div className="flex items-center gap-1 border-b border-border-base px-3 py-1.5">
         <button
           type="button"
           className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-transparent border-0 text-fg-muted hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
@@ -370,7 +370,7 @@ function FileBrowser({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between border-t border-zinc-200 px-3 py-2 dark:border-zinc-700">
+      <div className="flex items-center justify-between border-t border-border-base px-3 py-2">
         <span className="truncate text-xs text-fg-muted">
           {selectedEntry ? selectedEntry.name : "Select a file"}
         </span>

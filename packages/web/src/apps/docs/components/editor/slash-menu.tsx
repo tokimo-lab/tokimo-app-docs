@@ -703,7 +703,7 @@ export function SlashInputElement(props: PlateElementProps) {
         createPortal(
           <div
             ref={menuRef}
-            className="fixed z-[9999] w-72 overflow-y-auto rounded-lg border border-zinc-200 bg-white py-1.5 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+            className="fixed z-[9999] w-72 overflow-y-auto rounded-lg border border-border-base bg-surface-elevated py-1.5 shadow-xl "
             style={{ top: menuPos.top, left: menuPos.left, maxHeight: 320 }}
           >
             {filteredGroups.length === 0 ? (
@@ -736,7 +736,7 @@ export function SlashInputElement(props: PlateElementProps) {
                         }}
                         onMouseEnter={() => setSelectedIndex(currentIndex)}
                       >
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-white dark:border-zinc-600 dark:bg-zinc-700">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border-base bg-white dark:bg-zinc-700">
                           {item.icon}
                         </span>
                         <div className="min-w-0">

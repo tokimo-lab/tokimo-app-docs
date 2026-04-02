@@ -53,9 +53,9 @@ export function DocVersionHistory({
   if (!open) return null;
 
   return (
-    <div className="flex w-72 shrink-0 flex-col border-l border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+    <div className="flex w-72 shrink-0 flex-col border-l border-border-base bg-surface-elevated ">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2 dark:border-zinc-700">
+      <div className="flex items-center justify-between border-b border-border-base px-3 py-2">
         <div className="flex items-center gap-1.5 text-sm font-medium text-fg-secondary">
           <Clock className="size-4" />
           <span>版本历史</span>
@@ -132,7 +132,7 @@ function VersionItem({
     // biome-ignore lint/a11y/noStaticElementInteractions: version item
     <div
       className={cn(
-        "group cursor-pointer border-b border-zinc-100 px-3 py-2.5 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50",
+        "group cursor-pointer border-b border-border-subtle px-3 py-2.5 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50",
         isActive && "bg-blue-50 dark:bg-blue-900/20",
       )}
       onClick={onPreview}

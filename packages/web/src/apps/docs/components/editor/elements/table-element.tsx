@@ -19,7 +19,7 @@ export function TableCellElement(props: PlateElementProps) {
   return (
     <PlateElement
       as="td"
-      className="min-w-[80px] border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700"
+      className="min-w-[80px] border border-border-base px-3 py-2 text-sm"
       {...props}
     />
   );
@@ -29,7 +29,7 @@ export function TableHeaderCellElement(props: PlateElementProps) {
   return (
     <PlateElement
       as="th"
-      className="min-w-[80px] border border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-sm font-semibold dark:border-zinc-700 dark:bg-zinc-800"
+      className="min-w-[80px] border border-border-base bg-surface-base px-3 py-2 text-left text-sm font-semibold dark:bg-zinc-800"
       {...props}
     />
   );

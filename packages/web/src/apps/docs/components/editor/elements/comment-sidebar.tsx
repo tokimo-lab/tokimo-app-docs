@@ -42,9 +42,9 @@ export function CommentSidebar({ docId, open, onClose }: CommentSidebarProps) {
   if (!open) return null;
 
   return (
-    <div className="flex w-72 shrink-0 flex-col border-l border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+    <div className="flex w-72 shrink-0 flex-col border-l border-border-base bg-surface-elevated ">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2 dark:border-zinc-700">
+      <div className="flex items-center justify-between border-b border-border-base px-3 py-2">
         <div className="flex items-center gap-1.5 text-sm font-medium text-fg-secondary">
           <MessageSquare className="size-4" />
           <span>评论</span>
@@ -92,7 +92,7 @@ export function CommentSidebar({ docId, open, onClose }: CommentSidebarProps) {
 
             {/* Resolved comments toggle */}
             {resolvedComments.length > 0 && (
-              <div className="border-t border-zinc-200 dark:border-zinc-700">
+              <div className="border-t border-border-base">
                 {/* biome-ignore lint/a11y/useKeyWithClickEvents: toggle */}
                 {/* biome-ignore lint/a11y/noStaticElementInteractions: toggle */}
                 <div
@@ -186,7 +186,7 @@ function CommentThread({
   return (
     <div
       className={cn(
-        "border-b border-zinc-100 px-3 py-2.5 dark:border-zinc-800",
+        "border-b border-border-subtle px-3 py-2.5 dark:border-zinc-800",
         resolved && "opacity-60",
       )}
     >
@@ -199,7 +199,7 @@ function CommentThread({
 
       {/* Replies */}
       {comment.replies.length > 0 && (
-        <div className="ml-3 mt-1.5 border-l-2 border-zinc-200 pl-2.5 dark:border-zinc-700">
+        <div className="ml-3 mt-1.5 border-l-2 border-border-base pl-2.5">
           {comment.replies.map((reply) => (
             <CommentItem
               key={reply.id}
@@ -251,7 +251,7 @@ function CommentThread({
               }
             }}
             placeholder="输入回复…"
-            className="flex-1 rounded border border-zinc-200 bg-transparent px-2 py-1 text-xs text-zinc-800 outline-none placeholder:text-fg-muted focus:border-blue-400 dark:border-zinc-700 dark:text-zinc-200  dark:focus:border-blue-500"
+            className="flex-1 rounded border border-border-base bg-transparent px-2 py-1 text-xs text-zinc-800 outline-none placeholder:text-fg-muted focus:border-blue-400 dark:text-zinc-200  dark:focus:border-blue-500"
           />
           <button
             type="button"

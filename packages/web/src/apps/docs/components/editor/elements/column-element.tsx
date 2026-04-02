@@ -8,7 +8,7 @@ export function ColumnGroupElement(props: PlateElementProps) {
 export function ColumnElement(props: PlateElementProps) {
   return (
     <PlateElement
-      className="min-w-0 flex-1 rounded border border-dashed border-zinc-200 p-3 dark:border-zinc-700"
+      className="min-w-0 flex-1 rounded border border-dashed border-border-base p-3"
       {...props}
     />
   );

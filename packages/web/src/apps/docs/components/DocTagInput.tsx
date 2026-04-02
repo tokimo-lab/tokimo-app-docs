@@ -141,7 +141,7 @@ export function DocTagInput({
       {tags.map((tag) => (
         <span
           key={tag}
-          className="inline-flex items-center gap-0.5 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-fg-secondary dark:bg-zinc-800 "
+          className="inline-flex items-center gap-0.5 rounded-full bg-fill-tertiary px-2 py-0.5 text-xs text-fg-secondary dark:bg-zinc-800 "
         >
           {tag}
           <button
@@ -167,7 +167,7 @@ export function DocTagInput({
             className="min-w-[80px] border-none bg-transparent py-0.5 text-xs text-fg-secondary outline-none placeholder:text-fg-muted  "
           />
           {suggestions.length > 0 && (
-            <div className="absolute top-full left-0 z-50 mt-1 w-48 rounded-md border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="absolute top-full left-0 z-50 mt-1 w-48 rounded-md border border-border-base bg-surface-elevated py-1 shadow-lg ">
               {suggestions.map((s, i) => (
                 <button
                   key={s}
@@ -175,7 +175,7 @@ export function DocTagInput({
                   className={cn(
                     "flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs",
                     i === highlightedIdx
-                      ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                      ? "bg-fill-tertiary text-fg-primary dark:bg-zinc-800 "
                       : "text-fg-muted hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800/50",
                   )}
                   onMouseDown={(e) => {

@@ -195,7 +195,7 @@ export function FolderTreeNode({
               }
             }}
             onClick={(e) => e.stopPropagation()}
-            className="min-w-0 flex-1 rounded border border-sky-300 bg-white px-1 py-0 text-sm outline-none dark:border-sky-700 dark:bg-zinc-800"
+            className="min-w-0 flex-1 rounded border border-sky-300 bg-surface-elevated px-1 py-0 text-sm outline-none dark:border-sky-700 "
           />
         ) : (
           <span className="min-w-0 flex-1 truncate font-medium">

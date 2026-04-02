@@ -14,7 +14,7 @@ export function VideoElement(props: PlateElementProps) {
             <track kind="captions" />
           </video>
         ) : (
-          <div className="flex h-40 w-full items-center justify-center rounded border-2 border-dashed border-zinc-300 text-fg-muted dark:border-zinc-600">
+          <div className="flex h-40 w-full items-center justify-center rounded border-2 border-dashed border-border-base text-fg-muted">
             Paste or enter a video URL
           </div>
         )}
@@ -36,7 +36,7 @@ export function AudioElement(props: PlateElementProps) {
             <track kind="captions" />
           </audio>
         ) : (
-          <div className="flex h-16 w-full items-center justify-center rounded border-2 border-dashed border-zinc-300 text-fg-muted dark:border-zinc-600">
+          <div className="flex h-16 w-full items-center justify-center rounded border-2 border-dashed border-border-base text-fg-muted">
             Paste or enter an audio URL
           </div>
         )}
@@ -64,7 +64,7 @@ export function FileElement(props: PlateElementProps) {
     <PlateElement className="my-3" {...props}>
       <div
         contentEditable={false}
-        className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/60"
+        className="flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 dark:bg-zinc-800/60"
       >
         <FileIcon size={20} className="shrink-0 text-fg-muted" />
         <div className="min-w-0 flex-1">
@@ -98,7 +98,7 @@ export function MediaEmbedElement(props: PlateElementProps) {
     <PlateElement className="my-4" {...props}>
       <div contentEditable={false} className="flex justify-center">
         {url ? (
-          <div className="w-full overflow-hidden rounded border border-zinc-200 dark:border-zinc-700">
+          <div className="w-full overflow-hidden rounded border border-border-base">
             <iframe
               src={url}
               title="Embedded content"
@@ -108,7 +108,7 @@ export function MediaEmbedElement(props: PlateElementProps) {
             />
           </div>
         ) : (
-          <div className="flex h-40 w-full items-center justify-center rounded border-2 border-dashed border-zinc-300 text-fg-muted dark:border-zinc-600">
+          <div className="flex h-40 w-full items-center justify-center rounded border-2 border-dashed border-border-base text-fg-muted">
             Paste a URL to embed
           </div>
         )}

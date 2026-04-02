@@ -17,13 +17,13 @@ import { useCallback } from "react";
 import { createPortal } from "react-dom";
 
 const INPUT_CLASS =
-  "h-8 w-60 rounded border border-zinc-300 bg-transparent px-2 text-sm text-zinc-900 placeholder:text-fg-muted focus:border-blue-500 focus:outline-none dark:border-zinc-600 dark:text-zinc-100 ";
+  "h-8 w-60 rounded border border-border-base bg-transparent px-2 text-sm text-fg-primary placeholder:text-fg-muted focus:border-blue-500 focus:outline-none  ";
 
 const BTN_CLASS =
   "flex size-8 items-center justify-center rounded text-fg-muted transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700";
 
 const PANEL_CLASS =
-  "z-[9999] flex items-center gap-1 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800";
+  "z-[9999] flex items-center gap-1 rounded-lg border border-border-base bg-surface-elevated p-1 shadow-lg ";
 
 function LinkInsertPanel() {
   const state = useFloatingLinkInsertState();

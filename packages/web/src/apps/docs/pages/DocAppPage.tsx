@@ -570,7 +570,7 @@ function DocAppPageInner() {
         {selectedDoc ? (
           <>
             {/* Toolbar: comment + version history toggles */}
-            <div className="flex items-center justify-end gap-1 border-b border-zinc-100 px-3 py-1 dark:border-zinc-800">
+            <div className="flex items-center justify-end gap-1 border-b border-border-subtle px-3 py-1 dark:border-zinc-800">
               <button
                 type="button"
                 onClick={handleOpenAi}
@@ -804,7 +804,7 @@ function DocEditorArea({
               (e.target as HTMLInputElement).blur();
             }
           }}
-          className="w-full border-none bg-transparent text-4xl font-bold text-zinc-900 outline-none placeholder:text-fg-muted dark:text-zinc-100 "
+          className="w-full border-none bg-transparent text-4xl font-bold text-fg-primary outline-none placeholder:text-fg-muted  "
           placeholder="无标题"
         />
       </div>

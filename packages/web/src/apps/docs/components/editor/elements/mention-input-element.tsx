@@ -120,7 +120,7 @@ export function MentionInputElement(props: PlateElementProps) {
         createPortal(
           <div
             ref={menuRef}
-            className="fixed z-[9999] w-56 overflow-y-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+            className="fixed z-[9999] w-56 overflow-y-auto rounded-lg border border-border-base bg-surface-elevated py-1 shadow-xl "
             style={{ top: menuPos.top, left: menuPos.left, maxHeight: 200 }}
           >
             {filtered.length === 0 ? (

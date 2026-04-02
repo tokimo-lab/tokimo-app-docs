@@ -85,7 +85,7 @@ export function MermaidElement(props: PlateElementProps) {
 
   return (
     <PlateElement
-      className="group my-4 rounded border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900"
+      className="group my-4 rounded border border-border-base bg-surface-base p-4 dark:bg-zinc-900"
       {...props}
     >
       <div contentEditable={false} className="select-none">
@@ -107,11 +107,11 @@ export function MermaidElement(props: PlateElementProps) {
                 }
               }}
               placeholder={"graph TD\n  A[开始] --> B[结束]"}
-              className="w-full resize-none rounded border border-zinc-300 bg-white px-3 py-2 font-mono text-sm outline-none focus:border-blue-400 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+              className="w-full resize-none rounded border border-border-base bg-surface-elevated px-3 py-2 font-mono text-sm outline-none focus:border-blue-400  dark:text-zinc-200"
               rows={6}
             />
             {draft && (
-              <div className="rounded border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
+              <div className="rounded border border-border-base bg-surface-elevated p-3 ">
                 <MermaidRenderer code={draft} isDark={isDark} />
               </div>
             )}

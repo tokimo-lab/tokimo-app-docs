@@ -51,7 +51,7 @@ export function VfsFileElement(props: PlateElementProps) {
     <PlateElement className="my-3" {...props}>
       <div
         contentEditable={false}
-        className="group flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 transition-colors hover:border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800/60 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+        className="group flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 transition-colors hover:border-glass-hover hover:bg-zinc-100 dark:bg-zinc-800/60  dark:hover:bg-zinc-800"
       >
         {/* File icon */}
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-200/60 dark:bg-zinc-700/60">
@@ -60,7 +60,7 @@ export function VfsFileElement(props: PlateElementProps) {
 
         {/* File info */}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-zinc-800 dark:text-zinc-200">
+          <p className="truncate text-sm font-medium text-fg-primary">
             {fileName}
           </p>
           <div className="mt-0.5 flex items-center gap-2 text-xs text-fg-muted">

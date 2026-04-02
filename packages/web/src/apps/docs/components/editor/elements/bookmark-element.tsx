@@ -44,7 +44,7 @@ export function BookmarkElement(props: PlateElementProps) {
       <PlateElement className="my-3" {...props}>
         <div
           contentEditable={false}
-          className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/60"
+          className="flex items-center gap-2 rounded-lg border border-border-base bg-surface-base px-4 py-3 dark:bg-zinc-800/60"
         >
           <ExternalLink size={16} className="shrink-0 text-fg-muted" />
           <input
@@ -76,7 +76,7 @@ export function BookmarkElement(props: PlateElementProps) {
         target="_blank"
         rel="noopener noreferrer"
         contentEditable={false}
-        className="group flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 no-underline transition-colors hover:border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800/60 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+        className="group flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 no-underline transition-colors hover:border-glass-hover hover:bg-zinc-100 dark:bg-zinc-800/60  dark:hover:bg-zinc-800"
         onDoubleClick={(e) => {
           e.preventDefault();
           setDraft(url);

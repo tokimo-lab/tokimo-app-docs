@@ -33,7 +33,7 @@ export function DateElement(props: PlateElementProps) {
   return (
     <PlateElement
       as="span"
-      className="relative inline-flex cursor-pointer items-center rounded bg-zinc-100 px-1.5 py-0.5 text-sm text-fg-muted hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+      className="relative inline-flex cursor-pointer items-center rounded bg-fill-tertiary px-1.5 py-0.5 text-sm text-fg-muted hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
       {...props}
     >
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: date element click */}
@@ -54,7 +54,7 @@ export function DateElement(props: PlateElementProps) {
             value={date || ""}
             onChange={(e) => handleDateChange(e.target.value)}
             onBlur={() => setPickerOpen(false)}
-            className="absolute top-full left-0 z-50 mt-1 rounded border border-zinc-300 bg-white px-2 py-1 text-sm shadow-lg dark:border-zinc-600 dark:bg-zinc-800"
+            className="absolute top-full left-0 z-50 mt-1 rounded border border-border-base bg-surface-elevated px-2 py-1 text-sm shadow-lg "
           />
         )}
       </span>

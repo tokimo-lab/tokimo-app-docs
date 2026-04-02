@@ -8,7 +8,7 @@ export function TocElement(props: PlateElementProps) {
 
   return (
     <PlateElement
-      className="my-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700"
+      className="my-4 rounded-lg border border-border-base p-4"
       {...props}
     >
       <div contentEditable={false} className="select-none">
