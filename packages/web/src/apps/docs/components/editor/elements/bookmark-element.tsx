@@ -44,7 +44,7 @@ export function BookmarkElement(props: PlateElementProps) {
       <PlateElement className="my-3" {...props}>
         <div
           contentEditable={false}
-          className="flex items-center gap-2 rounded-lg border border-border-base bg-surface-base px-4 py-3 dark:bg-zinc-800/60"
+          className="flex items-center gap-2 rounded-lg border border-border-base bg-surface-base px-4 py-3"
         >
           <ExternalLink size={16} className="shrink-0 text-fg-muted" />
           <input
@@ -76,14 +76,14 @@ export function BookmarkElement(props: PlateElementProps) {
         target="_blank"
         rel="noopener noreferrer"
         contentEditable={false}
-        className="group flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 no-underline transition-colors hover:border-glass-hover hover:bg-zinc-100 dark:bg-zinc-800/60  dark:hover:bg-zinc-800"
+        className="group flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 no-underline transition-colors hover:border-glass-hover hover:bg-fill-tertiary  "
         onDoubleClick={(e) => {
           e.preventDefault();
           setDraft(url);
           setEditing(true);
         }}
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-zinc-200 dark:bg-zinc-700">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-fill-tertiary dark:bg-white/[0.10]">
           <ExternalLink size={14} className="text-fg-muted" />
         </div>
         <div className="min-w-0 flex-1">

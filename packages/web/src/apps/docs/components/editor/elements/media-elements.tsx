@@ -64,7 +64,7 @@ export function FileElement(props: PlateElementProps) {
     <PlateElement className="my-3" {...props}>
       <div
         contentEditable={false}
-        className="flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 dark:bg-zinc-800/60"
+        className="flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3"
       >
         <FileIcon size={20} className="shrink-0 text-fg-muted" />
         <div className="min-w-0 flex-1">
@@ -79,7 +79,7 @@ export function FileElement(props: PlateElementProps) {
             download={name}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded hover:bg-zinc-200 dark:hover:bg-zinc-700"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded hover:bg-fill-tertiary "
           >
             <Download size={14} className="text-fg-muted" />
           </a>

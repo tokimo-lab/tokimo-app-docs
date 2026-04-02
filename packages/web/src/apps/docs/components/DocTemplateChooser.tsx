@@ -66,12 +66,12 @@ export function DocTemplateChooser({
             }}
             className={cn(
               "flex flex-col items-center gap-2 rounded-lg border px-4 py-5 text-center transition-all",
-              "border-border-base bg-white hover:border-blue-400 hover:shadow-md",
-              "dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-blue-500 dark:hover:shadow-blue-900/20",
+              "border-border-base bg-surface-elevated hover:border-blue-400 hover:shadow-md",
+              "dark:hover:border-blue-500 dark:hover:shadow-blue-900/20",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
             )}
           >
-            <span className="flex size-10 items-center justify-center rounded-lg bg-fill-tertiary text-fg-muted dark:bg-zinc-700 dark:text-zinc-300">
+            <span className="flex size-10 items-center justify-center rounded-lg bg-fill-tertiary text-fg-muted dark:bg-white/[0.10]">
               {ICON_MAP[tpl.icon] ?? <FileText size={22} />}
             </span>
             <span className="text-sm font-medium text-fg-primary">

@@ -136,7 +136,7 @@ export function MentionInputElement(props: PlateElementProps) {
                   className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors ${
                     idx === selectedIndex
                       ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                      : "text-fg-secondary hover:bg-zinc-50  dark:hover:bg-zinc-700/50"
+                      : "text-fg-secondary hover:bg-fill-tertiary /50"
                   }`}
                   onMouseDown={(e) => {
                     e.preventDefault();

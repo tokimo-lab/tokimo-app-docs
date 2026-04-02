@@ -126,7 +126,7 @@ export function EmojiInputElement(props: PlateElementProps) {
         suppressContentEditableWarning
         onInput={handleInput}
         onKeyDown={handleKeyDown}
-        className="inline text-fg-muted outline-none dark:text-zinc-400"
+        className="inline text-fg-muted outline-none"
         data-slate-editor={false}
       />
       {props.children}
@@ -152,7 +152,7 @@ export function EmojiInputElement(props: PlateElementProps) {
                     className={`flex size-8 items-center justify-center rounded text-xl transition-colors ${
                       idx === selectedIndex
                         ? "bg-blue-100 dark:bg-blue-900/40"
-                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                        : "hover:bg-fill-tertiary"
                     }`}
                     onMouseDown={(e) => {
                       e.preventDefault();

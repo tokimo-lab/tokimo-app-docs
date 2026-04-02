@@ -121,7 +121,7 @@ export function DocTagInput({
     return (
       <button
         type="button"
-        className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-fg-muted hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+        className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-fg-muted hover:bg-fill-tertiary hover:text-fg-secondary"
         onClick={() => {
           setIsEditing(true);
           requestAnimationFrame(() => inputRef.current?.focus());
@@ -141,12 +141,12 @@ export function DocTagInput({
       {tags.map((tag) => (
         <span
           key={tag}
-          className="inline-flex items-center gap-0.5 rounded-full bg-fill-tertiary px-2 py-0.5 text-xs text-fg-secondary dark:bg-zinc-800 "
+          className="inline-flex items-center gap-0.5 rounded-full bg-fill-tertiary px-2 py-0.5 text-xs text-fg-secondary "
         >
           {tag}
           <button
             type="button"
-            className="ml-0.5 rounded-full p-0.5 text-fg-muted hover:bg-zinc-200 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+            className="ml-0.5 rounded-full p-0.5 text-fg-muted hover:bg-fill-tertiary hover:text-fg-secondary"
             onClick={() => removeTag(tag)}
           >
             <X size={10} />
@@ -175,8 +175,8 @@ export function DocTagInput({
                   className={cn(
                     "flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs",
                     i === highlightedIdx
-                      ? "bg-fill-tertiary text-fg-primary dark:bg-zinc-800 "
-                      : "text-fg-muted hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800/50",
+                      ? "bg-fill-tertiary text-fg-primary "
+                      : "text-fg-muted hover:bg-fill-tertiary",
                   )}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -194,7 +194,7 @@ export function DocTagInput({
       ) : (
         <button
           type="button"
-          className="rounded p-0.5 text-fg-muted hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          className="rounded p-0.5 text-fg-muted hover:bg-fill-tertiary hover:text-fg-secondary"
           onClick={() => {
             setIsEditing(true);
             requestAnimationFrame(() => inputRef.current?.focus());

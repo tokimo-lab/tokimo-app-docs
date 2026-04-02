@@ -71,7 +71,7 @@ export function DocVersionHistory({
             onClearPreview();
             onClose();
           }}
-          className="flex size-6 items-center justify-center rounded text-fg-muted transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          className="flex size-6 items-center justify-center rounded text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary"
         >
           <X className="size-4" />
         </button>
@@ -132,7 +132,7 @@ function VersionItem({
     // biome-ignore lint/a11y/noStaticElementInteractions: version item
     <div
       className={cn(
-        "group cursor-pointer border-b border-border-subtle px-3 py-2.5 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50",
+        "group cursor-pointer border-b border-border-subtle px-3 py-2.5 transition-colors hover:bg-fill-tertiary",
         isActive && "bg-blue-50 dark:bg-blue-900/20",
       )}
       onClick={onPreview}

@@ -570,11 +570,11 @@ function DocAppPageInner() {
         {selectedDoc ? (
           <>
             {/* Toolbar: comment + version history toggles */}
-            <div className="flex items-center justify-end gap-1 border-b border-border-subtle px-3 py-1 dark:border-zinc-800">
+            <div className="flex items-center justify-end gap-1 border-b border-border-subtle px-3 py-1">
               <button
                 type="button"
                 onClick={handleOpenAi}
-                className="flex items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                className="flex items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary"
               >
                 <Sparkles size={14} />
                 AI 助手
@@ -588,7 +588,7 @@ function DocAppPageInner() {
                 className={`flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
                   versionHistoryOpen
                     ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                    : "text-fg-muted hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                    : "text-fg-muted hover:bg-fill-tertiary hover:text-fg-secondary"
                 }`}
               >
                 <Clock size={14} />
@@ -600,7 +600,7 @@ function DocAppPageInner() {
                 className={`flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
                   commentSidebarOpen
                     ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                    : "text-fg-muted hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                    : "text-fg-muted hover:bg-fill-tertiary hover:text-fg-secondary"
                 }`}
               >
                 <MessageSquare size={14} />
@@ -643,7 +643,7 @@ function DocAppPageInner() {
                   <button
                     type="button"
                     onClick={dismissAiUndo}
-                    className="rounded px-2 py-0.5 text-xs text-fg-muted hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                    className="rounded px-2 py-0.5 text-xs text-fg-muted hover:bg-fill-tertiary "
                   >
                     确认
                   </button>

@@ -51,10 +51,10 @@ export function VfsFileElement(props: PlateElementProps) {
     <PlateElement className="my-3" {...props}>
       <div
         contentEditable={false}
-        className="group flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 transition-colors hover:border-glass-hover hover:bg-zinc-100 dark:bg-zinc-800/60  dark:hover:bg-zinc-800"
+        className="group flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 transition-colors hover:border-glass-hover hover:bg-fill-tertiary  "
       >
         {/* File icon */}
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-200/60 dark:bg-zinc-700/60">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-fill-tertiary dark:bg-white/[0.10]">
           <MaterialFileIcon name={fileName} size={22} />
         </div>
 
@@ -81,7 +81,7 @@ export function VfsFileElement(props: PlateElementProps) {
             href={fileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md opacity-0 transition-opacity hover:bg-zinc-200 group-hover:opacity-100 dark:hover:bg-zinc-700"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100 "
             title="Open file"
           >
             <ExternalLink size={14} className="text-fg-muted" />

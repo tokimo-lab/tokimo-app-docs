@@ -293,10 +293,10 @@ export function DocSidebar({
   // ── Collapsed view ───────────────────────────────────────────
   if (collapsed) {
     return (
-      <div className="flex w-10 shrink-0 flex-col items-center border-r border-border-base bg-surface-base/50 py-2 dark:bg-zinc-900/50">
+      <div className="flex w-10 shrink-0 flex-col items-center border-r border-border-base bg-surface-base/50 py-2/50">
         <button
           type="button"
-          className="rounded p-1.5 text-fg-muted hover:bg-zinc-200 dark:hover:bg-zinc-700"
+          className="rounded p-1.5 text-fg-muted hover:bg-fill-tertiary "
           onClick={onToggleCollapsed}
           title="展开侧栏"
         >
@@ -307,7 +307,7 @@ export function DocSidebar({
   }
 
   return (
-    <div className="flex w-64 shrink-0 flex-col border-r border-border-base bg-surface-base/50 dark:bg-zinc-900/50">
+    <div className="flex w-64 shrink-0 flex-col border-r border-border-base bg-surface-base/50/50">
       {/* Header */}
       <div className="flex items-center gap-1 border-b border-border-base px-3 py-2">
         <Button
@@ -334,7 +334,7 @@ export function DocSidebar({
         >
           <button
             type="button"
-            className="rounded p-1 text-fg-muted hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-700"
+            className="rounded p-1 text-fg-muted hover:bg-fill-tertiary "
             title="排序"
           >
             <ArrowUpDown size={14} />
@@ -355,7 +355,7 @@ export function DocSidebar({
         />
         <button
           type="button"
-          className="rounded p-1 text-fg-muted hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-700"
+          className="rounded p-1 text-fg-muted hover:bg-fill-tertiary "
           onClick={onToggleCollapsed}
           title="收起侧栏"
         >
@@ -379,7 +379,7 @@ export function DocSidebar({
         <div className="border-b border-border-base px-3 pb-2">
           <button
             type="button"
-            className="flex w-full items-center gap-1 rounded px-1 py-1 text-xs font-medium text-fg-muted hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+            className="flex w-full items-center gap-1 rounded px-1 py-1 text-xs font-medium text-fg-muted hover:text-fg-secondary"
             onClick={() => setTagsExpanded((v) => !v)}
           >
             {tagsExpanded ? (
@@ -429,7 +429,7 @@ export function DocSidebar({
                       "rounded-full px-2 py-0.5 text-[11px] transition-colors",
                       isActive
                         ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                        : "bg-fill-tertiary text-fg-muted hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700",
+                        : "bg-fill-tertiary text-fg-muted hover:bg-fill-tertiary ",
                     )}
                     onClick={() => toggleFilterTag(tag)}
                   >
@@ -440,7 +440,7 @@ export function DocSidebar({
               {filterTags.length > 0 && (
                 <button
                   type="button"
-                  className="rounded-full px-2 py-0.5 text-[11px] text-fg-muted hover:text-zinc-600 dark:hover:text-zinc-300"
+                  className="rounded-full px-2 py-0.5 text-[11px] text-fg-muted hover:text-fg-secondary"
                   onClick={() => onSetFilterTags([])}
                 >
                   清除

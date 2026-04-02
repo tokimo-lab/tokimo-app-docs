@@ -33,7 +33,7 @@ export function DateElement(props: PlateElementProps) {
   return (
     <PlateElement
       as="span"
-      className="relative inline-flex cursor-pointer items-center rounded bg-fill-tertiary px-1.5 py-0.5 text-sm text-fg-muted hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+      className="relative inline-flex cursor-pointer items-center rounded bg-fill-tertiary px-1.5 py-0.5 text-sm text-fg-muted hover:bg-fill-tertiary "
       {...props}
     >
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: date element click */}

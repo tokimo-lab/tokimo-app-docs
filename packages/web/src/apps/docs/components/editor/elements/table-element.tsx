@@ -29,7 +29,7 @@ export function TableHeaderCellElement(props: PlateElementProps) {
   return (
     <PlateElement
       as="th"
-      className="min-w-[80px] border border-border-base bg-surface-base px-3 py-2 text-left text-sm font-semibold dark:bg-zinc-800"
+      className="min-w-[80px] border border-border-base bg-surface-base px-3 py-2 text-left text-sm font-semibold"
       {...props}
     />
   );

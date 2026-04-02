@@ -57,7 +57,7 @@ export function CommentSidebar({ docId, open, onClose }: CommentSidebarProps) {
         <button
           type="button"
           onClick={onClose}
-          className="flex size-6 items-center justify-center rounded text-fg-muted transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          className="flex size-6 items-center justify-center rounded text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary"
         >
           <X className="size-4" />
         </button>
@@ -96,7 +96,7 @@ export function CommentSidebar({ docId, open, onClose }: CommentSidebarProps) {
                 {/* biome-ignore lint/a11y/useKeyWithClickEvents: toggle */}
                 {/* biome-ignore lint/a11y/noStaticElementInteractions: toggle */}
                 <div
-                  className="flex cursor-pointer items-center gap-1.5 px-3 py-2 text-xs text-fg-muted transition-colors hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+                  className="flex cursor-pointer items-center gap-1.5 px-3 py-2 text-xs text-fg-muted transition-colors hover:text-fg-secondary"
                   onClick={() => setShowResolved((v) => !v)}
                 >
                   {showResolved ? (
@@ -186,7 +186,7 @@ function CommentThread({
   return (
     <div
       className={cn(
-        "border-b border-border-subtle px-3 py-2.5 dark:border-zinc-800",
+        "border-b border-border-subtle px-3 py-2.5",
         resolved && "opacity-60",
       )}
     >
@@ -217,7 +217,7 @@ function CommentThread({
         <button
           type="button"
           onClick={() => setShowReplyInput((v) => !v)}
-          className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-fg-muted transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary"
         >
           <Reply className="size-3" />
           回复
@@ -229,7 +229,7 @@ function CommentThread({
             "flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors",
             resolved
               ? "text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
-              : "text-fg-muted hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300",
+              : "text-fg-muted hover:bg-fill-tertiary hover:text-fg-secondary",
           )}
         >
           <Check className="size-3" />
@@ -251,7 +251,7 @@ function CommentThread({
               }
             }}
             placeholder="输入回复…"
-            className="flex-1 rounded border border-border-base bg-transparent px-2 py-1 text-xs text-zinc-800 outline-none placeholder:text-fg-muted focus:border-blue-400 dark:text-zinc-200  dark:focus:border-blue-500"
+            className="flex-1 rounded border border-border-base bg-transparent px-2 py-1 text-xs text-fg-primary outline-none placeholder:text-fg-muted focus:border-blue-400 dark:focus:border-blue-500"
           />
           <button
             type="button"

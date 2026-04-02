@@ -728,7 +728,7 @@ export function SlashInputElement(props: PlateElementProps) {
                         className={`flex w-full items-center gap-3 px-3 py-1.5 text-left text-sm transition-colors ${
                           isSelected
                             ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                            : "text-fg-secondary hover:bg-zinc-50  dark:hover:bg-zinc-700/50"
+                            : "text-fg-secondary hover:bg-fill-tertiary /50"
                         }`}
                         onMouseDown={(e) => {
                           e.preventDefault();
@@ -736,7 +736,7 @@ export function SlashInputElement(props: PlateElementProps) {
                         }}
                         onMouseEnter={() => setSelectedIndex(currentIndex)}
                       >
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border-base bg-white dark:bg-zinc-700">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border-base bg-surface-elevated ">
                           {item.icon}
                         </span>
                         <div className="min-w-0">

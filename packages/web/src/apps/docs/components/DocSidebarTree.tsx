@@ -141,7 +141,7 @@ export function FolderTreeNode({
       <div
         className={cn(
           "group flex w-full cursor-pointer items-center gap-1 rounded-md py-1.5 pr-2 text-left text-sm transition-colors",
-          "text-fg-secondary hover:bg-zinc-100  dark:hover:bg-zinc-800",
+          "text-fg-secondary hover:bg-fill-tertiary  ",
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={() => onToggleFolder(node.folder.id)}
@@ -361,7 +361,7 @@ export function DocListItemRow({
         "group flex w-full cursor-pointer items-center gap-2 rounded-md py-2 pr-2.5 text-left text-sm transition-colors",
         isActive
           ? "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"
-          : "text-fg-secondary hover:bg-zinc-100  dark:hover:bg-zinc-800",
+          : "text-fg-secondary hover:bg-fill-tertiary  ",
       )}
       style={{ paddingLeft: `${depth * 16 + 28}px` }}
       onClick={onClick}
@@ -454,7 +454,7 @@ export function ArchivedDocRow({
         "group flex w-full cursor-pointer items-center gap-2 rounded-md py-2 pr-2.5 pl-7 text-left text-sm transition-colors",
         isActive
           ? "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"
-          : "text-fg-secondary hover:bg-zinc-100  dark:hover:bg-zinc-800",
+          : "text-fg-secondary hover:bg-fill-tertiary  ",
       )}
       onClick={onClick}
       onMouseEnter={() => setShowActions(true)}

@@ -56,10 +56,7 @@ export function EquationElement(props: PlateElementProps) {
   }, [editing]);
 
   return (
-    <PlateElement
-      className="group my-4 rounded bg-surface-base p-4 dark:bg-zinc-900"
-      {...props}
-    >
+    <PlateElement className="group my-4 rounded bg-surface-base p-4" {...props}>
       <div contentEditable={false} className="select-none">
         {editing ? (
           <div className="flex flex-col items-center gap-2">
@@ -79,7 +76,7 @@ export function EquationElement(props: PlateElementProps) {
                 }
               }}
               placeholder="E = mc^2"
-              className="w-full max-w-lg resize-none rounded border border-border-base bg-surface-elevated px-3 py-2 font-mono text-sm outline-none focus:border-blue-400  dark:text-zinc-200"
+              className="w-full max-w-lg resize-none rounded border border-border-base bg-surface-elevated px-3 py-2 font-mono text-sm text-fg-primary outline-none focus:border-blue-400"
               rows={2}
             />
             <p className="text-xs text-fg-muted">⌘+Enter 确认 · Esc 取消</p>
@@ -133,7 +130,7 @@ export function InlineEquationElement(props: PlateElementProps) {
   return (
     <PlateElement
       as="span"
-      className="inline-flex items-center rounded bg-fill-tertiary px-1 dark:bg-zinc-800"
+      className="inline-flex items-center rounded bg-fill-tertiary px-1"
       {...props}
     >
       <span contentEditable={false} className="select-none">

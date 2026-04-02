@@ -150,7 +150,7 @@ function FileSystemList({
         <button
           key={fs.id}
           type="button"
-          className="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-2.5 text-left text-inherit transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          className="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-2.5 text-left text-inherit transition-colors hover:bg-fill-tertiary"
           onClick={() => onSelect(fs)}
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400">
@@ -244,7 +244,7 @@ function FileBrowser({
       <div className="flex items-center gap-1 border-b border-border-base px-3 py-1.5">
         <button
           type="button"
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-transparent border-0 text-fg-muted hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-transparent border-0 text-fg-muted hover:bg-fill-tertiary hover:text-fg-secondary"
           onClick={onBack}
           title="Back to file systems"
         >
@@ -253,7 +253,7 @@ function FileBrowser({
         <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto text-xs">
           <button
             type="button"
-            className="shrink-0 rounded bg-transparent border-0 px-1 py-0.5 text-fg-muted hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+            className="shrink-0 rounded bg-transparent border-0 px-1 py-0.5 text-fg-muted hover:text-fg-secondary"
             onClick={() => onNavigate("/")}
           >
             {fileSystem.name}
@@ -263,7 +263,7 @@ function FileBrowser({
               <ChevronRight size={10} className="shrink-0 text-fg-muted" />
               <button
                 type="button"
-                className="shrink-0 truncate rounded bg-transparent border-0 px-1 py-0.5 text-fg-muted hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                className="shrink-0 truncate rounded bg-transparent border-0 px-1 py-0.5 text-fg-muted hover:text-fg-secondary"
                 onClick={() => onNavigate(seg.path)}
               >
                 {seg.name}
@@ -306,7 +306,7 @@ function FileBrowser({
                   {row.kind === "up" ? (
                     <button
                       type="button"
-                      className="flex h-full w-full items-center gap-2 border-0 bg-transparent px-3 text-left text-inherit text-sm opacity-60 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      className="flex h-full w-full items-center gap-2 border-0 bg-transparent px-3 text-left text-inherit text-sm opacity-60 hover:bg-fill-tertiary"
                       onClick={() => onNavigate(row.path)}
                     >
                       <MaterialFileIcon name=".." isDirectory size={16} />
@@ -315,7 +315,7 @@ function FileBrowser({
                   ) : row.kind === "dir" ? (
                     <button
                       type="button"
-                      className="flex h-full w-full items-center gap-2 border-0 bg-transparent px-3 text-left text-inherit text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      className="flex h-full w-full items-center gap-2 border-0 bg-transparent px-3 text-left text-inherit text-sm hover:bg-fill-tertiary"
                       onClick={() => onNavigate(row.entry.path)}
                     >
                       <MaterialFileIcon
@@ -337,7 +337,7 @@ function FileBrowser({
                       className={`flex h-full w-full items-center gap-2 border-0 px-3 text-left text-sm transition-colors ${
                         selectedFile === row.entry.path
                           ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                          : "bg-transparent text-inherit hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                          : "bg-transparent text-inherit hover:bg-fill-tertiary"
                       }`}
                       onClick={() => onSelectFile(row.entry.path)}
                       onDoubleClick={() => {

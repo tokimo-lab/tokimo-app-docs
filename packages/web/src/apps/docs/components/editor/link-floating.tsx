@@ -20,7 +20,7 @@ const INPUT_CLASS =
   "h-8 w-60 rounded border border-border-base bg-transparent px-2 text-sm text-fg-primary placeholder:text-fg-muted focus:border-blue-500 focus:outline-none  ";
 
 const BTN_CLASS =
-  "flex size-8 items-center justify-center rounded text-fg-muted transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700";
+  "flex size-8 items-center justify-center rounded text-fg-muted transition-colors hover:bg-fill-tertiary";
 
 const PANEL_CLASS =
   "z-[9999] flex items-center gap-1 rounded-lg border border-border-base bg-surface-elevated p-1 shadow-lg ";

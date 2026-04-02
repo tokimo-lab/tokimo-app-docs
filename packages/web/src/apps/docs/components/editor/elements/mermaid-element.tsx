@@ -85,7 +85,7 @@ export function MermaidElement(props: PlateElementProps) {
 
   return (
     <PlateElement
-      className="group my-4 rounded border border-border-base bg-surface-base p-4 dark:bg-zinc-900"
+      className="group my-4 rounded border border-border-base bg-surface-base p-4"
       {...props}
     >
       <div contentEditable={false} className="select-none">
@@ -107,7 +107,7 @@ export function MermaidElement(props: PlateElementProps) {
                 }
               }}
               placeholder={"graph TD\n  A[开始] --> B[结束]"}
-              className="w-full resize-none rounded border border-border-base bg-surface-elevated px-3 py-2 font-mono text-sm outline-none focus:border-blue-400  dark:text-zinc-200"
+              className="w-full resize-none rounded border border-border-base bg-surface-elevated px-3 py-2 font-mono text-sm text-fg-primary outline-none focus:border-blue-400"
               rows={6}
             />
             {draft && (
@@ -133,7 +133,7 @@ export function MermaidElement(props: PlateElementProps) {
                   setDraft(code);
                   setEditing(false);
                 }}
-                className="rounded bg-zinc-200 px-3 py-1 text-xs font-medium text-fg-muted hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+                className="rounded bg-fill-tertiary dark:bg-white/[0.10] px-3 py-1 text-xs font-medium text-fg-muted hover:bg-black/[0.08] dark:hover:bg-white/[0.08]"
               >
                 取消 (Esc)
               </button>
