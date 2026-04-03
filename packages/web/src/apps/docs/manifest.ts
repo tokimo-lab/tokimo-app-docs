@@ -5,6 +5,7 @@ export const manifest: AppManifest = {
   name: "Document Editor",
   category: "page",
   supportedTypes: ["document"],
+  fullBleed: true,
   defaultSize: { width: 1200, height: 800 },
   component: () => import("./pages/DocAppPage"),
 };
