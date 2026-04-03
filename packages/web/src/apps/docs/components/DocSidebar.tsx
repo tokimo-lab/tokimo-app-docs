@@ -2,11 +2,11 @@
  * DocSidebar — Feishu-style sidebar for the doc app.
  *
  * Layout (top → bottom):
- *   1. Header: New button + sort + sidebar collapse
+ *   1. Header: sort + sidebar collapse
  *   2. Search input
  *   3. Navigation items: 全部 · 最近 · 收藏 · 回收站
  *   4. Section header: 我的文档 with +doc / +folder actions
- *   5. Folder tree (all tab) or flat doc list (other tabs)
+ *   5. Unified node tree (folders + docs as sibling nodes)
  *   6. Tags filter (collapsible)
  */
 
@@ -35,15 +35,13 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { DocFolderOutput, DocListItem } from "@/generated/rust-api";
+import type { DocListItem } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
 import { useMessage } from "@/system";
-import {
-  ArchivedDocRow,
-  buildFolderTree,
-  DocListItemRow,
-  FolderTreeNode,
-} from "./DocSidebarTree";
+import type { DocNode } from "../lib/doc-node";
+import { buildNodeTree, docToNode, mergeFoldersAndDocs } from "../lib/doc-node";
+import { DocNodeTipPanel, useDocNodeTip } from "./DocNodeTip";
+import { ArchivedNodeRow, NodeTreeItem } from "./DocSidebarTree";
 
 // ── Exported types ─────────────────────────────────────────────────────────
 
@@ -57,16 +55,15 @@ interface DocSidebarProps {
   appId: string;
   docs: DocListItem[];
   isLoadingDocs: boolean;
-  selectedDocId: string | null;
-  onSelectDoc: (id: string) => void;
+  selectedNodeId: string | null;
+  onSelectNode: (node: DocNode) => void;
   tab: SidebarTab;
   onSetTab: (tab: SidebarTab) => void;
   search: string;
   onSetSearch: (search: string) => void;
   onCreateDoc: (folderId?: string) => void;
-  isCreatingDoc: boolean;
   onFavoriteDoc: (id: string) => void;
-  onDeleteDoc: (id: string) => void;
+  onDeleteNode: (node: DocNode) => void;
   onRestoreDoc: (id: string) => void;
   onPermanentDeleteDoc: (id: string) => void;
   onRefreshDocs: () => void;
@@ -78,9 +75,6 @@ interface DocSidebarProps {
   onToggleCollapsed: () => void;
   filterTags: string[];
   onSetFilterTags: (tags: string[]) => void;
-  /** Navigate the browser view to a folder */
-  currentFolderId: string | null;
-  onNavigateFolder: (folderId: string | null) => void;
 }
 
 // ── Sort labels ────────────────────────────────────────────────────────────
@@ -111,16 +105,15 @@ export function DocSidebar({
   appId,
   docs,
   isLoadingDocs,
-  selectedDocId,
-  onSelectDoc,
+  selectedNodeId,
+  onSelectNode,
   tab,
   onSetTab,
   search,
   onSetSearch,
   onCreateDoc,
-  isCreatingDoc,
   onFavoriteDoc,
-  onDeleteDoc,
+  onDeleteNode,
   onRestoreDoc,
   onPermanentDeleteDoc,
   onRefreshDocs,
@@ -132,8 +125,6 @@ export function DocSidebar({
   onToggleCollapsed,
   filterTags,
   onSetFilterTags,
-  currentFolderId,
-  onNavigateFolder,
 }: DocSidebarProps) {
   const message = useMessage();
 
@@ -210,19 +201,20 @@ export function DocSidebar({
   }, []);
 
   // ── Rename state ─────────────────────────────────────────────
-  const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
+  const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
 
-  const startRename = useCallback((folder: DocFolderOutput) => {
-    setRenamingFolderId(folder.id);
+  const startRename = useCallback((node: DocNode) => {
+    setRenamingNodeId(node.id);
   }, []);
 
-  const commitRename = useCallback((folderId: string, name: string) => {
-    updateFolderRef.current.mutate({ id: folderId, name });
-    setRenamingFolderId(null);
+  const commitRename = useCallback((nodeId: string, name: string) => {
+    // For folders, use folder mutation; for docs, use doc update via parent
+    updateFolderRef.current.mutate({ id: nodeId, name });
+    setRenamingNodeId(null);
   }, []);
 
   const cancelRename = useCallback(() => {
-    setRenamingFolderId(null);
+    setRenamingNodeId(null);
   }, []);
 
   // ── Create folder ────────────────────────────────────────────
@@ -240,11 +232,18 @@ export function DocSidebar({
     [appId],
   );
 
-  const handleDeleteFolder = useCallback((folderId: string) => {
-    if (window.confirm("确定删除此文件夹？文件夹内的文档将移至根目录。")) {
-      deleteFolderRef.current.mutate({ id: folderId });
-    }
-  }, []);
+  const handleDeleteNode = useCallback(
+    (node: DocNode) => {
+      if (node.type === "folder") {
+        if (window.confirm("确定删除此文件夹？文件夹内的文档将移至根目录。")) {
+          deleteFolderRef.current.mutate({ id: node.id });
+        }
+      } else {
+        onDeleteNode(node);
+      }
+    },
+    [onDeleteNode],
+  );
 
   const handleMoveDoc = useCallback(
     (docId: string, folderId: string | null) => {
@@ -263,8 +262,17 @@ export function DocSidebar({
     [onCreateDoc],
   );
 
-  // ── Build tree ───────────────────────────────────────────────
-  const tree = useMemo(() => buildFolderTree(folders, docs), [folders, docs]);
+  // ── Build unified tree ────────────────────────────────────────
+  const treeNodes = useMemo(
+    () => buildNodeTree(mergeFoldersAndDocs(folders, docs)),
+    [folders, docs],
+  );
+
+  // Flat doc nodes for non-tree views (recent, favorites, search)
+  const flatDocNodes = useMemo(() => docs.map(docToNode), [docs]);
+
+  // ── Hover tooltip ──────────────────────────────────────────
+  const tip = useDocNodeTip();
 
   // ── Sort menu ────────────────────────────────────────────────
   const sortMenuItems: DropdownMenuItem[] = useMemo(() => {
@@ -500,7 +508,8 @@ export function DocSidebar({
       )}
 
       {/* ── Content ─────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto">
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: tooltip leave handler */}
+      <div className="flex-1 overflow-y-auto" onMouseLeave={tip.leave}>
         {isLoadingDocs ? (
           <div className="flex justify-center py-8">
             <Spin size="small" />
@@ -515,75 +524,82 @@ export function DocSidebar({
                   ? "暂无收藏文档"
                   : "暂无文档，点击上方新建"}
           </div>
-        ) : showTree && !search && filterTags.length === 0 ? (
+        ) : showTree ? (
           <div className="flex flex-col gap-0.5 px-1.5 py-1">
-            {tree.rootFolders.map((node) => (
-              <FolderTreeNode
-                key={node.folder.id}
-                node={node}
+            {treeNodes.map((tn) => (
+              <NodeTreeItem
+                key={tn.node.id}
+                treeNode={tn}
                 depth={0}
-                selectedDocId={selectedDocId}
+                selectedNodeId={selectedNodeId}
                 expandedFolders={expandedFolders}
-                onToggleFolder={toggleFolder}
-                onSelectDoc={onSelectDoc}
+                onToggleExpand={toggleFolder}
+                onSelectNode={onSelectNode}
                 onFavoriteDoc={onFavoriteDoc}
-                onDeleteDoc={onDeleteDoc}
+                onDeleteNode={handleDeleteNode}
                 onCreateDoc={handleCreateDocInFolder}
                 onCreateSubfolder={handleCreateFolder}
                 onStartRename={startRename}
                 onCommitRename={commitRename}
                 onCancelRename={cancelRename}
-                onDeleteFolder={handleDeleteFolder}
                 onMoveDoc={handleMoveDoc}
-                renamingFolderId={renamingFolderId}
+                renamingNodeId={renamingNodeId}
                 allFolders={folders}
-                activeFolderId={currentFolderId}
-                onNavigateFolder={onNavigateFolder}
-              />
-            ))}
-            {tree.rootDocs.map((doc) => (
-              <DocListItemRow
-                key={doc.id}
-                doc={doc}
-                depth={0}
-                isActive={doc.id === selectedDocId}
-                onClick={() => onSelectDoc(doc.id)}
-                onFavorite={() => onFavoriteDoc(doc.id)}
-                onDelete={() => onDeleteDoc(doc.id)}
-                onMove={handleMoveDoc}
-                allFolders={folders}
+                onNodeHover={tip.enter}
+                onNodeLeave={tip.leave}
               />
             ))}
           </div>
         ) : isTrash ? (
           <div className="flex flex-col gap-0.5 px-1.5 py-1">
-            {docs.map((doc) => (
-              <ArchivedDocRow
-                key={doc.id}
-                doc={doc}
-                isActive={doc.id === selectedDocId}
-                onClick={() => onSelectDoc(doc.id)}
-                onRestore={() => onRestoreDoc(doc.id)}
-                onPermanentDelete={() => onPermanentDeleteDoc(doc.id)}
+            {flatDocNodes.map((node) => (
+              <ArchivedNodeRow
+                key={node.id}
+                node={node}
+                isActive={node.id === selectedNodeId}
+                onClick={() => onSelectNode(node)}
+                onRestore={() => onRestoreDoc(node.id)}
+                onPermanentDelete={() => onPermanentDeleteDoc(node.id)}
               />
             ))}
           </div>
         ) : (
           <div className="flex flex-col gap-0.5 px-1.5 py-1">
-            {docs.map((doc) => (
-              <DocListItemRow
-                key={doc.id}
-                doc={doc}
+            {flatDocNodes.map((node) => (
+              <NodeTreeItem
+                key={node.id}
+                treeNode={{ node, children: [] }}
                 depth={0}
-                isActive={doc.id === selectedDocId}
-                onClick={() => onSelectDoc(doc.id)}
-                onFavorite={() => onFavoriteDoc(doc.id)}
-                onDelete={() => onDeleteDoc(doc.id)}
-                onMove={handleMoveDoc}
+                selectedNodeId={selectedNodeId}
+                expandedFolders={expandedFolders}
+                onToggleExpand={toggleFolder}
+                onSelectNode={onSelectNode}
+                onFavoriteDoc={onFavoriteDoc}
+                onDeleteNode={handleDeleteNode}
+                onCreateDoc={handleCreateDocInFolder}
+                onCreateSubfolder={handleCreateFolder}
+                onStartRename={startRename}
+                onCommitRename={commitRename}
+                onCancelRename={cancelRename}
+                onMoveDoc={handleMoveDoc}
+                renamingNodeId={renamingNodeId}
                 allFolders={folders}
+                onNodeHover={tip.enter}
+                onNodeLeave={tip.leave}
               />
             ))}
           </div>
+        )}
+        {tip.mounted && tip.hovered && (
+          <DocNodeTipPanel
+            hovered={tip.hovered}
+            visible={tip.visible}
+            sliding={tip.sliding}
+            refs={tip.refs}
+            floatingStyles={tip.floatingStyles}
+            cancelLeave={tip.cancelLeave}
+            leave={tip.leave}
+          />
         )}
       </div>
     </div>

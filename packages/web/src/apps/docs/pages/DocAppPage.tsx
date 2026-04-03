@@ -49,6 +49,7 @@ import { CommentSidebar } from "@/apps/docs/components/editor/elements/comment-s
 import VfsFilePickerModal, {
   type VfsFileSelection,
 } from "@/apps/docs/components/VfsFilePickerModal";
+import type { DocNode } from "@/apps/docs/lib/doc-node";
 import type { DocFolderOutput, DocOutput } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
 import { onAiDocumentEdit, openAiAssistant } from "@/lib/ai-assistant-events";
@@ -107,8 +108,10 @@ function DocAppPageInner() {
 
   const [tab, setTab] = useState<SidebarTab>("all");
   const [search, setSearch] = useState("");
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedNodeType, setSelectedNodeType] = useState<
+    "folder" | "document" | null
+  >(null);
   const [sortField, setSortField] = useState<SortField>("updatedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -122,6 +125,17 @@ function DocAppPageInner() {
   const [pendingFolderId, setPendingFolderId] = useState<string | undefined>();
   const [vfsPickerOpen, setVfsPickerOpen] = useState(false);
   const editorRef = useRef<DocEditorHandle | null>(null);
+
+  // Derived: doc is selected when the selected node is a document
+  const selectedDocId = selectedNodeType === "document" ? selectedNodeId : null;
+  // Derived: folder is selected when the selected node is a folder (or nothing selected = root)
+  const currentFolderId = selectedNodeType === "folder" ? selectedNodeId : null;
+
+  const handleSelectNode = useCallback((node: DocNode) => {
+    setSelectedNodeId(node.id);
+    setSelectedNodeType(node.type === "folder" ? "folder" : "document");
+    setPreviewingVersionId(null);
+  }, []);
 
   // Override sort for "recent" tab
   const effectiveSortField = tab === "recent" ? "updatedAt" : sortField;
@@ -183,7 +197,8 @@ function DocAppPageInner() {
   // ── Mutations ──────────────────────────────────────────────────────
   const createMutation = api.doc.create.useMutation({
     onSuccess: (doc: DocOutput) => {
-      setSelectedDocId(doc.id);
+      setSelectedNodeId(doc.id);
+      setSelectedNodeType("document");
       listQuery.refetch();
     },
     onError: () => message.error("创建文档失败"),
@@ -195,7 +210,8 @@ function DocAppPageInner() {
 
   const deleteMutation = api.doc.delete.useMutation({
     onSuccess: () => {
-      setSelectedDocId(null);
+      setSelectedNodeId(null);
+      setSelectedNodeType(null);
       listQuery.refetch();
       message.success("文档已删除");
     },
@@ -204,7 +220,8 @@ function DocAppPageInner() {
 
   const restoreMutation = api.doc.restore.useMutation({
     onSuccess: () => {
-      setSelectedDocId(null);
+      setSelectedNodeId(null);
+      setSelectedNodeType(null);
       listQuery.refetch();
       message.success("文档已恢复");
     },
@@ -213,7 +230,8 @@ function DocAppPageInner() {
 
   const permanentDeleteMutation = api.doc.permanentDelete.useMutation({
     onSuccess: () => {
-      setSelectedDocId(null);
+      setSelectedNodeId(null);
+      setSelectedNodeType(null);
       listQuery.refetch();
       message.success("文档已永久删除");
     },
@@ -575,19 +593,29 @@ function DocAppPageInner() {
         appId={appId}
         docs={docs}
         isLoadingDocs={listQuery.isLoading}
-        selectedDocId={selectedDocId}
-        onSelectDoc={(id) => {
-          setSelectedDocId(id);
-          setPreviewingVersionId(null);
-        }}
+        selectedNodeId={selectedNodeId}
+        onSelectNode={handleSelectNode}
         tab={tab}
         onSetTab={setTab}
         search={search}
         onSetSearch={setSearch}
         onCreateDoc={handleCreate}
-        isCreatingDoc={createMutation.isPending}
         onFavoriteDoc={(id) => favoriteMutation.mutate({ id })}
-        onDeleteDoc={(id) => deleteMutation.mutate({ id })}
+        onDeleteNode={(node) => {
+          if (node.type === "folder") {
+            if (
+              window.confirm("确定删除此文件夹？文件夹内的文档将移至根目录。")
+            ) {
+              deleteFolderMut.mutate({ id: node.id });
+              if (selectedNodeId === node.id) {
+                setSelectedNodeId(null);
+                setSelectedNodeType(null);
+              }
+            }
+          } else {
+            deleteMutation.mutate({ id: node.id });
+          }
+        }}
         onRestoreDoc={(id) => restoreMutation.mutate({ id })}
         onPermanentDeleteDoc={(id) => {
           if (window.confirm("确定永久删除此文档？此操作不可恢复。")) {
@@ -603,11 +631,6 @@ function DocAppPageInner() {
         onToggleCollapsed={toggleSidebar}
         filterTags={filterTags}
         onSetFilterTags={setFilterTags}
-        currentFolderId={currentFolderId}
-        onNavigateFolder={(fid) => {
-          setCurrentFolderId(fid);
-          setSelectedDocId(null);
-        }}
       />
 
       {/* ── Main area ────────────────────────────────────────────────── */}
@@ -618,7 +641,10 @@ function DocAppPageInner() {
             <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
               <button
                 type="button"
-                onClick={() => setSelectedDocId(null)}
+                onClick={() => {
+                  setSelectedNodeId(null);
+                  setSelectedNodeType(null);
+                }}
                 className="mr-1 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary"
                 title="返回文档列表"
               >
@@ -629,8 +655,8 @@ function DocAppPageInner() {
                 doc={selectedDoc}
                 folders={folders}
                 onNavigateFolder={(fid) => {
-                  setCurrentFolderId(fid);
-                  setSelectedDocId(null);
+                  setSelectedNodeId(fid);
+                  setSelectedNodeType(fid ? "folder" : null);
                 }}
               />
               <div className="flex-1" />
@@ -751,9 +777,13 @@ function DocAppPageInner() {
             docs={docs}
             folders={folders}
             currentFolderId={currentFolderId}
-            onNavigateFolder={setCurrentFolderId}
+            onNavigateFolder={(fid) => {
+              setSelectedNodeId(fid);
+              setSelectedNodeType(fid ? "folder" : null);
+            }}
             onOpenDoc={(id) => {
-              setSelectedDocId(id);
+              setSelectedNodeId(id);
+              setSelectedNodeType("document");
               setPreviewingVersionId(null);
             }}
             onCreateDoc={handleCreate}
@@ -773,7 +803,10 @@ function DocAppPageInner() {
             onRenameFolder={(id, name) => updateFolderMut.mutate({ id, name })}
             onDeleteFolder={(id) => {
               deleteFolderMut.mutate({ id });
-              if (currentFolderId === id) setCurrentFolderId(null);
+              if (selectedNodeId === id) {
+                setSelectedNodeId(null);
+                setSelectedNodeType(null);
+              }
             }}
             sortField={effectiveSortField}
             sortDir={effectiveSortDir}

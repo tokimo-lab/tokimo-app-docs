@@ -481,7 +481,11 @@ function FolderCard({
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation wrapper */}
         {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation wrapper */}
         <div onClick={(e) => e.stopPropagation()}>
-          <Dropdown menu={{ items: menuItems }} trigger={["click"]} placement="bottomRight">
+          <Dropdown
+            menu={{ items: menuItems }}
+            trigger={["click"]}
+            placement="bottomRight"
+          >
             <button
               type="button"
               className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100"
