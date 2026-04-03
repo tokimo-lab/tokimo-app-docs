@@ -332,35 +332,6 @@ export function DocSidebar({
     <div className="flex w-64 shrink-0 flex-col border-r border-border-base bg-surface-base/50">
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex items-center gap-1 px-3 py-2">
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: "doc",
-                label: "新建文档",
-                icon: <FileText size={14} />,
-                onClick: () => onCreateDoc(),
-              },
-              {
-                key: "folder",
-                label: "新建文件夹",
-                icon: <FolderPlus size={14} />,
-                onClick: () => handleCreateFolder(),
-              },
-            ],
-          }}
-          trigger={["click"]}
-          placement="bottomLeft"
-        >
-          <button
-            type="button"
-            disabled={isCreatingDoc}
-            className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
-          >
-            <Plus size={14} />
-            新建
-          </button>
-        </Dropdown>
         <div className="flex-1" />
         <Dropdown
           menu={{ items: sortMenuItems }}
