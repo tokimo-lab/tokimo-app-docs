@@ -478,15 +478,18 @@ function FolderCard({
             {folder.name}
           </span>
         )}
-        <Dropdown menu={{ items: menuItems }} trigger={["click"]} placement="bottomRight">
-          <button
-            type="button"
-            className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <MoreHorizontal size={14} className="text-fg-muted" />
-          </button>
-        </Dropdown>
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation wrapper */}
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation wrapper */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <Dropdown menu={{ items: menuItems }} trigger={["click"]} placement="bottomRight">
+            <button
+              type="button"
+              className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100"
+            >
+              <MoreHorizontal size={14} className="text-fg-muted" />
+            </button>
+          </Dropdown>
+        </div>
       </div>
     </Dropdown>
   );
@@ -628,19 +631,22 @@ function DocRow({
         </div>
         {/* Actions */}
         <div className="w-10 text-right">
-          <Dropdown
-            menu={{ items: menuItems }}
-            trigger={["click"]}
-            placement="bottomRight"
-          >
-            <button
-              type="button"
-              className="rounded p-0.5 opacity-0 transition-opacity hover:bg-fill-quaternary group-hover:opacity-100"
-              onClick={(e) => e.stopPropagation()}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: stop propagation wrapper */}
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation wrapper */}
+          <div onClick={(e) => e.stopPropagation()}>
+            <Dropdown
+              menu={{ items: menuItems }}
+              trigger={["click"]}
+              placement="bottomRight"
             >
-              <MoreHorizontal size={14} className="text-fg-muted" />
-            </button>
-          </Dropdown>
+              <button
+                type="button"
+                className="rounded p-0.5 opacity-0 transition-opacity hover:bg-fill-quaternary group-hover:opacity-100"
+              >
+                <MoreHorizontal size={14} className="text-fg-muted" />
+              </button>
+            </Dropdown>
+          </div>
         </div>
       </div>
     </Dropdown>
