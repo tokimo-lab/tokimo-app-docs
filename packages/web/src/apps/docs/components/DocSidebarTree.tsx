@@ -391,8 +391,8 @@ export function NodeTreeItem({
             </span>
           )}
 
-          {/* Hover toolbar */}
-          {!isRenaming && (
+          {/* Hover toolbar — hidden during DnD to avoid animation lag */}
+          {!isRenaming && !isDragging && (
             <div
               className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100"
               onClick={(e) => e.stopPropagation()}

@@ -136,6 +136,8 @@ export function formatWordCount(count: number | undefined): string {
 /** Returns the i18n key for a node's untitled placeholder based on its type. */
 export function untitledI18nKey(type: DocNodeType | string): string {
   switch (type) {
+    case "folder":
+      return "docs.newFolder";
     case "sheet":
       return "docs.untitledSheet";
     case "slide":
@@ -144,6 +146,25 @@ export function untitledI18nKey(type: DocNodeType | string): string {
       return "docs.untitledForm";
     default:
       return "docs.untitledDocument";
+  }
+}
+
+/**
+ * Generate a unique title among siblings under the same parent.
+ * Pattern: baseName, baseName (2), baseName (3), …
+ */
+export function nextUniqueName(
+  baseName: string,
+  allNodes: { parentId: string | null; title: string }[],
+  parentId: string | null,
+): string {
+  const siblings = new Set(
+    allNodes.filter((n) => n.parentId === parentId).map((n) => n.title),
+  );
+  if (!siblings.has(baseName)) return baseName;
+  for (let i = 2; ; i++) {
+    const candidate = `${baseName} (${i})`;
+    if (!siblings.has(candidate)) return candidate;
   }
 }
 

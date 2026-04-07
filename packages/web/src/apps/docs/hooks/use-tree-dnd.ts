@@ -175,7 +175,7 @@ export function useTreeDnd({
       const ratio = relY / h;
 
       let mode: "reorder" | "inside" = "reorder";
-      if (target.isFolder || target.hasChildren) {
+      if (target.isFolder) {
         if (target.isExpanded && target.hasChildren) {
           // Expanded folder: top half = reorder, bottom half = inside
           mode = ratio >= 0.5 ? "inside" : "reorder";

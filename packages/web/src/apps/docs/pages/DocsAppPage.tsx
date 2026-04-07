@@ -53,7 +53,11 @@ import VfsFilePickerModal, {
   type VfsFileSelection,
 } from "@/apps/docs/components/VfsFilePickerModal";
 import type { DocNode, DocNodeType } from "@/apps/docs/lib/doc-node";
-import { apiNodeToLocal, untitledI18nKey } from "@/apps/docs/lib/doc-node";
+import {
+  apiNodeToLocal,
+  nextUniqueName,
+  untitledI18nKey,
+} from "@/apps/docs/lib/doc-node";
 import type { DocNodeListItem, DocNodeOutput } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
 import { onAiDocumentEdit, openAiAssistant } from "@/lib/ai-assistant-events";
@@ -261,11 +265,13 @@ function DocsAppPageInner() {
   // ── Refs for stable callbacks (avoid infinite useMenuBar re-register) ──
   const stateRef = useRef({
     appId,
+    allNodes,
     selectedDocId,
     selectedDocTitle: selectedDoc?.title,
   });
   stateRef.current = {
     appId,
+    allNodes,
     selectedDocId,
     selectedDocTitle: selectedDoc?.title,
   };
@@ -277,27 +283,34 @@ function DocsAppPageInner() {
   detailQueryRef.current = detailQuery;
 
   // ── Handlers ───────────────────────────────────────────────────────
-  const handleCreate = useCallback((type: DocNodeType, parentId?: string) => {
-    if (type === "notion") {
-      setPendingParentId(parentId);
-      setTemplateChooserOpen(true);
-    } else {
-      // sheet / folder — create directly without template chooser
-      const id = stateRef.current.appId;
-      if (!id) return;
-      createMutRef.current.mutate({
-        appId: id,
-        type,
-        parentId,
-      });
-    }
-  }, []);
+  const handleCreate = useCallback(
+    (type: DocNodeType, parentId?: string) => {
+      if (type === "notion") {
+        setPendingParentId(parentId);
+        setTemplateChooserOpen(true);
+      } else {
+        // sheet / folder — create directly without template chooser
+        const { appId: id, allNodes: nodes } = stateRef.current;
+        if (!id) return;
+        const baseName = t(untitledI18nKey(type));
+        const title = nextUniqueName(baseName, nodes, parentId ?? null);
+        createMutRef.current.mutate({
+          appId: id,
+          type,
+          title,
+          parentId,
+        });
+      }
+    },
+    [t],
+  );
 
   const handleTemplateSelect = useCallback(
     (template: DocTemplate) => {
-      const { appId: id } = stateRef.current;
+      const { appId: id, allNodes: nodes } = stateRef.current;
       if (!id) return;
-      const title = template.title || undefined;
+      const baseName = template.title || t("docs.untitledDocument");
+      const title = nextUniqueName(baseName, nodes, pendingParentId ?? null);
       createMutRef.current.mutate(
         { appId: id, parentId: pendingParentId, title },
         {
@@ -313,7 +326,7 @@ function DocsAppPageInner() {
       );
       setTemplateChooserOpen(false);
     },
-    [pendingParentId],
+    [pendingParentId, t],
   );
 
   // ── Debounced auto-save ─────────────────────────────────────────
@@ -609,10 +622,15 @@ function DocsAppPageInner() {
         onCreateNode={handleCreate}
         onCreateFolder={(parentId) => {
           if (!appId) return;
+          const title = nextUniqueName(
+            t("docs.newFolder"),
+            allNodes,
+            parentId ?? null,
+          );
           createMutation.mutate({
             appId,
             type: "folder",
-            title: "新文件夹",
+            title,
             parentId: parentId ?? undefined,
           });
         }}
@@ -846,10 +864,15 @@ function DocsAppPageInner() {
             onCreateNode={handleCreate}
             onCreateFolder={(parentId) => {
               if (!appId) return;
+              const title = nextUniqueName(
+                t("docs.newFolder"),
+                allNodes,
+                parentId ?? null,
+              );
               createMutation.mutate({
                 appId,
                 type: "folder",
-                title: "新文件夹",
+                title,
                 parentId: parentId ?? undefined,
               });
             }}
