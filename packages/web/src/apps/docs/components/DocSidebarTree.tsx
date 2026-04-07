@@ -4,6 +4,10 @@
  * All node types (folder, document, slide, sheet, form, …) share the same
  * visual row style.  Only the icon differs.  Folders are grouped at the top
  * of each level.  Metadata is shown via a hover tooltip (DocNodeTip).
+ *
+ * DnD uses Pointer Events + CSS transforms (via useTreeDnd hook).
+ * Each row is rendered flat (not recursively) — the parent component
+ * provides a flat visible-nodes list and this component renders one row.
  */
 
 import { cn, Dropdown, type DropdownMenuItem } from "@tokiomo/components";
@@ -26,10 +30,10 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { DocNode, DocNodeType, DocTreeNode } from "../lib/doc-node";
+import type { DocNode, DocNodeType } from "../lib/doc-node";
 import { formatRelativeTime, untitledI18nKey } from "../lib/doc-node";
 import type { DropPosition } from "./tree-drag-context";
-import { DROP_EDGE_PX, useTreeDrag } from "./tree-drag-context";
+import { useTreeDrag } from "./tree-drag-context";
 
 // ── Re-exports for consumers ───────────────────────────────────────────────
 
@@ -85,13 +89,14 @@ function NodeIcon({
   );
 }
 
-// ── NodeTreeItem — unified row for folders & docs ──────────────────────────
+// ── NodeTreeItem — flat row for a single tree node ─────────────────────────
 
 export function NodeTreeItem({
-  treeNode,
+  node,
   depth,
+  hasChildren,
+  isExpanded,
   selectedNodeId,
-  expandedFolders,
   onToggleExpand,
   onSelectNode,
   onFavoriteDoc,
@@ -107,10 +112,11 @@ export function NodeTreeItem({
   onNodeHover,
   onNodeLeave,
 }: {
-  treeNode: DocTreeNode;
+  node: DocNode;
   depth: number;
+  hasChildren: boolean;
+  isExpanded: boolean;
   selectedNodeId: string | null;
-  expandedFolders: Set<string>;
   onToggleExpand: (id: string) => void;
   onSelectNode: (node: DocNode) => void;
   onFavoriteDoc: (id: string) => void;
@@ -131,103 +137,19 @@ export function NodeTreeItem({
   onNodeLeave?: () => void;
 }) {
   const { t } = useTranslation();
-  const { node, children } = treeNode;
   const isFolder = node.type === "folder";
-  const isExpanded = expandedFolders.has(node.id);
   const isActive = selectedNodeId === node.id;
   const isRenaming = renamingNodeId === node.id;
-  const hasChildren = children.length > 0;
 
-  // ── Drag-and-drop ───────────────────────────────────────────
+  // ── Drag-and-drop (from context) ────────────────────────────
   const {
-    dragNodeId,
-    dragDescendantIds,
-    dropIndicator,
-    startDrag,
-    endDrag,
-    setDropIndicator,
+    isDragging,
+    getNodeStyle,
+    isInsideTarget,
+    handlePointerDown,
+    shouldSuppressClick,
   } = useTreeDrag();
-  const expandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const didDragRef = useRef(false);
-  const isDragging = dragNodeId === node.id;
-  const isInvalidTarget =
-    dragNodeId === node.id ||
-    dragDescendantIds.has(node.id) ||
-    node.parentId === dragNodeId;
-
-  const myIndicator =
-    dropIndicator?.nodeId === node.id ? dropIndicator.position : null;
-
-  const handleDragStart = (e: React.DragEvent) => {
-    didDragRef.current = true;
-    e.dataTransfer.setData("text/plain", node.id);
-    e.dataTransfer.effectAllowed = "move";
-    startDrag(node.id);
-  };
-
-  const computeDropPosition = (e: React.DragEvent): DropPosition => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    if (y < DROP_EDGE_PX) return "before";
-    if (y > rect.height - DROP_EDGE_PX) return "after";
-    return "inside";
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    if (!dragNodeId || isInvalidTarget) return;
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = "move";
-    const pos = computeDropPosition(e);
-    setDropIndicator({ nodeId: node.id, position: pos });
-    // Auto-expand collapsed nodes when hovering "inside"
-    if (
-      pos === "inside" &&
-      !isExpanded &&
-      (isFolder || hasChildren) &&
-      !expandTimerRef.current
-    ) {
-      expandTimerRef.current = setTimeout(() => {
-        onToggleExpand(node.id);
-        expandTimerRef.current = null;
-      }, 600);
-    } else if (pos !== "inside" && expandTimerRef.current) {
-      clearTimeout(expandTimerRef.current);
-      expandTimerRef.current = null;
-    }
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    // Only clear if actually leaving this element (not entering a child)
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      if (dropIndicator?.nodeId === node.id) setDropIndicator(null);
-    }
-    if (expandTimerRef.current) {
-      clearTimeout(expandTimerRef.current);
-      expandTimerRef.current = null;
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (expandTimerRef.current) {
-      clearTimeout(expandTimerRef.current);
-      expandTimerRef.current = null;
-    }
-    const draggedId = e.dataTransfer.getData("text/plain");
-    if (!draggedId || draggedId === node.id || dragDescendantIds.has(node.id))
-      return;
-    const pos =
-      dropIndicator?.nodeId === node.id
-        ? dropIndicator.position
-        : computeDropPosition(e);
-    onMoveDoc(draggedId, node.id, pos);
-    // Auto-expand target when dropping inside
-    if (pos === "inside" && !expandedFolders.has(node.id))
-      onToggleExpand(node.id);
-    setDropIndicator(null);
-  };
+  const insideMe = isInsideTarget(node.id);
 
   // ── Inline rename ────────────────────────────────────────────
   const [localName, setLocalName] = useState(node.title);
@@ -374,11 +296,8 @@ export function NodeTreeItem({
   ]);
 
   const handleClick = () => {
-    // If a drag just occurred, skip the click action
-    if (didDragRef.current) {
-      didDragRef.current = false;
-      return;
-    }
+    // Suppress click after a completed drag
+    if (shouldSuppressClick()) return;
     if (isFolder || hasChildren) {
       onToggleExpand(node.id);
     }
@@ -386,14 +305,11 @@ export function NodeTreeItem({
   };
 
   return (
-    <div className="relative">
-      {/* Insertion line — before */}
-      {myIndicator === "before" && (
-        <div
-          className="pointer-events-none absolute left-2 right-2 top-0 z-10 h-0.5 rounded bg-blue-500 dark:bg-blue-400"
-          style={{ marginLeft: `${depth * 20}px` }}
-        />
-      )}
+    <div
+      data-tree-dnd
+      style={getNodeStyle(node.id)}
+      onPointerDown={(e) => handlePointerDown(node.id, e)}
+    >
       <Dropdown
         menu={{ items: contextMenuItems }}
         trigger={["contextMenu"]}
@@ -402,28 +318,17 @@ export function NodeTreeItem({
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: tree row */}
         {/* biome-ignore lint/a11y/noStaticElementInteractions: hover container */}
         <div
-          data-draggable
-          draggable={!isRenaming}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onDragEnd={endDrag}
           className={cn(
             "group flex w-full cursor-pointer items-center gap-1 rounded-md py-1 pr-2 text-left text-sm transition-colors",
-            isDragging && "opacity-40",
-            myIndicator === "inside" &&
+            isDragging && "cursor-grabbing",
+            insideMe &&
               "ring-2 ring-inset ring-blue-400 bg-blue-50/80 dark:bg-blue-900/40",
-            myIndicator !== "inside" &&
-              !isDragging &&
+            !insideMe &&
               (isActive
                 ? "bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                 : "text-fg-secondary hover:bg-fill-tertiary"),
           )}
           style={{ paddingLeft: `${depth * 20 + 8}px` }}
-          onMouseDown={() => {
-            didDragRef.current = false;
-          }}
           onClick={handleClick}
           onMouseEnter={(e) => onNodeHover?.(e.currentTarget, node)}
           onMouseLeave={() => onNodeLeave?.()}
@@ -541,50 +446,6 @@ export function NodeTreeItem({
           )}
         </div>
       </Dropdown>
-
-      {/* Children */}
-      {isExpanded && children.length > 0 && (
-        <div>
-          {children.map((child) => (
-            <NodeTreeItem
-              key={child.node.id}
-              treeNode={child}
-              depth={depth + 1}
-              selectedNodeId={selectedNodeId}
-              expandedFolders={expandedFolders}
-              onToggleExpand={onToggleExpand}
-              onSelectNode={onSelectNode}
-              onFavoriteDoc={onFavoriteDoc}
-              onDeleteNode={onDeleteNode}
-              onCreateDoc={onCreateDoc}
-              onCreateSubfolder={onCreateSubfolder}
-              onStartRename={onStartRename}
-              onCommitRename={onCommitRename}
-              onCancelRename={onCancelRename}
-              onMoveDoc={onMoveDoc}
-              renamingNodeId={renamingNodeId}
-              allFolders={allFolders}
-              onNodeHover={onNodeHover}
-              onNodeLeave={onNodeLeave}
-            />
-          ))}
-        </div>
-      )}
-      {isExpanded && isFolder && children.length === 0 && (
-        <div
-          className="py-1 text-xs text-fg-muted italic"
-          style={{ paddingLeft: `${(depth + 1) * 20 + 28}px` }}
-        >
-          空文件夹
-        </div>
-      )}
-      {/* Insertion line — after */}
-      {myIndicator === "after" && (
-        <div
-          className="pointer-events-none absolute bottom-0 left-2 right-2 z-10 h-0.5 rounded bg-blue-500 dark:bg-blue-400"
-          style={{ marginLeft: `${depth * 20}px` }}
-        />
-      )}
     </div>
   );
 }

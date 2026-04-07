@@ -146,3 +146,64 @@ export function untitledI18nKey(type: DocNodeType | string): string {
       return "docs.untitledDocument";
   }
 }
+
+// ── Flat tree for DnD / flat rendering ─────────────────────────────────────
+
+export interface FlatTreeItem {
+  node: DocNode;
+  depth: number;
+  isFolder: boolean;
+  isExpanded: boolean;
+  hasChildren: boolean;
+}
+
+/** Flatten tree respecting expanded state — visible nodes in display order. */
+export function flattenVisibleTree(
+  treeNodes: DocTreeNode[],
+  expandedFolders: Set<string>,
+): FlatTreeItem[] {
+  const result: FlatTreeItem[] = [];
+  function traverse(nodes: DocTreeNode[], depth: number) {
+    for (const tn of nodes) {
+      const isFolder = tn.node.type === "folder";
+      const isExpanded = expandedFolders.has(tn.node.id);
+      result.push({
+        node: tn.node,
+        depth,
+        isFolder,
+        isExpanded,
+        hasChildren: tn.children.length > 0,
+      });
+      if (isExpanded && tn.children.length > 0) {
+        traverse(tn.children, depth + 1);
+      }
+    }
+  }
+  traverse(treeNodes, 0);
+  return result;
+}
+
+/** Collect all descendant IDs of a node in the tree (excludes the node itself). */
+export function collectDescendantIds(
+  treeNodes: DocTreeNode[],
+  nodeId: string,
+): Set<string> {
+  const ids = new Set<string>();
+  function findNode(nodes: DocTreeNode[]): DocTreeNode | undefined {
+    for (const tn of nodes) {
+      if (tn.node.id === nodeId) return tn;
+      const found = findNode(tn.children);
+      if (found) return found;
+    }
+    return undefined;
+  }
+  function collect(nodes: DocTreeNode[]) {
+    for (const tn of nodes) {
+      ids.add(tn.node.id);
+      collect(tn.children);
+    }
+  }
+  const found = findNode(treeNodes);
+  if (found) collect(found.children);
+  return ids;
+}

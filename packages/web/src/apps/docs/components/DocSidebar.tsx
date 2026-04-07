@@ -39,12 +39,18 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DocNodeListItem } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
+import { useTreeDnd } from "../hooks/use-tree-dnd";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
-import { apiNodeToLocal, buildNodeTree } from "../lib/doc-node";
+import {
+  apiNodeToLocal,
+  buildNodeTree,
+  collectDescendantIds,
+  flattenVisibleTree,
+} from "../lib/doc-node";
 import { DocNodeTipPanel, useDocNodeTip } from "./DocNodeTip";
 import { ArchivedNodeRow, NodeTreeItem } from "./DocSidebarTree";
-import type { DropIndicator, DropPosition } from "./tree-drag-context";
-import { collectDescendantIds, TreeDragContext } from "./tree-drag-context";
+import type { DropPosition } from "./tree-drag-context";
+import { TreeDragContext } from "./tree-drag-context";
 
 // ── Exported types ─────────────────────────────────────────────────────────
 
@@ -226,32 +232,19 @@ export function DocSidebar({
   // ── Hover tooltip ──────────────────────────────────────────
   const tip = useDocNodeTip();
 
-  // ── Drag-and-drop state ─────────────────────────────────────
-  const [dragNodeId, setDragNodeId] = useState<string | null>(null);
-  const [rootDragOver, setRootDragOver] = useState(false);
-  const [dropIndicator, setDropIndicator] = useState<DropIndicator | null>(
-    null,
+  // ── Drag-and-drop ─────────────────────────────────────────────
+  const flatItems = useMemo(
+    () => flattenVisibleTree(treeNodes, expandedFolders),
+    [treeNodes, expandedFolders],
   );
 
-  const dragDescendantIds = useMemo(() => {
-    if (!dragNodeId) return new Set<string>();
-    return collectDescendantIds(treeNodes, dragNodeId);
-  }, [dragNodeId, treeNodes]);
-
-  const treeDragValue = useMemo(
-    () => ({
-      dragNodeId,
-      dragDescendantIds,
-      dropIndicator,
-      startDrag: setDragNodeId,
-      endDrag: () => {
-        setDragNodeId(null);
-        setRootDragOver(false);
-        setDropIndicator(null);
-      },
-      setDropIndicator,
-    }),
-    [dragNodeId, dragDescendantIds, dropIndicator],
+  const getInvalidIds = useCallback(
+    (dragId: string) => {
+      const ids = collectDescendantIds(treeNodes, dragId);
+      ids.add(dragId);
+      return ids;
+    },
+    [treeNodes],
   );
 
   // Resolve drop position to (parentId, sortOrder)
@@ -259,8 +252,8 @@ export function DocSidebar({
     (
       targetNodeId: string,
       position: DropPosition,
+      excludeId?: string,
     ): { parentId: string | null; sortOrder: number } => {
-      // Find the target node and its siblings
       const targetNode = localNodes.find((n) => n.id === targetNodeId);
       if (!targetNode) return { parentId: null, sortOrder: 0 };
 
@@ -268,10 +261,9 @@ export function DocSidebar({
         return { parentId: targetNodeId, sortOrder: 0 };
       }
 
-      // "before" or "after" — insert among target's siblings
       const siblingParentId = targetNode.parentId;
       const siblings = localNodes
-        .filter((n) => n.parentId === siblingParentId && n.id !== dragNodeId)
+        .filter((n) => n.parentId === siblingParentId && n.id !== excludeId)
         .sort((a, b) =>
           a.sortOrder !== b.sortOrder
             ? a.sortOrder - b.sortOrder
@@ -285,60 +277,68 @@ export function DocSidebar({
           sortOrder: idx >= 0 ? siblings[idx].sortOrder : 0,
         };
       }
-      // "after"
       return {
         parentId: siblingParentId,
         sortOrder: idx >= 0 ? siblings[idx].sortOrder + 1 : siblings.length,
       };
     },
-    [localNodes, dragNodeId],
+    [localNodes],
   );
 
   const handleMoveDoc = useCallback(
     (docId: string, targetId: string | null, position?: DropPosition) => {
-      setDropIndicator(null);
+      const draggedNode = localNodes.find((n) => n.id === docId);
       if (targetId && position && position !== "inside") {
-        const { parentId, sortOrder } = resolveDropTarget(targetId, position);
+        const { parentId, sortOrder } = resolveDropTarget(
+          targetId,
+          position,
+          docId,
+        );
+        if (
+          draggedNode &&
+          draggedNode.parentId === parentId &&
+          draggedNode.sortOrder === sortOrder
+        )
+          return;
         onMoveNode(docId, parentId, sortOrder);
-      } else {
-        // "inside" or root drop: move into target as child
-        onMoveNode(docId, targetId);
-      }
-    },
-    [onMoveNode, resolveDropTarget],
-  );
-
-  const handleRootDragOver = useCallback(
-    (e: React.DragEvent) => {
-      if (!dragNodeId) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      setRootDragOver(true);
-      setDropIndicator(null);
-    },
-    [dragNodeId],
-  );
-
-  const handleRootDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setRootDragOver(false);
-      setDropIndicator(null);
-      const draggedId = e.dataTransfer.getData("text/plain");
-      if (draggedId) {
-        // Drop at root, append at end
+      } else if (targetId === null && position === "after") {
+        // Root drop — append at end
+        if (draggedNode && draggedNode.parentId === null) return;
         const rootSiblings = localNodes.filter(
-          (n) => n.parentId === null && n.id !== draggedId,
+          (n) => n.parentId === null && n.id !== docId,
         );
         const maxOrder = rootSiblings.reduce(
           (max, n) => Math.max(max, n.sortOrder),
           -1,
         );
-        onMoveNode(draggedId, null, maxOrder + 1);
+        onMoveNode(docId, null, maxOrder + 1);
+      } else {
+        // "inside" or context-menu move
+        if (draggedNode && draggedNode.parentId === targetId) return;
+        onMoveNode(docId, targetId);
       }
-      setDragNodeId(null);
     },
-    [onMoveNode, localNodes],
+    [onMoveNode, resolveDropTarget, localNodes],
+  );
+
+  const dnd = useTreeDnd({
+    flatItems,
+    getInvalidIds,
+    onDrop: handleMoveDoc,
+    onExpandFolder: toggleFolder,
+  });
+
+  const treeDragValue = useMemo(
+    () => ({
+      isDragging: dnd.isDragging,
+      draggedId: dnd.draggedId,
+      isRootDrop: dnd.isRootDrop,
+      getNodeStyle: dnd.getNodeStyle,
+      isInsideTarget: dnd.isInsideTarget,
+      handlePointerDown: dnd.handlePointerDown,
+      shouldSuppressClick: dnd.shouldSuppressClick,
+    }),
+    [dnd],
   );
 
   // ── Sort menu ────────────────────────────────────────────────
@@ -611,14 +611,15 @@ export function DocSidebar({
           </div>
         ) : showTree ? (
           <TreeDragContext.Provider value={treeDragValue}>
-            <div className="flex flex-col gap-0.5 px-1.5 py-1">
-              {treeNodes.map((tn) => (
+            <div ref={dnd.containerRef} className="flex flex-col px-1.5 py-1">
+              {flatItems.map((item) => (
                 <NodeTreeItem
-                  key={tn.node.id}
-                  treeNode={tn}
-                  depth={0}
+                  key={item.node.id}
+                  node={item.node}
+                  depth={item.depth}
+                  hasChildren={item.hasChildren}
+                  isExpanded={item.isExpanded}
                   selectedNodeId={selectedNodeId}
-                  expandedFolders={expandedFolders}
                   onToggleExpand={toggleFolder}
                   onSelectNode={onSelectNode}
                   onFavoriteDoc={onFavoriteNode}
@@ -636,32 +637,19 @@ export function DocSidebar({
                 />
               ))}
             </div>
-            {/* Root drop zone — visible during drag, drop here to move to root */}
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: DnD drop target */}
+            {/* Root drop indicator */}
             <div
               className={cn(
                 "mx-2 mt-1 rounded-md border-2 border-dashed py-2 text-center text-xs transition-colors",
-                dragNodeId
-                  ? rootDragOver
+                dnd.isDragging
+                  ? dnd.isRootDrop
                     ? "border-blue-400 bg-blue-50/80 text-blue-600 dark:border-blue-500 dark:bg-blue-900/40 dark:text-blue-400"
                     : "border-gray-300 text-fg-muted dark:border-gray-600"
                   : "hidden",
               )}
-              onDragOver={handleRootDragOver}
-              onDragLeave={() => setRootDragOver(false)}
-              onDrop={handleRootDrop}
             >
               移动到根目录
             </div>
-            {/* Extra space at bottom for easier root drops */}
-            {dragNodeId && (
-              // biome-ignore lint/a11y/noStaticElementInteractions: DnD drop target
-              <div
-                className="min-h-16"
-                onDragOver={handleRootDragOver}
-                onDrop={handleRootDrop}
-              />
-            )}
           </TreeDragContext.Provider>
         ) : isTrash ? (
           <div className="flex flex-col gap-0.5 px-1.5 py-1">
@@ -681,10 +669,11 @@ export function DocSidebar({
             {flatDocNodes.map((node) => (
               <NodeTreeItem
                 key={node.id}
-                treeNode={{ node, children: [] }}
+                node={node}
                 depth={0}
+                hasChildren={false}
+                isExpanded={false}
                 selectedNodeId={selectedNodeId}
-                expandedFolders={expandedFolders}
                 onToggleExpand={toggleFolder}
                 onSelectNode={onSelectNode}
                 onFavoriteDoc={onFavoriteNode}
