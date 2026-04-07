@@ -285,6 +285,8 @@ export function useTreeDnd({
     if (fromIndex === effectiveOver) {
       if (idx === fromIndex) {
         return {
+          transform: "translateY(0)",
+          transition,
           opacity: 0.85,
           zIndex: 1,
           position: "relative",
