@@ -1,0 +1,4 @@
+/* Univer toolbar: left-align tabs, icons, and controls instead of centered */
+.sheet-editor-overrides .univer-justify-center {
+  justify-content: flex-start;
+}
