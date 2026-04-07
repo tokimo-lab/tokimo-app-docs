@@ -320,7 +320,6 @@ export function NodeTreeItem({
         <div
           className={cn(
             "group flex w-full cursor-pointer items-center gap-1 rounded-md py-1 pr-2 text-left text-sm transition-colors",
-            isDragging && "cursor-grabbing",
             insideMe &&
               "ring-2 ring-inset ring-blue-400 bg-blue-50/80 dark:bg-blue-900/40",
             !insideMe &&

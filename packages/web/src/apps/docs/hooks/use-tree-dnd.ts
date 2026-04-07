@@ -120,7 +120,7 @@ export function useTreeDnd({
       if (!dragActiveRef.current) {
         if (Math.abs(dy) + Math.abs(dx) < DRAG_THRESHOLD) return;
         dragActiveRef.current = true;
-        document.body.style.cursor = "grabbing";
+        document.documentElement.dataset.treeDragging = "";
         document.body.style.userSelect = "none";
         setDrag({
           fromIndex: fromIndexRef.current,
@@ -197,7 +197,7 @@ export function useTreeDnd({
     const onUp = () => {
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
-      document.body.style.cursor = "";
+      delete document.documentElement.dataset.treeDragging;
       document.body.style.userSelect = "";
       clearExpandTimer();
 
@@ -260,16 +260,19 @@ export function useTreeDnd({
     const h = slotHeightRef.current || 28;
     const transition = "transform 200ms cubic-bezier(.2,0,0,1)";
 
-    // "inside" / "root": no shifting — just dim the dragged item
-    if (mode === "inside" || mode === "root") {
+    // "inside": no shifting — just dim the dragged item
+    if (mode === "inside") {
       if (idx === fromIndex) {
         return { opacity: 0.5, transition: "opacity 150ms" };
       }
       return {};
     }
 
-    // Reorder mode
-    if (fromIndex === overIndex) {
+    // "root" mode: treat as reorder to virtual slot past the last item
+    const effectiveOver = mode === "root" ? flatItems.length : overIndex;
+
+    // Reorder mode (including root)
+    if (fromIndex === effectiveOver) {
       if (idx === fromIndex) {
         return {
           opacity: 0.85,
@@ -283,8 +286,9 @@ export function useTreeDnd({
 
     // Dragged item: visually move to the target slot
     if (idx === fromIndex) {
+      const targetSlot = mode === "root" ? flatItems.length - 1 : effectiveOver;
       return {
-        transform: `translateY(${(overIndex - fromIndex) * h}px)`,
+        transform: `translateY(${(targetSlot - fromIndex) * h}px)`,
         transition,
         opacity: 0.85,
         zIndex: 1,
@@ -293,11 +297,11 @@ export function useTreeDnd({
       };
     }
 
-    // Items between from/over shift by one slot to make room
-    if (fromIndex < overIndex && idx > fromIndex && idx <= overIndex) {
+    // Items between from/effectiveOver shift by one slot to make room
+    if (fromIndex < effectiveOver && idx > fromIndex && idx <= effectiveOver) {
       return { transform: `translateY(-${h}px)`, transition };
     }
-    if (fromIndex > overIndex && idx >= overIndex && idx < fromIndex) {
+    if (fromIndex > effectiveOver && idx >= effectiveOver && idx < fromIndex) {
       return { transform: `translateY(${h}px)`, transition };
     }
 
@@ -313,7 +317,6 @@ export function useTreeDnd({
     containerRef,
     getNodeStyle,
     isInsideTarget,
-    isRootDrop: drag?.mode === "root",
     isDragging: drag !== null,
     draggedId: drag ? (flatItems[drag.fromIndex]?.node.id ?? null) : null,
     handlePointerDown,

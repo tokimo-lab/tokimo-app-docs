@@ -332,7 +332,6 @@ export function DocSidebar({
     () => ({
       isDragging: dnd.isDragging,
       draggedId: dnd.draggedId,
-      isRootDrop: dnd.isRootDrop,
       getNodeStyle: dnd.getNodeStyle,
       isInsideTarget: dnd.isInsideTarget,
       handlePointerDown: dnd.handlePointerDown,
@@ -636,19 +635,6 @@ export function DocSidebar({
                   onNodeLeave={tip.leave}
                 />
               ))}
-            </div>
-            {/* Root drop indicator */}
-            <div
-              className={cn(
-                "mx-2 mt-1 rounded-md border-2 border-dashed py-2 text-center text-xs transition-colors",
-                dnd.isDragging
-                  ? dnd.isRootDrop
-                    ? "border-blue-400 bg-blue-50/80 text-blue-600 dark:border-blue-500 dark:bg-blue-900/40 dark:text-blue-400"
-                    : "border-gray-300 text-fg-muted dark:border-gray-600"
-                  : "hidden",
-              )}
-            >
-              移动到根目录
             </div>
           </TreeDragContext.Provider>
         ) : isTrash ? (

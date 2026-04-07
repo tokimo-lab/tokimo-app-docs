@@ -16,7 +16,6 @@ export type DropPosition = "before" | "inside" | "after";
 interface TreeDragState {
   isDragging: boolean;
   draggedId: string | null;
-  isRootDrop: boolean;
   getNodeStyle: (nodeId: string) => CSSProperties;
   isInsideTarget: (nodeId: string) => boolean;
   handlePointerDown: (nodeId: string, e: React.PointerEvent) => void;
@@ -32,7 +31,6 @@ const FALSE = () => false;
 export const TreeDragContext = createContext<TreeDragState>({
   isDragging: false,
   draggedId: null,
-  isRootDrop: false,
   getNodeStyle: NOOP_STYLE,
   isInsideTarget: FALSE,
   handlePointerDown: () => {},
