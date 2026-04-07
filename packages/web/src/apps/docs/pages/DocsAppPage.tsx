@@ -55,7 +55,9 @@ import VfsFilePickerModal, {
 import type { DocNode, DocNodeType } from "@/apps/docs/lib/doc-node";
 import {
   apiNodeToLocal,
+  buildNodePath,
   nextUniqueName,
+  resolveNodeByPath,
   untitledI18nKey,
 } from "@/apps/docs/lib/doc-node";
 import type { DocNodeListItem, DocNodeOutput } from "@/generated/rust-api";
@@ -111,7 +113,7 @@ export default function DocsAppPage() {
 }
 
 function DocsAppPageInner() {
-  const { metadata } = useWindowNav();
+  const { metadata, route, navigate, replace } = useWindowNav();
   const appId = metadata.appId as string | undefined;
   const message = useMessage();
   const { t } = useTranslation();
@@ -119,10 +121,6 @@ function DocsAppPageInner() {
 
   const [tab, setTab] = useState<SidebarTab>("all");
   const [search, setSearch] = useState("");
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [selectedNodeType, setSelectedNodeType] = useState<DocNodeType | null>(
-    null,
-  );
   const [sortField, setSortField] = useState<SortField>("updatedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -137,26 +135,85 @@ function DocsAppPageInner() {
   const [vfsPickerOpen, setVfsPickerOpen] = useState(false);
   const editorRef = useRef<DocEditorHandle | null>(null);
 
-  // Derived: doc is selected when the selected node is a document
-  const selectedDocId = selectedNodeType === "notion" ? selectedNodeId : null;
-  // Derived: sheet is selected when the selected node is a sheet
-  const selectedSheetId = selectedNodeType === "sheet" ? selectedNodeId : null;
-  // Either doc or sheet — used for detail query
-  const selectedContentNodeId = selectedDocId ?? selectedSheetId;
-  // Derived: folder is selected when the selected node is a folder (or nothing selected = root)
-  const currentFolderId = selectedNodeType === "folder" ? selectedNodeId : null;
-
-  const handleSelectNode = useCallback((node: DocNode) => {
-    setSelectedNodeId(node.id);
-    setSelectedNodeType(node.type as DocNodeType);
-    setPreviewingVersionId(null);
-  }, []);
-
   // Override sort for "recent" tab
   const effectiveSortField = tab === "recent" ? "updatedAt" : sortField;
   const effectiveSortDir = tab === "recent" ? "desc" : sortDir;
 
-  // ── Unified node list query ──────────────────────────────────────
+  // ── Unfiltered tree index (for path ↔ node resolution) ────────────
+  const treeQuery = api.docs.list.useQuery(
+    { appId: appId ?? "", pageSize: 9999 },
+    { enabled: !!appId },
+  );
+  const treeNodes = useMemo(
+    () => treeQuery.data?.items ?? [],
+    [treeQuery.data],
+  );
+
+  // ── Route-derived selection ──────────────────────────────────────────
+  const selectedNodeId = useMemo(
+    () => resolveNodeByPath(route, treeNodes),
+    [route, treeNodes],
+  );
+  const selectedNode = useMemo(
+    () => treeNodes.find((n) => n.id === selectedNodeId) ?? null,
+    [treeNodes, selectedNodeId],
+  );
+  const selectedNodeType = (selectedNode?.type as DocNodeType) ?? null;
+
+  // Auto-repair route when node path changes (ancestor rename/move)
+  const prevRouteRef = useRef(route);
+  useEffect(() => {
+    if (!selectedNodeId || !selectedNode) return;
+    const correctPath = buildNodePath(selectedNodeId, treeNodes);
+    if (correctPath !== route && route !== "/") {
+      replace(correctPath, selectedNode.title);
+    }
+    prevRouteRef.current = route;
+  }, [selectedNodeId, selectedNode, treeNodes, route, replace]);
+
+  // Navigation helpers
+  const selectNode = useCallback(
+    (node: { id: string; title: string }) => {
+      const path = buildNodePath(node.id, treeNodes);
+      navigate(path, node.title);
+      setPreviewingVersionId(null);
+    },
+    [treeNodes, navigate],
+  );
+  const deselectNode = useCallback(() => {
+    navigate("/");
+  }, [navigate]);
+
+  const navigateToNode = useCallback(
+    (nodeId: string | null) => {
+      if (!nodeId) {
+        deselectNode();
+        return;
+      }
+      const node = treeNodes.find((n) => n.id === nodeId);
+      if (node) {
+        selectNode(node);
+      } else {
+        deselectNode();
+      }
+    },
+    [treeNodes, selectNode, deselectNode],
+  );
+
+  // Derived selections
+  const selectedDocId = selectedNodeType === "notion" ? selectedNodeId : null;
+  const selectedSheetId = selectedNodeType === "sheet" ? selectedNodeId : null;
+  const selectedContentNodeId = selectedDocId ?? selectedSheetId;
+  const currentFolderId = selectedNodeType === "folder" ? selectedNodeId : null;
+
+  const handleSelectNode = useCallback(
+    (node: DocNode) => {
+      selectNode(node);
+    },
+    [selectNode],
+  );
+
+  // ── Filtered node list query (sidebar display) ──────────────────────
   const listQuery = api.docs.list.useQuery(
     {
       appId: appId ?? "",
@@ -204,26 +261,34 @@ function DocsAppPageInner() {
   });
 
   // ── Mutations (unified for all node types) ──────────────────────────
+  const selectNodeRef = useRef(selectNode);
+  selectNodeRef.current = selectNode;
+  const deselectNodeRef = useRef(deselectNode);
+  deselectNodeRef.current = deselectNode;
+
   const createMutation = api.docs.create.useMutation({
     onSuccess: (node: DocNodeOutput) => {
       if (node.type !== "folder") {
-        setSelectedNodeId(node.id);
-        setSelectedNodeType(node.type as DocNodeType);
+        selectNodeRef.current(node);
       }
       listQuery.refetch();
+      treeQuery.refetch();
     },
     onError: () => message.error("创建失败"),
   });
 
   const updateMutation = api.docs.update.useMutation({
-    onSuccess: () => listQuery.refetch(),
+    onSuccess: () => {
+      listQuery.refetch();
+      treeQuery.refetch();
+    },
   });
 
   const archiveMutation = api.docs.archive.useMutation({
     onSuccess: () => {
-      setSelectedNodeId(null);
-      setSelectedNodeType(null);
+      deselectNodeRef.current();
       listQuery.refetch();
+      treeQuery.refetch();
       message.success("已归档");
     },
     onError: () => message.error("归档失败"),
@@ -231,9 +296,9 @@ function DocsAppPageInner() {
 
   const restoreMutation = api.docs.restore.useMutation({
     onSuccess: () => {
-      setSelectedNodeId(null);
-      setSelectedNodeType(null);
+      deselectNodeRef.current();
       listQuery.refetch();
+      treeQuery.refetch();
       message.success("已恢复");
     },
     onError: () => message.error("恢复失败"),
@@ -241,9 +306,9 @@ function DocsAppPageInner() {
 
   const permanentDeleteMutation = api.docs.permanentDelete.useMutation({
     onSuccess: () => {
-      setSelectedNodeId(null);
-      setSelectedNodeType(null);
+      deselectNodeRef.current();
       listQuery.refetch();
+      treeQuery.refetch();
       message.success("已永久删除");
     },
     onError: () => message.error("删除失败"),
@@ -257,6 +322,7 @@ function DocsAppPageInner() {
   const moveMut = api.docs.move.useMutation({
     onSuccess: () => {
       listQuery.refetch();
+      treeQuery.refetch();
       message.success("已移动");
     },
     onError: () => message.error("移动失败"),
@@ -265,13 +331,13 @@ function DocsAppPageInner() {
   // ── Refs for stable callbacks (avoid infinite useMenuBar re-register) ──
   const stateRef = useRef({
     appId,
-    allNodes,
+    treeNodes,
     selectedDocId,
     selectedDocTitle: selectedDoc?.title,
   });
   stateRef.current = {
     appId,
-    allNodes,
+    treeNodes,
     selectedDocId,
     selectedDocTitle: selectedDoc?.title,
   };
@@ -290,7 +356,7 @@ function DocsAppPageInner() {
         setTemplateChooserOpen(true);
       } else {
         // sheet / folder — create directly without template chooser
-        const { appId: id, allNodes: nodes } = stateRef.current;
+        const { appId: id, treeNodes: nodes } = stateRef.current;
         if (!id) return;
         const baseName = t(untitledI18nKey(type));
         const title = nextUniqueName(baseName, nodes, parentId ?? null);
@@ -307,7 +373,7 @@ function DocsAppPageInner() {
 
   const handleTemplateSelect = useCallback(
     (template: DocTemplate) => {
-      const { appId: id, allNodes: nodes } = stateRef.current;
+      const { appId: id, treeNodes: nodes } = stateRef.current;
       if (!id) return;
       const baseName = template.title || t("docs.untitledDocument");
       const title = nextUniqueName(baseName, nodes, pendingParentId ?? null);
@@ -624,7 +690,7 @@ function DocsAppPageInner() {
           if (!appId) return;
           const title = nextUniqueName(
             t("docs.newFolder"),
-            allNodes,
+            treeNodes,
             parentId ?? null,
           );
           createMutation.mutate({
@@ -645,8 +711,7 @@ function DocsAppPageInner() {
           ) {
             archiveMutation.mutate({ id: node.id });
             if (selectedNodeId === node.id) {
-              setSelectedNodeId(null);
-              setSelectedNodeType(null);
+              deselectNode();
             }
           }
         }}
@@ -679,8 +744,7 @@ function DocsAppPageInner() {
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedNodeId(null);
-                  setSelectedNodeType(null);
+                  deselectNode();
                 }}
                 className="mr-1 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary cursor-pointer"
                 title={t("docs.backToList")}
@@ -691,8 +755,7 @@ function DocsAppPageInner() {
                 doc={selectedSheet}
                 allNodes={allNodes}
                 onNavigateFolder={(fid) => {
-                  setSelectedNodeId(fid);
-                  setSelectedNodeType(fid ? "folder" : null);
+                  navigateToNode(fid);
                 }}
               />
               <div className="flex-1" />
@@ -717,8 +780,7 @@ function DocsAppPageInner() {
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedNodeId(null);
-                  setSelectedNodeType(null);
+                  deselectNode();
                 }}
                 className="mr-1 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary"
                 title="返回文档列表"
@@ -730,8 +792,7 @@ function DocsAppPageInner() {
                 doc={selectedDoc}
                 allNodes={allNodes}
                 onNavigateFolder={(fid) => {
-                  setSelectedNodeId(fid);
-                  setSelectedNodeType(fid ? "folder" : null);
+                  navigateToNode(fid);
                 }}
               />
               <div className="flex-1" />
@@ -853,20 +914,17 @@ function DocsAppPageInner() {
             nodes={allNodes.map(apiNodeToLocal)}
             currentFolderId={currentFolderId}
             onNavigateFolder={(fid) => {
-              setSelectedNodeId(fid);
-              setSelectedNodeType(fid ? "folder" : null);
+              navigateToNode(fid);
             }}
-            onOpenDoc={(id, type) => {
-              setSelectedNodeId(id);
-              setSelectedNodeType(type);
-              setPreviewingVersionId(null);
+            onOpenDoc={(id, _type) => {
+              navigateToNode(id);
             }}
             onCreateNode={handleCreate}
             onCreateFolder={(parentId) => {
               if (!appId) return;
               const title = nextUniqueName(
                 t("docs.newFolder"),
-                allNodes,
+                treeNodes,
                 parentId ?? null,
               );
               createMutation.mutate({

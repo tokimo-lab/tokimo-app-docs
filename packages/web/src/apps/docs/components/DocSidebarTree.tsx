@@ -31,7 +31,11 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
-import { formatRelativeTime, untitledI18nKey } from "../lib/doc-node";
+import {
+  formatRelativeTime,
+  sanitizeNodeName,
+  untitledI18nKey,
+} from "../lib/doc-node";
 import type { DropPosition } from "./tree-drag-context";
 import { useTreeDrag } from "./tree-drag-context";
 
@@ -235,19 +239,23 @@ export function NodeTreeItem({
       }
     }
     return [
-      {
-        key: "new-doc",
-        label: t("docs.newDocument"),
-        icon: <FileText size={14} />,
-        onClick: () => onCreateDoc("notion", node.id),
-      },
-      {
-        key: "new-sheet",
-        label: t("docs.newSheet"),
-        icon: <Sheet size={14} />,
-        onClick: () => onCreateDoc("sheet", node.id),
-      },
-      { type: "divider" as const },
+      ...(isFolder
+        ? [
+            {
+              key: "new-doc",
+              label: t("docs.newDocument"),
+              icon: <FileText size={14} />,
+              onClick: () => onCreateDoc("notion", node.id),
+            },
+            {
+              key: "new-sheet",
+              label: t("docs.newSheet"),
+              icon: <Sheet size={14} />,
+              onClick: () => onCreateDoc("sheet", node.id),
+            },
+            { type: "divider" as const },
+          ]
+        : []),
       {
         key: "favorite",
         label: node.isFavorite ? "取消收藏" : "收藏",
@@ -362,7 +370,7 @@ export function NodeTreeItem({
                   escapedRef.current = false;
                   onCancelRename();
                 } else {
-                  const trimmed = localName.trim();
+                  const trimmed = sanitizeNodeName(localName);
                   if (trimmed && trimmed !== node.title) {
                     onCommitRename(node.id, trimmed);
                   } else {
@@ -399,40 +407,42 @@ export function NodeTreeItem({
               onKeyDown={(e) => e.stopPropagation()}
               role="toolbar"
             >
-              <Dropdown
-                menu={{
-                  items: [
-                    {
-                      key: "doc",
-                      label: t("docs.newDocument"),
-                      icon: <FileText size={14} />,
-                      onClick: () => onCreateDoc("notion", node.id),
-                    },
-                    {
-                      key: "sheet",
-                      label: t("docs.newSheet"),
-                      icon: <Sheet size={14} />,
-                      onClick: () => onCreateDoc("sheet", node.id),
-                    },
-                    {
-                      key: "folder",
-                      label: t("docs.newFolder"),
-                      icon: <FolderPlus size={14} />,
-                      onClick: () => onCreateSubfolder(node.id),
-                    },
-                  ],
-                }}
-                trigger={["click"]}
-                placement="bottomRight"
-              >
-                <button
-                  type="button"
-                  className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-blue-500"
-                  title={t("docs.newDocument")}
+              {isFolder && (
+                <Dropdown
+                  menu={{
+                    items: [
+                      {
+                        key: "doc",
+                        label: t("docs.newDocument"),
+                        icon: <FileText size={14} />,
+                        onClick: () => onCreateDoc("notion", node.id),
+                      },
+                      {
+                        key: "sheet",
+                        label: t("docs.newSheet"),
+                        icon: <Sheet size={14} />,
+                        onClick: () => onCreateDoc("sheet", node.id),
+                      },
+                      {
+                        key: "folder",
+                        label: t("docs.newFolder"),
+                        icon: <FolderPlus size={14} />,
+                        onClick: () => onCreateSubfolder(node.id),
+                      },
+                    ],
+                  }}
+                  trigger={["click"]}
+                  placement="bottomRight"
                 >
-                  <Plus size={14} />
-                </button>
-              </Dropdown>
+                  <button
+                    type="button"
+                    className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-blue-500"
+                    title={t("docs.newDocument")}
+                  >
+                    <Plus size={14} />
+                  </button>
+                </Dropdown>
+              )}
               <button
                 type="button"
                 className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-amber-500"
