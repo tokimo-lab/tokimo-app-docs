@@ -35,7 +35,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DocNodeListItem } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
@@ -217,7 +217,23 @@ export function DocSidebar({
   );
 
   // ── Build unified tree ────────────────────────────────────────
-  const localNodes = useMemo(() => nodes.map(apiNodeToLocal), [nodes]);
+  // Optimistic override: when set, takes precedence over `nodes` from query.
+  // Cleared automatically when `nodes` updates (API response arrived).
+  const [optimisticNodes, setOptimisticNodes] = useState<DocNode[] | null>(
+    null,
+  );
+  const nodesVersionRef = useRef(nodes);
+  useEffect(() => {
+    if (nodesVersionRef.current !== nodes) {
+      nodesVersionRef.current = nodes;
+      setOptimisticNodes(null);
+    }
+  }, [nodes]);
+
+  const localNodes = useMemo(
+    () => optimisticNodes ?? nodes.map(apiNodeToLocal),
+    [optimisticNodes, nodes],
+  );
   const treeNodes = useMemo(() => buildNodeTree(localNodes), [localNodes]);
 
   // Flat doc nodes for non-tree views (recent, favorites, search)
@@ -285,6 +301,23 @@ export function DocSidebar({
     [localNodes],
   );
 
+  /** Optimistically update local nodes so the tree doesn't flash back. */
+  const applyOptimistic = useCallback(
+    (docId: string, parentId: string | null, sortOrder: number | undefined) => {
+      const base = localNodes.map((n) =>
+        n.id === docId
+          ? {
+              ...n,
+              parentId,
+              sortOrder: sortOrder ?? n.sortOrder,
+            }
+          : n,
+      );
+      setOptimisticNodes(base);
+    },
+    [localNodes],
+  );
+
   const handleMoveDoc = useCallback(
     (docId: string, targetId: string | null, position?: DropPosition) => {
       const draggedNode = localNodes.find((n) => n.id === docId);
@@ -300,6 +333,7 @@ export function DocSidebar({
           draggedNode.sortOrder === sortOrder
         )
           return;
+        applyOptimistic(docId, parentId, sortOrder);
         onMoveNode(docId, parentId, sortOrder);
       } else if (targetId === null && position === "after") {
         // Root drop — append at end
@@ -311,14 +345,16 @@ export function DocSidebar({
           (max, n) => Math.max(max, n.sortOrder),
           -1,
         );
+        applyOptimistic(docId, null, maxOrder + 1);
         onMoveNode(docId, null, maxOrder + 1);
       } else {
         // "inside" or context-menu move
         if (draggedNode && draggedNode.parentId === targetId) return;
+        applyOptimistic(docId, targetId ?? null, undefined);
         onMoveNode(docId, targetId);
       }
     },
-    [onMoveNode, resolveDropTarget, localNodes],
+    [onMoveNode, resolveDropTarget, localNodes, applyOptimistic],
   );
 
   const dnd = useTreeDnd({
