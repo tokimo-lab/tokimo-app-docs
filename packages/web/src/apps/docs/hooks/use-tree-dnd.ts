@@ -150,13 +150,23 @@ export function useTreeDnd({
       const clampedIdx = Math.max(0, rawIdx);
       const target = currentItems[clampedIdx];
       const from = currentItems[fromIndexRef.current];
-      if (
-        !target ||
-        !from ||
-        invalidIdsRef.current.has(target.node.id) ||
-        target.node.id === from.node.id
-      ) {
-        return; // invalid — keep previous visual state
+      if (!target || !from) return;
+
+      // Back over own slot → reset to home position
+      if (target.node.id === from.node.id) {
+        overIndexRef.current = fromIndexRef.current;
+        modeRef.current = "reorder";
+        clearExpandTimer();
+        setDrag({
+          fromIndex: fromIndexRef.current,
+          overIndex: fromIndexRef.current,
+          mode: "reorder",
+        });
+        return;
+      }
+
+      if (invalidIdsRef.current.has(target.node.id)) {
+        return; // descendant of dragged node — keep previous visual
       }
 
       // Determine drop mode from pointer Y within the row
