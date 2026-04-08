@@ -51,6 +51,8 @@ function computeVisibleCellRect(
   skeleton: {
     rowHeightAccumulation: number[];
     columnWidthAccumulation: number[];
+    rowHeaderWidth: number;
+    columnHeaderHeight: number;
     getCellWithCoordByIndex: (
       row: number,
       col: number,
@@ -76,6 +78,11 @@ function computeVisibleCellRect(
     range.endColumn,
   );
 
+  // getCellWithCoordByIndex returns absolute coords including headers.
+  // Subtract headers so coords are relative to the grid-only overlay area.
+  const headerW = skeleton.rowHeaderWidth ?? 0;
+  const headerH = skeleton.columnHeaderHeight ?? 0;
+
   // Scroll offset in pixels
   const { sheetViewStartRow, sheetViewStartColumn, offsetX, offsetY } =
     scrollState;
@@ -85,8 +92,8 @@ function computeVisibleCellRect(
     (sheetViewStartColumn > 0 ? colAcc[sheetViewStartColumn - 1] : 0) + offsetX;
 
   return {
-    top: startCell.startY - scrollY,
-    left: startCell.startX - scrollX,
+    top: startCell.startY - headerH - scrollY,
+    left: startCell.startX - headerW - scrollX,
     width: endCell.endX - startCell.startX,
     height: endCell.endY - startCell.startY,
   };
@@ -163,10 +170,23 @@ export function SheetCursorOverlay({
     setRemotes(selections);
   }, [nodeId]);
 
-  // Measure the main canvas position inside the container.
+  // Measure the grid-only viewport (excluding row/column headers).
   const measureGrid = useCallback(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || !univerAPI) return;
+
+    let headerWidth = 0;
+    let headerHeight = 0;
+    try {
+      const sheet = univerAPI.getActiveWorkbook?.()?.getActiveSheet?.();
+      const sk = sheet?.getSkeleton?.();
+      if (sk) {
+        headerWidth = sk.rowHeaderWidth ?? 0;
+        headerHeight = sk.columnHeaderHeight ?? 0;
+      }
+    } catch {
+      // Univer DI may not be ready
+    }
 
     // Find the largest canvas (Univer's main render canvas)
     const canvases = Array.from(container.querySelectorAll("canvas"));
@@ -186,16 +206,15 @@ export function SheetCursorOverlay({
     const containerRect = container.getBoundingClientRect();
     const canvasRect = mainCanvas.getBoundingClientRect();
 
-    // Overlay covers the entire canvas area. Cell coords from
-    // getCellWithCoordByIndex already include header offsets, so we must
-    // NOT add headers here to avoid double-counting.
+    // Clip overlay to the grid area only (after headers) so cursor
+    // boxes can't bleed into the ABCD / 1234 header zone.
     setGridOffset({
-      top: canvasRect.top - containerRect.top,
-      left: canvasRect.left - containerRect.left,
-      width: canvasRect.width,
-      height: canvasRect.height,
+      top: canvasRect.top - containerRect.top + headerHeight,
+      left: canvasRect.left - containerRect.left + headerWidth,
+      width: canvasRect.width - headerWidth,
+      height: canvasRect.height - headerHeight,
     });
-  }, [containerRef]);
+  }, [containerRef, univerAPI]);
 
   // Subscribe to awareness changes
   useEffect(() => {
