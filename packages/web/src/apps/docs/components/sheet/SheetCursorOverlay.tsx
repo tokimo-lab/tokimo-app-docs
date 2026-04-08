@@ -117,6 +117,25 @@ export function SheetCursorOverlay({
     height: number;
   } | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasRemotes = remotes.length > 0;
+
+  // Force re-render when scroll state changes
+  const [, forceRender] = useState(0);
+
+  // Subscribe to Univer scroll events for instant overlay tracking
+  useEffect(() => {
+    if (!univerAPI || !hasRemotes) return;
+    try {
+      const sheet = univerAPI.getActiveWorkbook?.()?.getActiveSheet?.();
+      if (!sheet?.onScroll) return;
+      const disposable = sheet.onScroll(() =>
+        forceRender((n: number) => n + 1),
+      );
+      return () => disposable?.dispose?.();
+    } catch {
+      // Univer DI may not be ready
+    }
+  }, [univerAPI, hasRemotes]);
 
   // Refresh remote selection state from awareness
   const refreshRemotes = useCallback(() => {
@@ -203,13 +222,13 @@ export function SheetCursorOverlay({
     };
   }, [nodeId, refreshRemotes]);
 
-  // Periodically refresh grid position and remote selections
+  // Fallback timer for grid measurement and missed awareness updates
   useEffect(() => {
     measureGrid();
     refreshTimerRef.current = setInterval(() => {
       measureGrid();
       refreshRemotes();
-    }, 300);
+    }, 1000);
     return () => {
       if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
     };
