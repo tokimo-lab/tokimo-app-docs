@@ -93,7 +93,7 @@ export function useDocsPage(spaceId: string) {
   // Navigation helpers
   const selectNode = useCallback(
     (node: { id: string; title: string }) => {
-      navigate(buildNodePath(node.id, treeNodes), node.title);
+      navigate(buildNodePath(node.id, treeNodes), `TokimoDocs · ${node.title}`);
       setPreviewingVersionId(null);
     },
     [treeNodes, navigate],
