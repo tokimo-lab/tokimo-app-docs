@@ -71,16 +71,16 @@ class PageErrorBoundary extends Component<
   }
 }
 
-export default function DocsAppPage() {
+export default function DocsAppPage({ spaceId }: { spaceId: string }) {
   return (
     <PageErrorBoundary>
-      <DocsAppPageInner />
+      <DocsAppPageInner spaceId={spaceId} />
     </PageErrorBoundary>
   );
 }
 
-function DocsAppPageInner() {
-  const s = useDocsPage();
+function DocsAppPageInner({ spaceId }: { spaceId: string }) {
+  const s = useDocsPage(spaceId);
 
   // ── Menu bar ───────────────────────────────────────────────────────
   useMenuBar(
@@ -128,7 +128,7 @@ function DocsAppPageInner() {
     ),
   );
 
-  if (!s.appId) {
+  if (!s.spaceId) {
     return (
       <div className="flex h-full items-center justify-center">
         <Empty description="未找到应用" />
@@ -140,7 +140,7 @@ function DocsAppPageInner() {
     <div className="flex h-full">
       {/* ── Sidebar ──────────────────────────────────────────────────── */}
       <DocSidebar
-        appId={s.appId}
+        spaceId={s.spaceId}
         nodes={s.allNodes}
         isLoadingNodes={s.listQuery.isLoading}
         selectedNodeId={s.selectedNodeId}
@@ -151,14 +151,14 @@ function DocsAppPageInner() {
         onSetSearch={s.setSearch}
         onCreateNode={s.handleCreate}
         onCreateFolder={(parentId) => {
-          if (!s.appId) return;
+          if (!s.spaceId) return;
           const title = nextUniqueName(
             s.t("docs.newFolder"),
             s.treeNodes,
             parentId ?? null,
           );
           s.createMutation.mutate({
-            appId: s.appId,
+            spaceId: s.spaceId,
             type: "folder",
             title,
             parentId: parentId ?? undefined,
@@ -339,7 +339,7 @@ function DocsAppPageInner() {
                   content: s.versionQuery.data.content,
                   wordCount: s.versionQuery.data.wordCount,
                 }}
-                appId={s.appId}
+                spaceId={s.spaceId}
                 isLoading={s.versionQuery.isLoading}
                 onTitleChange={() => {}}
                 onContentChange={() => {}}
@@ -349,7 +349,7 @@ function DocsAppPageInner() {
             ) : (
               <DocEditorArea
                 doc={s.selectedDoc}
-                appId={s.appId}
+                spaceId={s.spaceId}
                 isLoading={s.detailQuery.isLoading}
                 onTitleChange={s.handleTitleChange}
                 onContentChange={s.handleContentChange}
@@ -372,14 +372,14 @@ function DocsAppPageInner() {
             onOpenDoc={(id) => s.navigateToNode(id)}
             onCreateNode={s.handleCreate}
             onCreateFolder={(parentId) => {
-              if (!s.appId) return;
+              if (!s.spaceId) return;
               const title = nextUniqueName(
                 s.t("docs.newFolder"),
                 s.treeNodes,
                 parentId ?? null,
               );
               s.createMutation.mutate({
-                appId: s.appId,
+                spaceId: s.spaceId,
                 type: "folder",
                 title,
                 parentId: parentId ?? undefined,

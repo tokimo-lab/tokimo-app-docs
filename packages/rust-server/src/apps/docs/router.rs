@@ -4,18 +4,27 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::apps::docs::handlers::{browse, collab, comments, crud, versions};
+use crate::apps::docs::handlers::{browse, collab, comments, crud, space, versions};
 use crate::AppState;
 
 pub fn build_docs_app_routes() -> Router<Arc<AppState>> {
     Router::new()
-        // App-scoped routes
+        // Space CRUD routes
         .route(
-            "/api/apps/{id}/docs/nodes",
+            "/api/apps/docs/spaces",
+            get(space::list_spaces).post(space::create_space),
+        )
+        .route(
+            "/api/apps/docs/spaces/{id}",
+            patch(space::update_space).delete(space::delete_space),
+        )
+        // Space-scoped node routes
+        .route(
+            "/api/apps/docs/spaces/{id}/nodes",
             get(browse::list_nodes).post(crud::create_node),
         )
         .route(
-            "/api/apps/{id}/docs/nodes/tags",
+            "/api/apps/docs/spaces/{id}/nodes/tags",
             get(browse::list_node_tags),
         )
         // Node-level routes

@@ -21,14 +21,14 @@ const MAX_TAG_LENGTH = 30;
 
 interface DocTagInputProps {
   nodeId: string;
-  appId: string;
+  spaceId: string;
   tags: string[];
   onChange: (tags: string[]) => void;
 }
 
 export function DocTagInput({
   nodeId: _nodeId,
-  appId,
+  spaceId,
   tags,
   onChange,
 }: DocTagInputProps) {
@@ -38,7 +38,10 @@ export function DocTagInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const tagsQuery = api.docs.listTags.useQuery({ appId }, { enabled: !!appId });
+  const tagsQuery = api.docs.listTags.useQuery(
+    { spaceId },
+    { enabled: !!spaceId },
+  );
   const allTags = tagsQuery.data ?? [];
 
   // Suggestions: existing tags not yet applied, filtered by input

@@ -4,7 +4,37 @@ use serde::Serialize;
 use ts_rs::TS;
 use uuid::Uuid;
 
-use crate::db::entities::{doc_node_versions, doc_nodes};
+use crate::db::entities::{doc_node_versions, doc_nodes, doc_spaces};
+
+/// Doc space output
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct DocSpaceOutput {
+    pub id: String,
+    pub name: String,
+    pub icon: Option<String>,
+    pub color: Option<String>,
+    pub description: Option<String>,
+    pub sort_order: i32,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+}
+
+impl From<doc_spaces::Model> for DocSpaceOutput {
+    fn from(m: doc_spaces::Model) -> Self {
+        Self {
+            id: m.id.to_string(),
+            name: m.name,
+            icon: m.icon,
+            color: m.color,
+            description: m.description,
+            sort_order: m.sort_order,
+            created_at: m.created_at.map(|d| d.to_rfc3339()),
+            updated_at: m.updated_at.map(|d| d.to_rfc3339()),
+        }
+    }
+}
 
 /// Node list item (sidebar/tree — no content)
 #[derive(Debug, Clone, Serialize, DerivePartialModel, TS)]
@@ -15,7 +45,7 @@ pub struct DocNodeListItem {
     #[ts(type = "string")]
     pub id: Uuid,
     #[ts(type = "string")]
-    pub app_id: Uuid,
+    pub space_id: Uuid,
     #[ts(type = "string | null")]
     pub parent_id: Option<Uuid>,
     pub r#type: String,
@@ -39,7 +69,7 @@ pub struct DocNodeListItem {
 #[ts(export)]
 pub struct DocNodeOutput {
     pub id: String,
-    pub app_id: String,
+    pub space_id: String,
     pub parent_id: Option<String>,
     pub r#type: String,
     pub title: String,
@@ -60,7 +90,7 @@ impl From<doc_nodes::Model> for DocNodeOutput {
     fn from(m: doc_nodes::Model) -> Self {
         Self {
             id: m.id.to_string(),
-            app_id: m.app_id.to_string(),
+            space_id: m.space_id.to_string(),
             parent_id: m.parent_id.map(|id| id.to_string()),
             r#type: m.r#type,
             title: m.title,

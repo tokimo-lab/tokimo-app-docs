@@ -11,7 +11,7 @@ import { useAuth } from "@/system/auth/useAuth";
 
 export function DocEditorArea({
   doc,
-  appId,
+  spaceId,
   isLoading,
   onTitleChange,
   onContentChange,
@@ -24,7 +24,7 @@ export function DocEditorArea({
   readOnly,
 }: {
   doc: DocNodeOutput;
-  appId: string;
+  spaceId: string;
   isLoading: boolean;
   onTitleChange: (title: string) => void;
   onContentChange: (value: Value) => void;
@@ -87,7 +87,7 @@ export function DocEditorArea({
         <div className="mx-auto w-full max-w-3xl px-6 pb-2">
           <DocTagInput
             nodeId={doc.id}
-            appId={appId}
+            spaceId={spaceId}
             tags={doc.tags}
             onChange={onTagsChange}
           />

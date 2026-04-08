@@ -41,7 +41,7 @@ export type SortDir = "asc" | "desc";
 // ── Internal types ─────────────────────────────────────────────────────────
 
 interface DocSidebarProps {
-  appId: string;
+  spaceId: string;
   nodes: DocNodeListItem[];
   isLoadingNodes: boolean;
   selectedNodeId: string | null;
@@ -93,7 +93,7 @@ const NAV_ITEMS: {
 // ── DocSidebar ─────────────────────────────────────────────────────────────
 
 export function DocSidebar({
-  appId,
+  spaceId,
   nodes,
   isLoadingNodes,
   selectedNodeId,
@@ -121,7 +121,10 @@ export function DocSidebar({
 }: DocSidebarProps) {
   const { t } = useTranslation();
   // ── Tags data ───────────────────────────────────────────────
-  const tagsQuery = api.docs.listTags.useQuery({ appId }, { enabled: !!appId });
+  const tagsQuery = api.docs.listTags.useQuery(
+    { spaceId },
+    { enabled: !!spaceId },
+  );
   const availableTags = tagsQuery.data ?? [];
 
   // ── Expand/collapse ──────────────────────────────────────────

@@ -2,6 +2,7 @@ pub mod browse;
 pub mod collab;
 pub mod comments;
 pub mod crud;
+pub mod space;
 pub mod versions;
 
 use crate::error::AppError;

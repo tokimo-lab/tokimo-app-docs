@@ -11,7 +11,7 @@ use crate::error::OptionExt;
 /// Input for listing doc nodes.
 #[derive(Debug)]
 pub struct ListDocNodesInput {
-    pub app_id: Uuid,
+    pub space_id: Uuid,
     pub page: PageInput,
     pub sort_by: String,
     pub sort_dir: String,
@@ -44,7 +44,7 @@ impl DocNodeRepo {
         input: ListDocNodesInput,
     ) -> Result<Page<DocNodeListItem>, AppError> {
         let mut query = doc_nodes::Entity::find()
-            .filter(doc_nodes::Column::AppId.eq(input.app_id));
+            .filter(doc_nodes::Column::SpaceId.eq(input.space_id));
 
         if let Some(pid) = input.parent_id {
             if let Some(id) = pid {
@@ -108,13 +108,13 @@ impl DocNodeRepo {
         Ok(Page::new(items, total, &input.page))
     }
 
-    /// Get all unique tags for an app's nodes.
+    /// Get all unique tags for a space's nodes.
     pub async fn list_tags(
         db: &DatabaseConnection,
-        app_id: Uuid,
+        space_id: Uuid,
     ) -> Result<Vec<String>, AppError> {
         let nodes = doc_nodes::Entity::find()
-            .filter(doc_nodes::Column::AppId.eq(app_id))
+            .filter(doc_nodes::Column::SpaceId.eq(space_id))
             .filter(doc_nodes::Column::IsArchived.eq(false))
             .all(db)
             .await?;
@@ -141,7 +141,7 @@ impl DocNodeRepo {
     /// Create a new node. Calculates `sort_order` as max+1 among siblings.
     pub async fn create(
         db: &DatabaseConnection,
-        app_id: Uuid,
+        space_id: Uuid,
         node_type: String,
         title: String,
         parent_id: Option<Uuid>,
@@ -150,7 +150,7 @@ impl DocNodeRepo {
         let id = Uuid::new_v4();
 
         let max_order = doc_nodes::Entity::find()
-            .filter(doc_nodes::Column::AppId.eq(app_id))
+            .filter(doc_nodes::Column::SpaceId.eq(space_id))
             .filter(if let Some(pid) = parent_id {
                 doc_nodes::Column::ParentId.eq(pid)
             } else {
@@ -163,7 +163,7 @@ impl DocNodeRepo {
 
         let model = doc_nodes::ActiveModel {
             id: Set(id),
-            app_id: Set(app_id),
+            space_id: Set(space_id),
             parent_id: Set(parent_id),
             r#type: Set(node_type),
             title: Set(title),

@@ -57,13 +57,13 @@ async fn verify_parent_is_folder(
 /// Check that no sibling with the same title exists under the same parent.
 async fn check_unique_sibling_name(
     db: &DatabaseConnection,
-    app_id: Uuid,
+    space_id: Uuid,
     parent_id: Option<Uuid>,
     title: &str,
     exclude_id: Option<Uuid>,
 ) -> Result<(), AppError> {
     let mut q = doc_nodes::Entity::find()
-        .filter(doc_nodes::Column::AppId.eq(app_id))
+        .filter(doc_nodes::Column::SpaceId.eq(space_id))
         .filter(doc_nodes::Column::Title.eq(title))
         .filter(doc_nodes::Column::IsArchived.eq(false));
     q = if let Some(pid) = parent_id {
@@ -102,13 +102,13 @@ async fn check_no_cycle(
     Ok(())
 }
 
-/// POST /api/apps/{id}/docs/nodes
+/// POST /api/apps/docs/spaces/{id}/nodes
 pub async fn create_node(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
     Json(input): Json<CreateNodeInput>,
 ) -> Result<Json<ApiResponse<DocNodeOutput>>, AppError> {
-    let app_id = parse_uuid(&id)?;
+    let space_id = parse_uuid(&id)?;
     let parent_id = input
         .parent_id
         .as_deref()
@@ -126,10 +126,10 @@ pub async fn create_node(
     }
 
     if !title.is_empty() {
-        check_unique_sibling_name(&state.db, app_id, parent_id, &title, None).await?;
+        check_unique_sibling_name(&state.db, space_id, parent_id, &title, None).await?;
     }
 
-    let node = DocNodeRepo::create(&state.db, app_id, node_type, title, parent_id).await?;
+    let node = DocNodeRepo::create(&state.db, space_id, node_type, title, parent_id).await?;
     Ok(ok(DocNodeOutput::from(node)))
 }
 
@@ -163,7 +163,7 @@ pub async fn update_node(
         if !title.is_empty() && title != &node.title {
             check_unique_sibling_name(
                 &state.db,
-                node.app_id,
+                node.space_id,
                 node.parent_id,
                 title,
                 Some(node_id),
@@ -248,7 +248,7 @@ pub async fn move_node(
     if parent_id != node.parent_id && !node.title.is_empty() {
         check_unique_sibling_name(
             &state.db,
-            node.app_id,
+            node.space_id,
             parent_id,
             &node.title,
             Some(node_id),

@@ -32,9 +32,8 @@ import {
   pickAndReadMarkdownFile,
 } from "./doc-page-utils";
 
-export function useDocsPage() {
-  const { metadata, route, navigate, replace } = useWindowNav();
-  const appId = metadata.appId as string | undefined;
+export function useDocsPage(spaceId: string) {
+  const { route, navigate, replace } = useWindowNav();
   const message = useMessage();
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -61,8 +60,8 @@ export function useDocsPage() {
 
   // ── Unfiltered tree index (for path ↔ node resolution) ──────────────
   const treeQuery = api.docs.list.useQuery(
-    { appId: appId ?? "", pageSize: 9999 },
-    { enabled: !!appId },
+    { spaceId: spaceId ?? "", pageSize: 9999 },
+    { enabled: !!spaceId },
   );
   const treeNodes = useMemo(
     () => treeQuery.data?.items ?? [],
@@ -126,7 +125,7 @@ export function useDocsPage() {
   // ── Filtered node list query (sidebar display) ──────────────────────
   const listQuery = api.docs.list.useQuery(
     {
-      appId: appId ?? "",
+      spaceId: spaceId ?? "",
       pageSize: 500,
       sortBy: effectiveSortField,
       sortDir: effectiveSortDir,
@@ -135,7 +134,7 @@ export function useDocsPage() {
       tags: filterTags.length > 0 ? filterTags.join(",") : undefined,
       archived: tab === "trash" ? true : undefined,
     },
-    { enabled: !!appId },
+    { enabled: !!spaceId },
   );
   const allNodes = useMemo(() => listQuery.data?.items ?? [], [listQuery.data]);
 
@@ -233,13 +232,13 @@ export function useDocsPage() {
 
   // ── Refs for stable callbacks ───────────────────────────────────────
   const stateRef = useRef({
-    appId,
+    spaceId,
     treeNodes,
     selectedDocId,
     selectedDocTitle: selectedDoc?.title,
   });
   stateRef.current = {
-    appId,
+    spaceId,
     treeNodes,
     selectedDocId,
     selectedDocTitle: selectedDoc?.title,
@@ -258,14 +257,14 @@ export function useDocsPage() {
         setPendingParentId(parentId);
         setTemplateChooserOpen(true);
       } else {
-        const { appId: id, treeNodes: nodes } = stateRef.current;
+        const { spaceId: id, treeNodes: nodes } = stateRef.current;
         if (!id) return;
         const title = nextUniqueName(
           t(untitledI18nKey(type)),
           nodes,
           parentId ?? null,
         );
-        createMutRef.current.mutate({ appId: id, type, title, parentId });
+        createMutRef.current.mutate({ spaceId: id, type, title, parentId });
       }
     },
     [t],
@@ -273,12 +272,12 @@ export function useDocsPage() {
 
   const handleTemplateSelect = useCallback(
     (template: DocTemplate) => {
-      const { appId: id, treeNodes: nodes } = stateRef.current;
+      const { spaceId: id, treeNodes: nodes } = stateRef.current;
       if (!id) return;
       const baseName = template.title || t("docs.untitledDocument");
       const title = nextUniqueName(baseName, nodes, pendingParentId ?? null);
       createMutRef.current.mutate(
-        { appId: id, parentId: pendingParentId, title },
+        { spaceId: id, parentId: pendingParentId, title },
         {
           onSuccess: (doc: DocNodeOutput) => {
             if (template.id !== "blank") {
@@ -425,7 +424,7 @@ export function useDocsPage() {
   }, []);
 
   return {
-    appId,
+    spaceId,
     t,
     user,
     tab,

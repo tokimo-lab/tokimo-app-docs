@@ -25,13 +25,13 @@ pub struct ListNodesQuery {
     pub tags: Option<String>,
 }
 
-/// GET /api/apps/{id}/docs/nodes
+/// GET /api/apps/docs/spaces/{id}/nodes
 pub async fn list_nodes(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
     Query(q): Query<ListNodesQuery>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
-    let app_id = parse_uuid(&id)?;
+    let space_id = parse_uuid(&id)?;
     let page_input = PageInput {
         page: q.page.unwrap_or(1),
         page_size: q.page_size.unwrap_or(50),
@@ -53,7 +53,7 @@ pub async fn list_nodes(
     let result = DocNodeRepo::list(
         &state.db,
         ListDocNodesInput {
-            app_id,
+            space_id,
             page: page_input,
             sort_by: q.sort.clone().unwrap_or_else(|| "updatedAt".to_string()),
             sort_dir: q.direction.clone().unwrap_or_else(|| "desc".to_string()),
@@ -70,13 +70,13 @@ pub async fn list_nodes(
     Ok(ok(serde_json::to_value(result)?))
 }
 
-/// GET /api/apps/{id}/docs/nodes/tags
+/// GET /api/apps/docs/spaces/{id}/nodes/tags
 pub async fn list_node_tags(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
 ) -> Result<Json<ApiResponse<Vec<String>>>, AppError> {
-    let app_id = parse_uuid(&id)?;
-    let tags = DocNodeRepo::list_tags(&state.db, app_id).await?;
+    let space_id = parse_uuid(&id)?;
+    let tags = DocNodeRepo::list_tags(&state.db, space_id).await?;
     Ok(ok(tags))
 }
 
