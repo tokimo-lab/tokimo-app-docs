@@ -1,14 +1,4 @@
-/**
- * DocSidebar — Feishu-style sidebar for the doc app.
- *
- * Layout (top → bottom):
- *   1. Header: sort + sidebar collapse
- *   2. Search input
- *   3. Navigation items: 全部 · 最近 · 收藏 · 回收站
- *   4. Section header: 我的文档 with +doc / +folder actions
- *   5. Unified node tree (folders + docs as sibling nodes)
- *   6. Tags filter (collapsible)
- */
+/** DocSidebar — Feishu-style sidebar for the doc app. */
 
 import {
   cn,
@@ -20,8 +10,6 @@ import {
 import {
   ArrowUpDown,
   Check,
-  ChevronDown,
-  ChevronRight,
   Clock,
   FileText,
   FolderPlus,
@@ -31,26 +19,18 @@ import {
   Search,
   Sheet,
   Star,
-  Tag,
   Trash2,
-  X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DocNodeListItem } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
-import { useTreeDnd } from "../hooks/use-tree-dnd";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
-import {
-  apiNodeToLocal,
-  buildNodeTree,
-  collectDescendantIds,
-  flattenVisibleTree,
-} from "../lib/doc-node";
 import { DocNodeTipPanel, useDocNodeTip } from "./DocNodeTip";
+import { DocSidebarTagFilter } from "./DocSidebarTagFilter";
 import { ArchivedNodeRow, NodeTreeItem } from "./DocSidebarTree";
-import type { DropPosition } from "./tree-drag-context";
 import { TreeDragContext } from "./tree-drag-context";
+import { useDocSidebarNodes } from "./useDocSidebarNodes";
 
 // ── Exported types ─────────────────────────────────────────────────────────
 
@@ -143,18 +123,6 @@ export function DocSidebar({
   // ── Tags data ───────────────────────────────────────────────
   const tagsQuery = api.docs.listTags.useQuery({ appId }, { enabled: !!appId });
   const availableTags = tagsQuery.data ?? [];
-  const [tagsExpanded, setTagsExpanded] = useState(false);
-
-  const toggleFilterTag = useCallback(
-    (tag: string) => {
-      onSetFilterTags(
-        filterTags.includes(tag)
-          ? filterTags.filter((t) => t !== tag)
-          : [...filterTags, tag],
-      );
-    },
-    [filterTags, onSetFilterTags],
-  );
 
   // ── Expand/collapse ──────────────────────────────────────────
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
@@ -216,165 +184,23 @@ export function DocSidebar({
     [onCreateNode],
   );
 
-  // ── Build unified tree ────────────────────────────────────────
-  // Optimistic override: when set, takes precedence over `nodes` from query.
-  // Cleared automatically when `nodes` updates (API response arrived).
-  const [optimisticNodes, setOptimisticNodes] = useState<DocNode[] | null>(
-    null,
-  );
-  const nodesVersionRef = useRef(nodes);
-  useEffect(() => {
-    if (nodesVersionRef.current !== nodes) {
-      nodesVersionRef.current = nodes;
-      setOptimisticNodes(null);
-    }
-  }, [nodes]);
-
-  const localNodes = useMemo(
-    () => optimisticNodes ?? nodes.map(apiNodeToLocal),
-    [optimisticNodes, nodes],
-  );
-  const treeNodes = useMemo(() => buildNodeTree(localNodes), [localNodes]);
-
-  // Flat doc nodes for non-tree views (recent, favorites, search)
-  const flatDocNodes = localNodes;
-
-  // All folders (for "move to" submenu)
-  const allFolders = useMemo(
-    () => localNodes.filter((n) => n.type === "folder"),
-    [localNodes],
-  );
+  // ── Node tree + DnD ──────────────────────────────────────────
+  const {
+    flatDocNodes,
+    allFolders,
+    flatItems,
+    handleMoveDoc,
+    treeDragValue,
+    dnd,
+  } = useDocSidebarNodes({
+    nodes,
+    expandedFolders,
+    toggleFolder,
+    onMoveNode,
+  });
 
   // ── Hover tooltip ──────────────────────────────────────────
   const tip = useDocNodeTip();
-
-  // ── Drag-and-drop ─────────────────────────────────────────────
-  const flatItems = useMemo(
-    () => flattenVisibleTree(treeNodes, expandedFolders),
-    [treeNodes, expandedFolders],
-  );
-
-  const getInvalidIds = useCallback(
-    (dragId: string) => {
-      const ids = collectDescendantIds(treeNodes, dragId);
-      ids.add(dragId);
-      return ids;
-    },
-    [treeNodes],
-  );
-
-  // Resolve drop position to (parentId, sortOrder)
-  const resolveDropTarget = useCallback(
-    (
-      targetNodeId: string,
-      position: DropPosition,
-      excludeId?: string,
-    ): { parentId: string | null; sortOrder: number } => {
-      const targetNode = localNodes.find((n) => n.id === targetNodeId);
-      if (!targetNode) return { parentId: null, sortOrder: 0 };
-
-      if (position === "inside") {
-        return { parentId: targetNodeId, sortOrder: 0 };
-      }
-
-      const siblingParentId = targetNode.parentId;
-      const siblings = localNodes
-        .filter((n) => n.parentId === siblingParentId && n.id !== excludeId)
-        .sort((a, b) =>
-          a.sortOrder !== b.sortOrder
-            ? a.sortOrder - b.sortOrder
-            : a.title.localeCompare(b.title),
-        );
-      const idx = siblings.findIndex((n) => n.id === targetNodeId);
-
-      if (position === "before") {
-        return {
-          parentId: siblingParentId,
-          sortOrder: idx >= 0 ? siblings[idx].sortOrder : 0,
-        };
-      }
-      return {
-        parentId: siblingParentId,
-        sortOrder: idx >= 0 ? siblings[idx].sortOrder + 1 : siblings.length,
-      };
-    },
-    [localNodes],
-  );
-
-  /** Optimistically update local nodes so the tree doesn't flash back. */
-  const applyOptimistic = useCallback(
-    (docId: string, parentId: string | null, sortOrder: number | undefined) => {
-      const base = localNodes.map((n) =>
-        n.id === docId
-          ? {
-              ...n,
-              parentId,
-              sortOrder: sortOrder ?? n.sortOrder,
-            }
-          : n,
-      );
-      setOptimisticNodes(base);
-    },
-    [localNodes],
-  );
-
-  const handleMoveDoc = useCallback(
-    (docId: string, targetId: string | null, position?: DropPosition) => {
-      const draggedNode = localNodes.find((n) => n.id === docId);
-      if (targetId && position && position !== "inside") {
-        const { parentId, sortOrder } = resolveDropTarget(
-          targetId,
-          position,
-          docId,
-        );
-        if (
-          draggedNode &&
-          draggedNode.parentId === parentId &&
-          draggedNode.sortOrder === sortOrder
-        )
-          return;
-        applyOptimistic(docId, parentId, sortOrder);
-        onMoveNode(docId, parentId, sortOrder);
-      } else if (targetId === null && position === "after") {
-        // Root drop — append at end
-        if (draggedNode && draggedNode.parentId === null) return;
-        const rootSiblings = localNodes.filter(
-          (n) => n.parentId === null && n.id !== docId,
-        );
-        const maxOrder = rootSiblings.reduce(
-          (max, n) => Math.max(max, n.sortOrder),
-          -1,
-        );
-        applyOptimistic(docId, null, maxOrder + 1);
-        onMoveNode(docId, null, maxOrder + 1);
-      } else {
-        // "inside" or context-menu move
-        if (draggedNode && draggedNode.parentId === targetId) return;
-        applyOptimistic(docId, targetId ?? null, undefined);
-        onMoveNode(docId, targetId);
-      }
-    },
-    [onMoveNode, resolveDropTarget, localNodes, applyOptimistic],
-  );
-
-  const dnd = useTreeDnd({
-    flatItems,
-    getInvalidIds,
-    onDrop: handleMoveDoc,
-    onExpandFolder: toggleFolder,
-  });
-
-  const treeDragValue = useMemo(
-    () => ({
-      isDragging: dnd.isDragging,
-      draggedId: dnd.draggedId,
-      getNodeStyle: dnd.getNodeStyle,
-      isInsideTarget: dnd.isInsideTarget,
-      handlePointerDown: dnd.handlePointerDown,
-      shouldSuppressClick: dnd.shouldSuppressClick,
-    }),
-    [dnd],
-  );
 
   // ── Sort menu ────────────────────────────────────────────────
   const sortMenuItems: DropdownMenuItem[] = useMemo(() => {
@@ -552,79 +378,19 @@ export function DocSidebar({
       )}
 
       {/* ── Tag filter ──────────────────────────────────────── */}
-      {availableTags.length > 0 && (tab === "all" || tab === "recent") && (
-        <div className="px-3 pb-1">
-          <button
-            type="button"
-            className="flex w-full items-center gap-1 rounded px-1 py-1 text-xs font-medium text-fg-muted hover:text-fg-secondary"
-            onClick={() => setTagsExpanded((v) => !v)}
-          >
-            {tagsExpanded ? (
-              <ChevronDown size={12} />
-            ) : (
-              <ChevronRight size={12} />
-            )}
-            <Tag size={12} />
-            <span>标签</span>
-            {filterTags.length > 0 && (
-              <span className="ml-auto rounded-full bg-blue-100 px-1.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                {filterTags.length}
-              </span>
-            )}
-          </button>
-
-          {filterTags.length > 0 && !tagsExpanded && (
-            <div className="mt-1 flex flex-wrap gap-1">
-              {filterTags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center gap-0.5 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                >
-                  {tag}
-                  <button
-                    type="button"
-                    className="ml-0.5 rounded-full p-0.5 hover:bg-blue-100 dark:hover:bg-blue-800/50"
-                    onClick={() => toggleFilterTag(tag)}
-                  >
-                    <X size={10} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {tagsExpanded && (
-            <div className="mt-1 flex flex-wrap gap-1">
-              {availableTags.map((tag) => {
-                const isActive = filterTags.includes(tag);
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    className={cn(
-                      "rounded-full px-2 py-0.5 text-[11px] transition-colors",
-                      isActive
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                        : "bg-fill-tertiary text-fg-muted hover:bg-fill-secondary",
-                    )}
-                    onClick={() => toggleFilterTag(tag)}
-                  >
-                    {tag}
-                  </button>
-                );
-              })}
-              {filterTags.length > 0 && (
-                <button
-                  type="button"
-                  className="rounded-full px-2 py-0.5 text-[11px] text-fg-muted hover:text-fg-secondary"
-                  onClick={() => onSetFilterTags([])}
-                >
-                  清除
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+      {(tab === "all" || tab === "recent") && (
+        <DocSidebarTagFilter
+          availableTags={availableTags}
+          filterTags={filterTags}
+          onToggleTag={(tag) =>
+            onSetFilterTags(
+              filterTags.includes(tag)
+                ? filterTags.filter((t) => t !== tag)
+                : [...filterTags, tag],
+            )
+          }
+          onClearTags={() => onSetFilterTags([])}
+        />
       )}
 
       {/* ── Content ─────────────────────────────────────────── */}

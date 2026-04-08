@@ -1,0 +1,115 @@
+import { Spin } from "@tokiomo/components";
+import type { Value } from "platejs";
+import type { MutableRefObject } from "react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { DocTagInput } from "@/apps/docs/components/DocTagInput";
+import { DocEditor, type DocEditorHandle } from "@/apps/docs/components/editor";
+import { untitledI18nKey } from "@/apps/docs/lib/doc-node";
+import type { DocNodeOutput } from "@/generated/rust-api";
+import { useAuth } from "@/system/auth/useAuth";
+
+export function DocEditorArea({
+  doc,
+  appId,
+  isLoading,
+  onTitleChange,
+  onContentChange,
+  onTagsChange,
+  editorRef,
+  onAddComment,
+  onOpenAi,
+  onAiAction,
+  onInsertVfsFile,
+  readOnly,
+}: {
+  doc: DocNodeOutput;
+  appId: string;
+  isLoading: boolean;
+  onTitleChange: (title: string) => void;
+  onContentChange: (value: Value) => void;
+  onTagsChange: (tags: string[]) => void;
+  editorRef?: MutableRefObject<DocEditorHandle | null>;
+  onAddComment?: (commentKey: string) => void;
+  onOpenAi?: () => void;
+  onAiAction?: (actionId: string) => void;
+  onInsertVfsFile?: () => void;
+  readOnly?: boolean;
+}) {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const [title, setTitle] = useState(doc.title);
+
+  // Sync title when doc changes
+  const [prevId, setPrevId] = useState(doc.id);
+  const [prevTitle, setPrevTitle] = useState(doc.title);
+  if (doc.id !== prevId || doc.title !== prevTitle) {
+    setPrevId(doc.id);
+    setPrevTitle(doc.title);
+    setTitle(doc.title);
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Spin />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col overflow-y-auto">
+      {/* Title input */}
+      <div className="mx-auto w-full max-w-3xl px-6 pt-12 pb-2">
+        <input
+          type="text"
+          value={title}
+          readOnly={readOnly}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={() => {
+            if (!readOnly && title !== doc.title) {
+              onTitleChange(title);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
+          className="w-full border-none bg-transparent text-4xl font-bold text-fg-primary outline-none placeholder:text-fg-muted  "
+          placeholder={t(untitledI18nKey(doc.type))}
+        />
+      </div>
+
+      {/* Tags */}
+      {!readOnly && (
+        <div className="mx-auto w-full max-w-3xl px-6 pb-2">
+          <DocTagInput
+            nodeId={doc.id}
+            appId={appId}
+            tags={doc.tags}
+            onChange={onTagsChange}
+          />
+        </div>
+      )}
+
+      {/* Plate editor */}
+      <div className="flex-1">
+        <DocEditor
+          key={readOnly ? `preview-${doc.id}` : doc.id}
+          value={doc.content as Value | null}
+          onChange={readOnly ? () => {} : onContentChange}
+          editorRef={readOnly ? undefined : editorRef}
+          onAddComment={readOnly ? undefined : onAddComment}
+          onOpenAi={readOnly ? undefined : onOpenAi}
+          onAiAction={readOnly ? undefined : onAiAction}
+          onInsertVfsFile={readOnly ? undefined : onInsertVfsFile}
+          readOnly={readOnly}
+          nodeId={readOnly ? undefined : doc.id}
+          userName={user?.name}
+        />
+      </div>
+    </div>
+  );
+}
