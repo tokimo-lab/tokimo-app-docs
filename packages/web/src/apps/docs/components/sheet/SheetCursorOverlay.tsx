@@ -2,8 +2,8 @@
  * SheetCursorOverlay — Renders remote collaborators' cell selections
  * as colored border overlays on top of the Univer spreadsheet canvas.
  *
- * Reads remote selection state from Yjs awareness (set by use-sheet-collab.ts)
- * and renders colored bordered rectangles positioned via DOM overlay.
+ * Uses the Univer skeleton API for precise cell positioning and accounts
+ * for the current scroll state so overlays track correctly as the user scrolls.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -26,21 +26,6 @@ interface RemoteSelection {
   selections: CellRange[];
 }
 
-/** Minimal Univer Facade API surface for cell measurement. */
-interface SheetAPI {
-  getActiveWorkbook: () => {
-    getActiveSheet: () => {
-      getRowHeight: (row: number) => number;
-      getColumnWidth: (col: number) => number;
-    } | null;
-  } | null;
-}
-
-// Fallback header sizes when canvas detection fails
-const FALLBACK_ROW_HEADER_WIDTH = 46;
-
-// ── Position computation ────────────────────────────────────────────────────
-
 interface CellRect {
   top: number;
   left: number;
@@ -48,37 +33,70 @@ interface CellRect {
   height: number;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: Univer facade types are extended via mixins; typed access is impractical
+type UniverAPI = any;
+
+// ── Position computation ────────────────────────────────────────────────────
+
 /**
- * Compute the pixel rectangle for a cell range, relative to the canvas
- * origin (top-left of the grid area, after headers).
+ * Compute the visible pixel rectangle for a cell range relative to the
+ * grid viewport (after headers, accounting for scroll).
+ *
+ * Uses skeleton.getCellWithCoordByIndex for absolute positions, then
+ * subtracts scroll pixel offset computed from rowHeightAccumulation /
+ * columnWidthAccumulation + getScrollState.
  */
-function computeCellRect(
+function computeVisibleCellRect(
   range: CellRange,
-  getRowHeight: (r: number) => number,
-  getColWidth: (c: number) => number,
-): CellRect {
-  let top = 0;
-  for (let r = 0; r < range.startRow; r++) top += getRowHeight(r);
+  skeleton: {
+    rowHeightAccumulation: number[];
+    columnWidthAccumulation: number[];
+    getCellWithCoordByIndex: (
+      row: number,
+      col: number,
+    ) => { startX: number; startY: number; endX: number; endY: number };
+  },
+  scrollState: {
+    sheetViewStartRow: number;
+    sheetViewStartColumn: number;
+    offsetX: number;
+    offsetY: number;
+  },
+): CellRect | null {
+  const rowAcc = skeleton.rowHeightAccumulation;
+  const colAcc = skeleton.columnWidthAccumulation;
+  if (!rowAcc.length || !colAcc.length) return null;
 
-  let left = 0;
-  for (let c = 0; c < range.startColumn; c++) left += getColWidth(c);
+  const startCell = skeleton.getCellWithCoordByIndex(
+    range.startRow,
+    range.startColumn,
+  );
+  const endCell = skeleton.getCellWithCoordByIndex(
+    range.endRow,
+    range.endColumn,
+  );
 
-  let height = 0;
-  for (let r = range.startRow; r <= range.endRow; r++)
-    height += getRowHeight(r);
+  // Scroll offset in pixels
+  const { sheetViewStartRow, sheetViewStartColumn, offsetX, offsetY } =
+    scrollState;
+  const scrollY =
+    (sheetViewStartRow > 0 ? rowAcc[sheetViewStartRow - 1] : 0) + offsetY;
+  const scrollX =
+    (sheetViewStartColumn > 0 ? colAcc[sheetViewStartColumn - 1] : 0) + offsetX;
 
-  let width = 0;
-  for (let c = range.startColumn; c <= range.endColumn; c++)
-    width += getColWidth(c);
-
-  return { top, left, width, height };
+  return {
+    top: startCell.startY - scrollY,
+    left: startCell.startX - scrollX,
+    width: endCell.endX - startCell.startX,
+    height: endCell.endY - startCell.startY,
+  };
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
 
 interface SheetCursorOverlayProps {
   nodeId: string | null;
-  univerAPI: SheetAPI | null;
+  univerAPI: UniverAPI | null;
   containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -92,9 +110,11 @@ export function SheetCursorOverlay({
   containerRef,
 }: SheetCursorOverlayProps) {
   const [remotes, setRemotes] = useState<RemoteSelection[]>([]);
-  const [canvasOffset, setCanvasOffset] = useState<{
+  const [gridOffset, setGridOffset] = useState<{
     top: number;
     left: number;
+    width: number;
+    height: number;
   } | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -124,17 +144,15 @@ export function SheetCursorOverlay({
     setRemotes(selections);
   }, [nodeId]);
 
-  // Measure canvas position inside the container for overlay alignment.
-  // Finds the main grid canvas (largest by area) and computes the row header
-  // width from the column header canvas position.
-  const measureCanvas = useCallback(() => {
+  // Measure the main canvas position inside the container.
+  const measureGrid = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
 
+    // Find the largest canvas (Univer's main render canvas)
     const canvases = Array.from(container.querySelectorAll("canvas"));
     if (canvases.length === 0) return;
 
-    // Find the main grid canvas (largest by area)
     let mainCanvas = canvases[0];
     let maxArea = mainCanvas.clientWidth * mainCanvas.clientHeight;
     for (let i = 1; i < canvases.length; i++) {
@@ -144,29 +162,19 @@ export function SheetCursorOverlay({
         mainCanvas = canvases[i];
       }
     }
-
     if (maxArea === 0) return;
 
     const containerRect = container.getBoundingClientRect();
-    const mainRect = mainCanvas.getBoundingClientRect();
+    const canvasRect = mainCanvas.getBoundingClientRect();
 
-    // Find column header canvas: thin horizontal strip above the main canvas
-    const colHeaderCanvas = canvases.find(
-      (c) =>
-        c !== mainCanvas &&
-        c.clientWidth > 100 &&
-        c.clientHeight > 0 &&
-        c.clientHeight < 50,
-    );
-
-    // Row header width = distance from main canvas left to column header left
-    const rowHeaderWidth = colHeaderCanvas
-      ? colHeaderCanvas.getBoundingClientRect().left - mainRect.left
-      : FALLBACK_ROW_HEADER_WIDTH;
-
-    setCanvasOffset({
-      top: mainRect.top - containerRect.top,
-      left: mainRect.left - containerRect.left + rowHeaderWidth,
+    // Overlay covers the entire canvas area. Cell coords from
+    // getCellWithCoordByIndex already include header offsets, so we must
+    // NOT add headers here to avoid double-counting.
+    setGridOffset({
+      top: canvasRect.top - containerRect.top,
+      left: canvasRect.left - containerRect.left,
+      width: canvasRect.width,
+      height: canvasRect.height,
     });
   }, [containerRef]);
 
@@ -176,7 +184,6 @@ export function SheetCursorOverlay({
 
     const awareness = getAwareness(nodeId);
     if (!awareness) {
-      // Awareness may not be registered yet — retry via store subscription
       const checkInterval = setInterval(() => {
         const a = getAwareness(nodeId);
         if (a) {
@@ -196,38 +203,46 @@ export function SheetCursorOverlay({
     };
   }, [nodeId, refreshRemotes]);
 
-  // Periodically refresh canvas position and scroll offset
+  // Periodically refresh grid position and remote selections
   useEffect(() => {
-    measureCanvas();
+    measureGrid();
     refreshTimerRef.current = setInterval(() => {
-      measureCanvas();
+      measureGrid();
       refreshRemotes();
     }, 300);
     return () => {
       if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
     };
-  }, [measureCanvas, refreshRemotes]);
+  }, [measureGrid, refreshRemotes]);
 
-  if (!canvasOffset || remotes.length === 0 || !univerAPI) return null;
+  if (!gridOffset || remotes.length === 0 || !univerAPI) return null;
 
-  const sheet = univerAPI.getActiveWorkbook?.()?.getActiveSheet?.();
-  if (!sheet) return null;
+  let skeleton: ReturnType<typeof Object> | null = null;
+  let scrollState: ReturnType<typeof Object> | null = null;
+  try {
+    const sheet = univerAPI.getActiveWorkbook?.()?.getActiveSheet?.();
+    skeleton = sheet?.getSkeleton?.() ?? null;
+    scrollState = sheet?.getScrollState?.() ?? null;
+  } catch {
+    // Univer DI may not be ready yet
+  }
+  if (!skeleton || !scrollState) return null;
 
   return (
     <div
-      className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
+      className="pointer-events-none absolute z-10 overflow-hidden"
       style={{
-        top: canvasOffset.top,
-        left: canvasOffset.left,
+        top: gridOffset.top,
+        left: gridOffset.left,
+        width: gridOffset.width,
+        height: gridOffset.height,
       }}
     >
       {remotes.map((remote) =>
         remote.selections.map((sel) => {
-          const rect = computeCellRect(
-            sel,
-            (r) => sheet.getRowHeight(r),
-            (c) => sheet.getColumnWidth(c),
-          );
+          const rect = computeVisibleCellRect(sel, skeleton, scrollState);
+          if (!rect) return null;
+
           return (
             <div
               key={`${remote.clientId}-${sel.startRow}-${sel.startColumn}`}
