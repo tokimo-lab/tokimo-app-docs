@@ -1127,7 +1127,7 @@ function DocBreadcrumb({
         className="hover:text-fg-secondary"
         onClick={() => onNavigateFolder?.(null)}
       >
-        知识库
+        文档
       </button>
       {path.map((node) => (
         <span key={node.id} className="flex items-center gap-1">
