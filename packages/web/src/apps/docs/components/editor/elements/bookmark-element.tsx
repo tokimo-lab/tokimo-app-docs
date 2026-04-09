@@ -76,7 +76,7 @@ export function BookmarkElement(props: PlateElementProps) {
         target="_blank"
         rel="noopener noreferrer"
         contentEditable={false}
-        className="group flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 no-underline transition-colors hover:border-glass-hover hover:bg-fill-tertiary  "
+        className="group flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 no-underline transition-colors hover:border-border-hover hover:bg-fill-tertiary  "
         onDoubleClick={(e) => {
           e.preventDefault();
           setDraft(url);

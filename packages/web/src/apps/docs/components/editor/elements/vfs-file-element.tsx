@@ -51,7 +51,7 @@ export function VfsFileElement(props: PlateElementProps) {
     <PlateElement className="my-3" {...props}>
       <div
         contentEditable={false}
-        className="group flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 transition-colors hover:border-glass-hover hover:bg-fill-tertiary  "
+        className="group flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 transition-colors hover:border-border-hover hover:bg-fill-tertiary  "
       >
         {/* File icon */}
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-fill-tertiary dark:bg-white/[0.10]">
