@@ -84,7 +84,8 @@ export function FolderCard({
               setIsRenaming(false);
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              if (e.key === "Enter" && !e.nativeEvent.isComposing)
+                (e.target as HTMLInputElement).blur();
               if (e.key === "Escape") setIsRenaming(false);
             }}
             className="min-w-0 flex-1 rounded border border-blue-400 bg-transparent px-1 text-sm outline-none"

@@ -53,7 +53,7 @@ export function BookmarkElement(props: PlateElementProps) {
             onChange={(e) => setDraft(e.target.value)}
             onBlur={handleSave}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                 e.preventDefault();
                 handleSave();
               }

@@ -81,7 +81,7 @@ export function DocTagInput({
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter" || e.key === ",") {
+      if ((e.key === "Enter" && !e.nativeEvent.isComposing) || e.key === ",") {
         e.preventDefault();
         if (highlightedIdx >= 0 && highlightedIdx < suggestions.length) {
           addTag(suggestions[highlightedIdx]);
