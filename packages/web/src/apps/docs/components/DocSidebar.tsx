@@ -10,6 +10,7 @@ import {
 import {
   ArrowUpDown,
   Check,
+  ChevronDown,
   Clock,
   FileText,
   FolderPlus,
@@ -17,6 +18,7 @@ import {
   PanelLeftClose,
   Plus,
   Search,
+  Settings,
   Sheet,
   Star,
   Trash2,
@@ -25,6 +27,8 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DocNodeListItem } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
+import type { DocSpaceOutput } from "@/generated/rust-types/DocSpaceOutput";
+import { AppIcon } from "@/shared/components/icons";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
 import { DocNodeTipPanel, useDocNodeTip } from "./DocNodeTip";
 import { DocSidebarTagFilter } from "./DocSidebarTagFilter";
@@ -66,6 +70,10 @@ interface DocSidebarProps {
   onToggleCollapsed: () => void;
   filterTags: string[];
   onSetFilterTags: (tags: string[]) => void;
+  spaces?: DocSpaceOutput[];
+  activeSpaceId?: string;
+  onSelectSpace?: (id: string) => void;
+  onOpenSettings?: () => void;
 }
 
 // ── Sort labels ────────────────────────────────────────────────────────────
@@ -118,6 +126,10 @@ export function DocSidebar({
   onToggleCollapsed,
   filterTags,
   onSetFilterTags,
+  spaces,
+  activeSpaceId,
+  onSelectSpace,
+  onOpenSettings,
 }: DocSidebarProps) {
   const { t } = useTranslation();
   // ── Tags data ───────────────────────────────────────────────
@@ -269,6 +281,16 @@ export function DocSidebar({
 
   return (
     <div className="flex w-64 shrink-0 flex-col border-r border-border-base bg-surface-base/50">
+      {/* ── Space switcher (when multiple spaces) ───────────── */}
+      {spaces && spaces.length > 0 && activeSpaceId && onSelectSpace && (
+        <SpaceSwitcher
+          spaces={spaces}
+          activeId={activeSpaceId}
+          onSelect={onSelectSpace}
+          onOpenSettings={onOpenSettings}
+        />
+      )}
+
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex items-center gap-1 px-3 py-2">
         <div className="flex-1" />
@@ -496,5 +518,89 @@ export function DocSidebar({
         )}
       </div>
     </div>
+  );
+}
+
+// ── SpaceSwitcher ──────────────────────────────────────────────────────────
+
+function SpaceSwitcher({
+  spaces,
+  activeId,
+  onSelect,
+  onOpenSettings,
+}: {
+  spaces: DocSpaceOutput[];
+  activeId: string;
+  onSelect: (id: string) => void;
+  onOpenSettings?: () => void;
+}) {
+  const activeSpace = spaces.find((s) => s.id === activeId);
+
+  if (spaces.length === 1) {
+    return (
+      <div className="flex items-center gap-2 border-b border-border-base px-3 py-2.5">
+        <AppIcon
+          icon={activeSpace?.icon ?? null}
+          color={activeSpace?.color ?? null}
+          size={18}
+        />
+        <span className="flex-1 truncate text-sm font-semibold text-fg-primary">
+          {activeSpace?.name ?? "文档空间"}
+        </span>
+        {onOpenSettings && (
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className="rounded p-0.5 text-fg-muted opacity-0 transition-opacity hover:bg-fill-tertiary hover:text-fg-primary group-hover:opacity-100"
+            title="文档设置"
+          >
+            <Settings size={14} />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const menuItemsWithSettings: DropdownMenuItem[] = [
+    ...spaces.map((s) => ({
+      key: s.id,
+      label: s.name,
+      icon: <AppIcon icon={s.icon} color={s.color} size={16} />,
+      onClick: () => onSelect(s.id),
+    })),
+    ...(onOpenSettings
+      ? [
+          { type: "divider" as const },
+          {
+            key: "__settings",
+            label: "文档空间设置",
+            icon: <Settings size={16} />,
+            onClick: onOpenSettings,
+          },
+        ]
+      : []),
+  ];
+
+  return (
+    <Dropdown
+      menu={{ items: menuItemsWithSettings }}
+      trigger={["click"]}
+      placement="bottomLeft"
+    >
+      <button
+        type="button"
+        className="flex w-full cursor-pointer items-center gap-2 border-b border-border-base px-3 py-2.5 transition-colors hover:bg-fill-tertiary"
+      >
+        <AppIcon
+          icon={activeSpace?.icon ?? null}
+          color={activeSpace?.color ?? null}
+          size={18}
+        />
+        <span className="flex-1 truncate text-sm font-semibold text-fg-primary">
+          {activeSpace?.name ?? "文档空间"}
+        </span>
+        <ChevronDown size={14} className="shrink-0 text-fg-muted" />
+      </button>
+    </Dropdown>
   );
 }

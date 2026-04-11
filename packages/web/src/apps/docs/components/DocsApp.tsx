@@ -2,20 +2,19 @@ import { Spin } from "@tokiomo/components";
 import { FileText, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/generated/rust-api";
-import { useContainerWidth } from "@/shared/hooks/use-container-width";
+import type { DocSpaceOutput } from "@/generated/rust-types/DocSpaceOutput";
+import { useWindowNav } from "@/system";
 import DocsAppPage from "../pages/DocsAppPage";
 import DocsSettingsModal from "./DocsSettingsModal";
-import DocsSpaceSidebar from "./DocsSpaceSidebar";
 
 const STORAGE_KEY = "docs-active-space";
 
 export default function DocsApp() {
   const { data: spaces, isLoading } = api.docs.listSpaces.useQuery({});
-  const [containerRef, containerWidth] = useContainerWidth();
-  const sidebarCollapsed = containerWidth > 0 && containerWidth < 720;
   const [activeSpaceId, setActiveSpaceId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const initialized = useRef(false);
+  const { updateTitle } = useWindowNav();
 
   useEffect(() => {
     if (!spaces?.length || initialized.current) return;
@@ -26,6 +25,14 @@ export default function DocsApp() {
     setActiveSpaceId(id);
     localStorage.setItem(STORAGE_KEY, id);
   }, [spaces]);
+
+  const activeSpace = spaces?.find((s) => s.id === activeSpaceId);
+
+  useEffect(() => {
+    if (activeSpace) {
+      updateTitle(`TokimoDocs · ${activeSpace.name}`);
+    }
+  }, [activeSpace, updateTitle]);
 
   const handleSelectSpace = (id: string) => {
     setActiveSpaceId(id);
@@ -74,22 +81,15 @@ export default function DocsApp() {
 
   return (
     <>
-      <div
-        ref={containerRef}
-        className="grid h-full"
-        style={{ gridTemplateColumns: `${sidebarCollapsed ? 48 : 200}px 1fr` }}
-      >
-        <DocsSpaceSidebar
-          spaces={spaces}
-          activeId={activeSpaceId}
-          onSelect={handleSelectSpace}
-          collapsed={sidebarCollapsed}
-          onCreateClick={() => setSettingsOpen(true)}
-          onSettingsClick={() => setSettingsOpen(true)}
-        />
-        <div className="min-w-0 flex-1 overflow-hidden">
-          {activeSpaceId && <DocsAppPage spaceId={activeSpaceId} />}
-        </div>
+      <div className="h-full">
+        {activeSpaceId && (
+          <DocsAppPage
+            spaceId={activeSpaceId}
+            spaces={spaces as DocSpaceOutput[]}
+            onSelectSpace={handleSelectSpace}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
+        )}
       </div>
       <DocsSettingsModal
         open={settingsOpen}
