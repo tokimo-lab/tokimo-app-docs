@@ -9,8 +9,19 @@ import MindElixir from "mind-elixir";
 import "mind-elixir/style.css";
 
 import type { MindElixirData, MindElixirInstance } from "mind-elixir";
+import type { LangPack } from "mind-elixir/i18n";
+import { en, ja, zh_CN } from "mind-elixir/i18n";
 import { useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useThemeCore } from "@/system";
+
+// ── Locale mapping ─────────────────────────────────────────────────────────
+
+const LOCALE_MAP: Record<string, LangPack> = {
+  "zh-CN": zh_CN,
+  "en-US": en,
+  "ja-JP": ja,
+};
 
 // ── Props ───────────────────────────────────────────────────────────────────
 
@@ -48,6 +59,10 @@ export function MindEditor({ content, onChange }: MindEditorProps) {
   const isDarkRef = useRef(isDark);
   isDarkRef.current = isDark;
 
+  const { i18n } = useTranslation();
+  const langRef = useRef(i18n.language);
+  langRef.current = i18n.language;
+
   const debouncedSave = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
@@ -67,11 +82,12 @@ export function MindEditor({ content, onChange }: MindEditorProps) {
       ? initialContent
       : MindElixir.new("思维导图");
 
+    const locale = LOCALE_MAP[langRef.current] ?? zh_CN;
     const mind = new MindElixir({
       el,
       direction: data.direction ?? 2,
       editable: true,
-      contextMenu: true,
+      contextMenu: { locale },
       toolBar: true,
       keypress: true,
       allowUndo: true,
