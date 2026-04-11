@@ -29,7 +29,6 @@ import { MindEditor } from "@/apps/docs/components/mind/MindEditor";
 import { SheetEditor } from "@/apps/docs/components/sheet/SheetEditor";
 import VfsFilePickerModal from "@/apps/docs/components/VfsFilePickerModal";
 import { apiNodeToLocal, nextUniqueName } from "@/apps/docs/lib/doc-node";
-import type { DocSpaceOutput } from "@/generated/rust-types/DocSpaceOutput";
 import { useMenuBar } from "@/system";
 import { DocBreadcrumb } from "./DocBreadcrumb";
 import { DocEditorArea } from "./DocEditorArea";
@@ -73,40 +72,15 @@ class PageErrorBoundary extends Component<
   }
 }
 
-export default function DocsAppPage({
-  spaceId,
-  spaces,
-  onSelectSpace,
-  onOpenSettings,
-}: {
-  spaceId: string;
-  spaces?: DocSpaceOutput[];
-  onSelectSpace?: (id: string) => void;
-  onOpenSettings?: () => void;
-}) {
+export default function DocsAppPage({ spaceId }: { spaceId: string }) {
   return (
     <PageErrorBoundary>
-      <DocsAppPageInner
-        spaceId={spaceId}
-        spaces={spaces}
-        onSelectSpace={onSelectSpace}
-        onOpenSettings={onOpenSettings}
-      />
+      <DocsAppPageInner spaceId={spaceId} />
     </PageErrorBoundary>
   );
 }
 
-function DocsAppPageInner({
-  spaceId,
-  spaces,
-  onSelectSpace,
-  onOpenSettings,
-}: {
-  spaceId: string;
-  spaces?: DocSpaceOutput[];
-  onSelectSpace?: (id: string) => void;
-  onOpenSettings?: () => void;
-}) {
+function DocsAppPageInner({ spaceId }: { spaceId: string }) {
   const s = useDocsPage(spaceId);
 
   // ── Menu bar ───────────────────────────────────────────────────────
@@ -224,10 +198,6 @@ function DocsAppPageInner({
         onToggleCollapsed={s.toggleSidebar}
         filterTags={s.filterTags}
         onSetFilterTags={s.setFilterTags}
-        spaces={spaces}
-        activeSpaceId={spaceId}
-        onSelectSpace={onSelectSpace}
-        onOpenSettings={onOpenSettings}
       />
 
       {/* ── Main area ────────────────────────────────────────────────── */}

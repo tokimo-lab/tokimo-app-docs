@@ -3,9 +3,11 @@ import { FileText, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/generated/rust-api";
 import type { DocSpaceOutput } from "@/generated/rust-types/DocSpaceOutput";
+import { useContainerWidth } from "@/shared/hooks/use-container-width";
 import { useWindowNav } from "@/system";
 import DocsAppPage from "../pages/DocsAppPage";
 import DocsSettingsModal from "./DocsSettingsModal";
+import DocsSpaceSidebar from "./DocsSpaceSidebar";
 
 const STORAGE_KEY = "docs-active-space";
 
@@ -15,6 +17,8 @@ export default function DocsApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const initialized = useRef(false);
   const { updateTitle } = useWindowNav();
+  const [containerRef, containerWidth] = useContainerWidth();
+  const sidebarCollapsed = containerWidth > 0 && containerWidth < 720;
 
   useEffect(() => {
     if (!spaces?.length || initialized.current) return;
@@ -81,15 +85,22 @@ export default function DocsApp() {
 
   return (
     <>
-      <div className="h-full">
-        {activeSpaceId && (
-          <DocsAppPage
-            spaceId={activeSpaceId}
-            spaces={spaces as DocSpaceOutput[]}
-            onSelectSpace={handleSelectSpace}
-            onOpenSettings={() => setSettingsOpen(true)}
-          />
-        )}
+      <div
+        ref={containerRef}
+        className="grid h-full"
+        style={{ gridTemplateColumns: `${sidebarCollapsed ? 48 : 188}px 1fr` }}
+      >
+        <DocsSpaceSidebar
+          spaces={spaces as DocSpaceOutput[]}
+          activeId={activeSpaceId}
+          onSelect={handleSelectSpace}
+          collapsed={sidebarCollapsed}
+          onCreateClick={() => setSettingsOpen(true)}
+          onSettingsClick={() => setSettingsOpen(true)}
+        />
+        <div className="min-w-0 overflow-hidden h-full">
+          {activeSpaceId && <DocsAppPage spaceId={activeSpaceId} />}
+        </div>
       </div>
       <DocsSettingsModal
         open={settingsOpen}
