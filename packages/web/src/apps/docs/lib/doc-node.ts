@@ -7,7 +7,9 @@
  * structures.
  */
 
+import dayjs from "dayjs";
 import type { DocNodeListItem } from "@/generated/rust-api";
+import { DEFAULT_DATE_FORMAT } from "@/system";
 
 // ── Node type enum ─────────────────────────────────────────────────────────
 
@@ -124,7 +126,7 @@ export function formatRelativeTime(iso: string): string {
   if (hr < 24) return `${Math.floor(hr)} 小时前`;
   const day = hr / 24;
   if (day < 30) return `${Math.floor(day)} 天前`;
-  return new Date(iso).toLocaleDateString("zh-CN");
+  return dayjs(iso).format(DEFAULT_DATE_FORMAT);
 }
 
 export function formatWordCount(count: number | undefined): string {

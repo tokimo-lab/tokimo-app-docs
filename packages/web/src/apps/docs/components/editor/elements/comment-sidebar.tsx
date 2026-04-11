@@ -12,7 +12,7 @@ import {
 import { useCallback, useState } from "react";
 import { api } from "@/generated/rust-api";
 import type { DocNodeCommentOutput } from "@/generated/rust-types/index";
-import { useAuth } from "@/system";
+import { useAuth, useDateFormat } from "@/system";
 
 interface CommentSidebarProps {
   nodeId: string;
@@ -284,6 +284,7 @@ function CommentItem({
   onDelete: () => void;
   isReply?: boolean;
 }) {
+  const { formatLong } = useDateFormat();
   return (
     <div className={cn("group", isReply && "mt-1.5")}>
       <div className="flex items-start justify-between gap-1">
@@ -292,7 +293,7 @@ function CommentItem({
             {comment.userName}
           </span>
           <span className="text-[10px] text-fg-muted">
-            {formatTime(comment.createdAt)}
+            {formatLong(comment.createdAt)}
           </span>
         </div>
         {isOwn && (
@@ -314,24 +315,3 @@ function CommentItem({
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-function formatTime(iso: string): string {
-  const date = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60_000);
-
-  if (diffMin < 1) return "刚刚";
-  if (diffMin < 60) return `${diffMin}分钟前`;
-
-  const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour}小时前`;
-
-  const diffDay = Math.floor(diffHour / 24);
-  if (diffDay < 7) return `${diffDay}天前`;
-
-  return date.toLocaleDateString("zh-CN", {
-    month: "short",
-    day: "numeric",
-  });
-}

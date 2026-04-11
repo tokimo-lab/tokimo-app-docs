@@ -11,26 +11,9 @@ import {
 } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useDateFormat } from "@/system";
 import type { DocNode } from "../lib/doc-node";
 import { untitledI18nKey } from "../lib/doc-node";
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHr = Math.floor(diffMs / 3600000);
-
-  if (diffMin < 1) return "刚刚";
-  if (diffMin < 60) return `${diffMin} 分钟前`;
-  if (diffHr < 24) return `${diffHr} 小时前`;
-
-  const isThisYear = d.getFullYear() === now.getFullYear();
-  if (isThisYear) {
-    return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  }
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 function formatWordCount(count: number): string {
   if (count >= 10000) return `${(count / 10000).toFixed(1)}万字`;
@@ -60,6 +43,7 @@ export function DocRow({
   isTrash,
 }: DocRowProps) {
   const { t } = useTranslation();
+  const { formatLong } = useDateFormat();
   const moveChildren: DropdownMenuItem[] = useMemo(() => {
     const items: DropdownMenuItem[] = [
       {
@@ -167,7 +151,7 @@ export function DocRow({
         </div>
         {/* Modified */}
         <div className="w-36 text-xs text-fg-muted">
-          {formatDate(node.updatedAt)}
+          {formatLong(node.updatedAt)}
         </div>
         {/* Word count */}
         <div className="w-24 text-xs text-fg-muted">

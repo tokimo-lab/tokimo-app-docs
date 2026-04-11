@@ -4,7 +4,7 @@ import { Clock, RotateCcw, X } from "lucide-react";
 import { useCallback, useState } from "react";
 import { api } from "@/generated/rust-api";
 import type { DocNodeVersionOutput } from "@/generated/rust-types/index";
-import { useMessage } from "@/system";
+import { useDateFormat, useMessage } from "@/system";
 
 interface DocVersionHistoryProps {
   nodeId: string;
@@ -126,6 +126,7 @@ function VersionItem({
   isRestoring: boolean;
 }) {
   const [showRestore, setShowRestore] = useState(false);
+  const { formatLong } = useDateFormat();
 
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: version item
@@ -153,7 +154,7 @@ function VersionItem({
               版本 {version.version}
             </span>
             <span className="text-[10px] text-fg-muted">
-              {formatTime(version.createdAt)}
+              {formatLong(version.createdAt)}
             </span>
           </div>
           <span className="text-[11px] text-fg-muted">
@@ -197,10 +198,11 @@ export function VersionPreviewBar({
   onBack,
   isRestoring,
 }: VersionPreviewBarProps) {
+  const { formatLong } = useDateFormat();
   return (
     <div className="flex items-center justify-between border-b border-amber-200 bg-amber-50 px-4 py-1.5 dark:border-amber-800 dark:bg-amber-900/20">
       <span className="text-xs text-amber-800 dark:text-amber-300">
-        正在查看版本 {version} · {formatFullTime(createdAt)}
+        正在查看版本 {version} · {formatLong(createdAt)}
       </span>
       <div className="flex items-center gap-2">
         <button
@@ -224,35 +226,3 @@ export function VersionPreviewBar({
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-function formatTime(iso: string): string {
-  const date = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60_000);
-
-  if (diffMin < 1) return "刚刚";
-  if (diffMin < 60) return `${diffMin}分钟前`;
-
-  const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour}小时前`;
-
-  const diffDay = Math.floor(diffHour / 24);
-  if (diffDay < 7) return `${diffDay}天前`;
-
-  return date.toLocaleDateString("zh-CN", {
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function formatFullTime(iso: string): string {
-  const date = new Date(iso);
-  return date.toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
