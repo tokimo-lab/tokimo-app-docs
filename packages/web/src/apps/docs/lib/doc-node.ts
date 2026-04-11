@@ -13,7 +13,13 @@ import { DEFAULT_DATE_FORMAT } from "@/system";
 
 // ── Node type enum ─────────────────────────────────────────────────────────
 
-export type DocNodeType = "folder" | "notion" | "slide" | "sheet" | "form";
+export type DocNodeType =
+  | "folder"
+  | "notion"
+  | "slide"
+  | "sheet"
+  | "form"
+  | "mind";
 
 // ── DocNode (local alias with convenience fields) ───────────────────
 
@@ -146,6 +152,8 @@ export function untitledI18nKey(type: DocNodeType | string): string {
       return "docs.untitledSlide";
     case "form":
       return "docs.untitledForm";
+    case "mind":
+      return "docs.untitledMind";
     default:
       return "docs.untitledDocument";
   }

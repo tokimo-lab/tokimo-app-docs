@@ -114,7 +114,9 @@ export function useDocsPage(spaceId: string) {
 
   const selectedDocId = selectedNodeType === "notion" ? selectedNodeId : null;
   const selectedSheetId = selectedNodeType === "sheet" ? selectedNodeId : null;
-  const selectedContentNodeId = selectedDocId ?? selectedSheetId;
+  const selectedMindId = selectedNodeType === "mind" ? selectedNodeId : null;
+  const selectedContentNodeId =
+    selectedDocId ?? selectedSheetId ?? selectedMindId;
   const currentFolderId = selectedNodeType === "folder" ? selectedNodeId : null;
 
   const handleSelectNode = useCallback(
@@ -145,6 +147,7 @@ export function useDocsPage(spaceId: string) {
   );
   const selectedDoc = selectedDocId ? (detailQuery.data ?? null) : null;
   const selectedSheet = selectedSheetId ? (detailQuery.data ?? null) : null;
+  const selectedMind = selectedMindId ? (detailQuery.data ?? null) : null;
   const queryClient = useQueryClient();
 
   // ── Version preview ─────────────────────────────────────────────────
@@ -323,6 +326,14 @@ export function useDocsPage(spaceId: string) {
     [selectedSheetId],
   );
 
+  const handleMindContentChange = useCallback(
+    (data: unknown) => {
+      if (!selectedMindId) return;
+      updateMutRef.current.mutate({ id: selectedMindId, content: data });
+    },
+    [selectedMindId],
+  );
+
   const handleExportMarkdown = useCallback(() => {
     const editor = editorRef.current;
     if (editor) exportAsMarkdown(editor, stateRef.current.selectedDocTitle);
@@ -459,6 +470,7 @@ export function useDocsPage(spaceId: string) {
     currentFolderId,
     selectedDoc,
     selectedSheet,
+    selectedMind,
     listQuery,
     detailQuery,
     versionQuery,
@@ -479,6 +491,7 @@ export function useDocsPage(spaceId: string) {
     handleContentChange,
     handleTitleChange,
     handleSheetContentChange,
+    handleMindContentChange,
     handleExportMarkdown,
     handleImportMarkdown,
     handleExportDocx,

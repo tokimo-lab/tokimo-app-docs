@@ -12,6 +12,7 @@
 
 import { cn, Dropdown, type DropdownMenuItem } from "@tokiomo/components";
 import {
+  BrainCircuit,
   Check,
   ChevronDown,
   ChevronRight,
@@ -76,6 +77,19 @@ function NodeIcon({
           isActive
             ? "text-green-600 dark:text-green-400"
             : "text-green-500 dark:text-green-600",
+        )}
+      />
+    );
+  }
+  if (node.type === "mind") {
+    return (
+      <BrainCircuit
+        size={size}
+        className={cn(
+          "shrink-0",
+          isActive
+            ? "text-purple-600 dark:text-purple-400"
+            : "text-purple-500 dark:text-purple-600",
         )}
       />
     );
@@ -188,6 +202,12 @@ export function NodeTreeItem({
           onClick: () => onCreateDoc("sheet", node.id),
         },
         {
+          key: "new-mind",
+          label: t("docs.newMind"),
+          icon: <BrainCircuit size={14} />,
+          onClick: () => onCreateDoc("mind", node.id),
+        },
+        {
           key: "new-subfolder",
           label: t("docs.newFolder"),
           icon: <FolderPlus size={14} />,
@@ -252,6 +272,12 @@ export function NodeTreeItem({
               label: t("docs.newSheet"),
               icon: <Sheet size={14} />,
               onClick: () => onCreateDoc("sheet", node.id),
+            },
+            {
+              key: "new-mind",
+              label: t("docs.newMind"),
+              icon: <BrainCircuit size={14} />,
+              onClick: () => onCreateDoc("mind", node.id),
             },
             { type: "divider" as const },
           ]
@@ -422,6 +448,12 @@ export function NodeTreeItem({
                         label: t("docs.newSheet"),
                         icon: <Sheet size={14} />,
                         onClick: () => onCreateDoc("sheet", node.id),
+                      },
+                      {
+                        key: "mind",
+                        label: t("docs.newMind"),
+                        icon: <BrainCircuit size={14} />,
+                        onClick: () => onCreateDoc("mind", node.id),
                       },
                       {
                         key: "folder",

@@ -9,6 +9,7 @@ import {
 } from "@tokiomo/components";
 import {
   ArrowUpDown,
+  BrainCircuit,
   Check,
   ChevronDown,
   Clock,
@@ -379,6 +380,12 @@ export function DocSidebar({
                   label: t("docs.newSheet"),
                   icon: <Sheet size={14} />,
                   onClick: () => onCreateNode("sheet"),
+                },
+                {
+                  key: "mind",
+                  label: t("docs.newMind"),
+                  icon: <BrainCircuit size={14} />,
+                  onClick: () => onCreateNode("mind"),
                 },
                 {
                   key: "folder",
