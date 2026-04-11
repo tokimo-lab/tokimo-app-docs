@@ -282,6 +282,7 @@ function DocsAppPageInner({
                 onNavigateFolder={(fid) => s.navigateToNode(fid)}
               />
               <div className="flex-1" />
+              <CollabPresenceBar nodeId={s.selectedMind.id} />
             </div>
             {s.detailQuery.isLoading ? (
               <Spin className="flex-1" />
@@ -290,6 +291,8 @@ function DocsAppPageInner({
                 key={s.selectedMind.id}
                 content={s.selectedMind.content}
                 onChange={s.handleMindContentChange}
+                nodeId={s.selectedMind.id}
+                userName={s.user?.name}
               />
             )}
           </>

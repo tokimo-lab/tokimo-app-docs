@@ -3,6 +3,7 @@
  *
  * Wraps mind-elixir in a React component. The mind map data
  * is loaded from / saved to the doc node's `content` field (JSONB).
+ * Supports Yjs-based real-time collaboration via useMindCollab.
  */
 
 import MindElixir from "mind-elixir";
@@ -11,9 +12,11 @@ import "mind-elixir/style.css";
 import type { MindElixirData, MindElixirInstance } from "mind-elixir";
 import type { LangPack } from "mind-elixir/i18n";
 import { en, ja, zh_CN } from "mind-elixir/i18n";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useThemeCore } from "@/system";
+
+import { useMindCollab } from "./use-mind-collab";
 
 // ── Locale mapping ─────────────────────────────────────────────────────────
 
@@ -30,6 +33,10 @@ interface MindEditorProps {
   content: unknown;
   /** Called when the mind map data changes (will be debounced internally). */
   onChange: (data: MindElixirData) => void;
+  /** Doc node ID for collaboration room. */
+  nodeId: string;
+  /** User display name for collab presence. */
+  userName?: string;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -45,7 +52,12 @@ function isMindElixirData(v: unknown): v is MindElixirData {
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export function MindEditor({ content, onChange }: MindEditorProps) {
+export function MindEditor({
+  content,
+  onChange,
+  nodeId,
+  userName,
+}: MindEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mindRef = useRef<MindElixirInstance | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
@@ -53,6 +65,11 @@ export function MindEditor({ content, onChange }: MindEditorProps) {
   onChangeRef.current = onChange;
   const contentRef = useRef(content);
   contentRef.current = content;
+  const isReplayingRef = useRef(false);
+
+  const [mindInstance, setMindInstance] = useState<MindElixirInstance | null>(
+    null,
+  );
 
   const { theme } = useThemeCore();
   const isDark = theme === "dark";
@@ -66,7 +83,7 @@ export function MindEditor({ content, onChange }: MindEditorProps) {
   const debouncedSave = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      if (!mindRef.current) return;
+      if (!mindRef.current || isReplayingRef.current) return;
       const data = mindRef.current.getData();
       onChangeRef.current(data);
     }, 800);
@@ -100,11 +117,13 @@ export function MindEditor({ content, onChange }: MindEditorProps) {
     mind.bus.addListener("operation", () => debouncedSave());
 
     mindRef.current = mind;
+    setMindInstance(mind);
 
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       mind.destroy();
       mindRef.current = null;
+      setMindInstance(null);
     };
   }, [debouncedSave]);
 
@@ -114,6 +133,14 @@ export function MindEditor({ content, onChange }: MindEditorProps) {
     const newTheme = isDark ? MindElixir.DARK_THEME : MindElixir.THEME;
     mindRef.current.changeTheme(newTheme);
   }, [isDark]);
+
+  // ── Collab ─────────────────────────────────────────────────────────────
+  useMindCollab({
+    nodeId,
+    userName: userName ?? "Anonymous",
+    mind: mindInstance,
+    isReplayingRef,
+  });
 
   return (
     <div className="relative flex-1 overflow-hidden">
