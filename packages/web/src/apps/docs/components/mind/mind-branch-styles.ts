@@ -93,7 +93,45 @@ export function curvedSub(
   return `M ${x1} ${y1} C ${mid} ${y1} ${mid - m} ${y2} ${x2} ${y2} H ${endX}`;
 }
 
-// ── Angular (straight right-angle) ─────────────────────────────────────────
+// ── Angular (right-angle with rounded corners) ─────────────────────────────
+
+const CORNER_RADIUS = 5;
+
+/** Build an angular path: x1,y1 → horizontal to midX → vertical to y2 → horizontal to x2, with rounded corners at the two 90° turns. */
+function roundedAngularPath(
+  x1: number,
+  y1: number,
+  midX: number,
+  y2: number,
+  x2: number,
+): string {
+  const dy = y2 - y1;
+  if (Math.abs(dy) < 1) {
+    return `M ${x1} ${y1} L ${x2} ${y2}`;
+  }
+  const r = Math.min(
+    CORNER_RADIUS,
+    Math.abs(dy) / 2,
+    Math.abs(midX - x1) / 2,
+    Math.abs(x2 - midX) / 2,
+  );
+  if (r < 0.5) {
+    return `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+  }
+  const dx1 = Math.sign(midX - x1);
+  const dyS = Math.sign(dy);
+  const dx2 = Math.sign(x2 - midX);
+  const s1 = dx1 * dyS > 0 ? 1 : 0;
+  const s2 = dyS * dx2 > 0 ? 0 : 1;
+  return [
+    `M ${x1} ${y1}`,
+    `L ${midX - dx1 * r} ${y1}`,
+    `A ${r} ${r} 0 0 ${s1} ${midX} ${y1 + dyS * r}`,
+    `L ${midX} ${y2 - dyS * r}`,
+    `A ${r} ${r} 0 0 ${s2} ${midX + dx2 * r} ${y2}`,
+    `L ${x2} ${y2}`,
+  ].join(" ");
+}
 
 export function angularMain({
   pT,
@@ -113,12 +151,12 @@ export function angularMain({
     const x1 = pL;
     const x2 = cL + cW;
     const midX = (x1 + x2) / 2;
-    return `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+    return roundedAngularPath(x1, y1, midX, y2, x2);
   }
   const x1 = pL + pW;
   const x2 = cL;
   const midX = (x1 + x2) / 2;
-  return `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+  return roundedAngularPath(x1, y1, midX, y2, x2);
 }
 
 export function angularSub(
@@ -129,22 +167,17 @@ export function angularSub(
     this.container.style.getPropertyValue("--node-gap-x"),
     10,
   );
-  let y1: number;
-  if (isFirst) {
-    y1 = pT + pH / 2;
-  } else {
-    y1 = pT + pH;
-  }
+  const y1 = isFirst ? pT + pH / 2 : pT + pH;
   const y2 = cT + cH;
 
   if (direction === LHS) {
     const x1 = pL;
     const midX = x1 - GAP;
     const endX = cL + cW;
-    return `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${endX} ${y2}`;
+    return roundedAngularPath(x1, y1, midX, y2, endX);
   }
   const x1 = pL + pW;
   const midX = x1 + GAP;
   const endX = cL;
-  return `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${endX} ${y2}`;
+  return roundedAngularPath(x1, y1, midX, y2, endX);
 }

@@ -2,343 +2,121 @@
  * Feishu-inspired bottom-left toolbar for the mind map editor.
  *
  * Provides undo/redo, branch display (structure + line style), and zoom.
+ * Design matches Feishu's mind map toolbar exactly.
  */
 
 import type { MindElixirInstance } from "mind-elixir";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useThemeCore } from "@/system";
 import {
   angularMain,
   angularSub,
   curvedMain,
   curvedSub,
 } from "./mind-branch-styles";
+import {
+  AngularLinePreview,
+  BranchDisplayIcon,
+  CurvedLinePreview,
+  FitToScreenIcon,
+  MindmapDownIcon,
+  MindmapLeftIcon,
+  MindmapRightIcon,
+  MindmapSideIcon,
+  RedoIcon,
+  UndoIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+} from "./mind-toolbar-icons";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-type Direction = 0 | 1 | 2;
+type Direction = 0 | 1 | 2 | 3;
 type LineStyle = "curved" | "angular";
 
 interface MindBottomToolbarProps {
   mind: MindElixirInstance | null;
 }
 
-// ── Shared button style ────────────────────────────────────────────────────
+// ── Style constants ─────────────────────────────────────────────────────────
 
-const BTN_BASE =
-  "cursor-pointer p-1.5 transition-colors flex items-center justify-center";
-const BTN_ACTIVE =
-  "bg-blue-500/20 text-blue-500 dark:bg-blue-500/25 dark:text-blue-400";
-const BTN_INACTIVE =
-  "text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300";
-const DIVIDER = "w-full bg-gray-200 dark:bg-gray-600 mx-1";
+const BTN =
+  "flex h-9 w-12 cursor-pointer items-center justify-center transition-colors duration-150";
+const BTN_CLR =
+  "text-[#1F2329] hover:bg-[rgba(31,35,41,0.08)] dark:text-gray-300 dark:hover:bg-white/8";
+const BTN_DISABLED = "text-[#bcc0c7] dark:text-gray-600 cursor-default";
+const SEL =
+  "bg-[rgba(51,112,255,0.1)] text-[#3370FF] dark:bg-[rgba(51,112,255,0.15)]";
+const UNSEL =
+  "text-[#1F2329] hover:bg-[rgba(31,35,41,0.08)] dark:text-gray-300 dark:hover:bg-white/8";
 
-// ── Inline SVG icons ───────────────────────────────────────────────────────
-
-function UndoIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M4 6h6a3 3 0 0 1 0 6H7"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M6 3L3.5 5.5L6 8"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function RedoIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M12 6H6a3 3 0 0 0 0 6h3"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10 3l2.5 2.5L10 8"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function BranchDisplayIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M4 8h3M7 8V4.5h3M7 8V11.5h3"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-      />
-      <circle cx="3" cy="8" r="1.5" fill="currentColor" />
-      <circle cx="11" cy="4.5" r="1.2" fill="currentColor" />
-      <circle cx="11" cy="11.5" r="1.2" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ZoomOutIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M5 8h6"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function ZoomInIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M8 5v6M5 8h6"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-// ── Structure layout icons ─────────────────────────────────────────────────
-
-function LayoutLeftIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      className={className}
-    >
-      <path
-        d="M13 8H9M9 8V4H6M9 8V12H6"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function LayoutRightIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      className={className}
-    >
-      <path
-        d="M3 8h4M7 8V4h3M7 8V12h3"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function LayoutSideIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      className={className}
-    >
-      <path
-        d="M8 5V11M8 5H11M8 5H5M8 11H11M8 11H5"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-// ── Line style icons ───────────────────────────────────────────────────────
-
-function CurvedLineIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      width="20"
-      height="16"
-      viewBox="0 0 20 16"
-      fill="none"
-      className={className}
-    >
-      <path
-        d="M3 8 Q3 4 10 4M3 8 Q3 12 10 12"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <circle cx="3" cy="8" r="1.5" fill="currentColor" />
-      <rect
-        x="10"
-        y="2.5"
-        width="7"
-        height="3"
-        rx="1"
-        fill="currentColor"
-        opacity="0.5"
-      />
-      <rect
-        x="10"
-        y="10.5"
-        width="7"
-        height="3"
-        rx="1"
-        fill="currentColor"
-        opacity="0.5"
-      />
-    </svg>
-  );
-}
-
-function AngularLineIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      width="20"
-      height="16"
-      viewBox="0 0 20 16"
-      fill="none"
-      className={className}
-    >
-      <path
-        d="M3 8H6V4H10M6 8V12H10"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      <circle cx="3" cy="8" r="1.5" fill="currentColor" />
-      <rect
-        x="10"
-        y="2.5"
-        width="7"
-        height="3"
-        rx="1"
-        fill="currentColor"
-        opacity="0.5"
-      />
-      <rect
-        x="10"
-        y="10.5"
-        width="7"
-        height="3"
-        rx="1"
-        fill="currentColor"
-        opacity="0.5"
-      />
-    </svg>
-  );
-}
-
-// ── Branch Display Popover ─────────────────────────────────────────────────
+// ── Branch Display Popover ──────────────────────────────────────────────────
 
 interface BranchPopoverProps {
   direction: Direction;
   lineStyle: LineStyle;
   onDirection: (dir: Direction) => void;
   onLineStyle: (style: LineStyle) => void;
-  onClose: () => void;
 }
+
+const STRUCTURES: Array<{
+  dir: Direction;
+  key: string;
+  Icon: () => React.JSX.Element;
+  disabled?: boolean;
+}> = [
+  { dir: 1, key: "layoutRight", Icon: MindmapRightIcon },
+  { dir: 0, key: "layoutLeft", Icon: MindmapLeftIcon },
+  { dir: 2, key: "layoutSide", Icon: MindmapSideIcon },
+  { dir: 3, key: "layoutDown", Icon: MindmapDownIcon, disabled: true },
+];
 
 function BranchPopover({
   direction,
   lineStyle,
   onDirection,
   onLineStyle,
-  onClose,
 }: BranchPopoverProps) {
   const { t } = useTranslation();
-  const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose();
-      }
-    }
-    // Delay one frame so the opening click doesn't immediately close
-    const raf = requestAnimationFrame(() => {
-      document.addEventListener("mousedown", handleClick);
-    });
-    return () => {
-      cancelAnimationFrame(raf);
-      document.removeEventListener("mousedown", handleClick);
-    };
-  }, [onClose]);
+  const structBtnCls = (active: boolean, disabled?: boolean) =>
+    `flex h-9 flex-1 cursor-pointer items-center justify-center rounded transition-colors duration-150 ${
+      disabled ? BTN_DISABLED : active ? SEL : UNSEL
+    }`;
 
-  const dirBtnCls = (active: boolean) =>
-    `${BTN_BASE} rounded ${active ? BTN_ACTIVE : BTN_INACTIVE}`;
   const lineBtnCls = (active: boolean) =>
-    `${BTN_BASE} rounded flex-1 ${active ? BTN_ACTIVE : BTN_INACTIVE}`;
+    `flex h-9 flex-1 cursor-pointer items-center justify-center rounded transition-colors duration-150 ${active ? SEL : UNSEL}`;
 
   return (
     <div
-      ref={ref}
-      className="absolute bottom-0 left-10 z-50 w-44 rounded-lg border border-gray-200 bg-white p-2.5 shadow-lg dark:border-gray-600 dark:bg-[#2b2f36]"
+      className="w-[254px] rounded-md border border-[#DEE0E3] bg-white dark:border-gray-600 dark:bg-[#2b2f36]"
+      style={{
+        padding: "13px 12px 11px 13px",
+        boxShadow: "0 4px 8px rgba(31,35,41,0.1)",
+      }}
     >
       {/* Structure */}
-      <div className="mb-2">
+      <div className="mb-2.5">
         <div className="mb-1.5 text-[11px] font-medium text-gray-400 dark:text-gray-500">
           {t("docs.structure")}
         </div>
         <div className="flex gap-1">
-          <button
-            type="button"
-            className={dirBtnCls(direction === 0)}
-            title={t("docs.layoutLeft")}
-            onClick={() => onDirection(0)}
-          >
-            <LayoutLeftIcon />
-          </button>
-          <button
-            type="button"
-            className={dirBtnCls(direction === 1)}
-            title={t("docs.layoutRight")}
-            onClick={() => onDirection(1)}
-          >
-            <LayoutRightIcon />
-          </button>
-          <button
-            type="button"
-            className={dirBtnCls(direction === 2)}
-            title={t("docs.layoutSide")}
-            onClick={() => onDirection(2)}
-          >
-            <LayoutSideIcon />
-          </button>
+          {STRUCTURES.map(({ dir, key, Icon, disabled }) => (
+            <button
+              key={dir}
+              type="button"
+              className={structBtnCls(direction === dir, disabled)}
+              title={disabled ? t("docs.notSupported") : t(`docs.${key}`)}
+              onClick={() => !disabled && onDirection(dir)}
+            >
+              <Icon />
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Line style */}
+      {/* Branch lines */}
       <div>
         <div className="mb-1.5 text-[11px] font-medium text-gray-400 dark:text-gray-500">
           {t("docs.branchLine")}
@@ -346,19 +124,19 @@ function BranchPopover({
         <div className="flex gap-1">
           <button
             type="button"
-            className={lineBtnCls(lineStyle === "curved")}
-            title={t("docs.curved")}
-            onClick={() => onLineStyle("curved")}
-          >
-            <CurvedLineIcon />
-          </button>
-          <button
-            type="button"
             className={lineBtnCls(lineStyle === "angular")}
             title={t("docs.angular")}
             onClick={() => onLineStyle("angular")}
           >
-            <AngularLineIcon />
+            <AngularLinePreview />
+          </button>
+          <button
+            type="button"
+            className={lineBtnCls(lineStyle === "curved")}
+            title={t("docs.curved")}
+            onClick={() => onLineStyle("curved")}
+          >
+            <CurvedLinePreview />
           </button>
         </div>
       </div>
@@ -366,20 +144,32 @@ function BranchPopover({
   );
 }
 
-// ── Main Toolbar Component ─────────────────────────────────────────────────
+// ── Main Toolbar Component ──────────────────────────────────────────────────
 
 export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
   const { t } = useTranslation();
+  const { theme } = useThemeCore();
+  const isDark = theme === "dark";
+
   const [zoom, setZoom] = useState(100);
   const [showBranch, setShowBranch] = useState(false);
+  const [showZoom, setShowZoom] = useState(false);
   const [direction, setDirection] = useState<Direction>(2);
-  const [lineStyle, setLineStyle] = useState<LineStyle>("curved");
+  const [lineStyle, setLineStyle] = useState<LineStyle>("angular");
+
+  const branchRef = useRef<HTMLDivElement>(null);
 
   // Sync direction from mind instance
   useEffect(() => {
-    if (mind) {
-      setDirection((mind.direction as Direction) ?? 2);
-    }
+    if (mind) setDirection((mind.direction as Direction) ?? 2);
+  }, [mind]);
+
+  // Apply default angular line style on init
+  useEffect(() => {
+    if (!mind) return;
+    mind.generateMainBranch = angularMain;
+    mind.generateSubBranch = angularSub;
+    mind.linkDiv();
   }, [mind]);
 
   // Listen to scale events
@@ -391,32 +181,58 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
     return () => mind.bus.removeListener("scale", handler);
   }, [mind]);
 
+  // Outside-click to close branch popover
+  useEffect(() => {
+    if (!showBranch) return;
+    function handleClick(e: MouseEvent) {
+      if (branchRef.current && !branchRef.current.contains(e.target as Node)) {
+        setShowBranch(false);
+      }
+    }
+    const raf = requestAnimationFrame(() => {
+      document.addEventListener("mousedown", handleClick);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener("mousedown", handleClick);
+    };
+  }, [showBranch]);
+
   const handleUndo = useCallback(() => mind?.undo(), [mind]);
   const handleRedo = useCallback(() => mind?.redo(), [mind]);
 
   const handleZoomIn = useCallback(() => {
     if (!mind) return;
-    const next = Math.min(
-      mind.scaleVal + (mind.scaleSensitivity ?? 0.1),
-      mind.scaleMax ?? 1.4,
+    mind.scale(
+      Math.min(
+        mind.scaleVal + (mind.scaleSensitivity ?? 0.1),
+        mind.scaleMax ?? 1.4,
+      ),
     );
-    mind.scale(next);
   }, [mind]);
 
   const handleZoomOut = useCallback(() => {
     if (!mind) return;
-    const next = Math.max(
-      mind.scaleVal - (mind.scaleSensitivity ?? 0.1),
-      mind.scaleMin ?? 0.2,
+    mind.scale(
+      Math.max(
+        mind.scaleVal - (mind.scaleSensitivity ?? 0.1),
+        mind.scaleMin ?? 0.2,
+      ),
     );
-    mind.scale(next);
   }, [mind]);
 
-  const handleResetZoom = useCallback(() => mind?.scale(1), [mind]);
+  const handleFitToScreen = useCallback(() => mind?.toCenter(), [mind]);
+
+  const handleSliderChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      mind?.scale(Number(e.target.value) / 100);
+    },
+    [mind],
+  );
 
   const handleDirection = useCallback(
     (dir: Direction) => {
-      if (!mind) return;
+      if (!mind || dir === 3) return;
       if (dir === 0) mind.initLeft();
       else if (dir === 1) mind.initRight();
       else mind.initSide();
@@ -441,31 +257,23 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
     [mind],
   );
 
-  const toggleBranch = useCallback(() => setShowBranch((v) => !v), []);
-  const closeBranch = useCallback(() => setShowBranch(false), []);
-
   if (!mind) return null;
 
-  return (
-    <div className="absolute bottom-3 left-3 z-50 flex flex-col items-stretch">
-      {/* Branch popover */}
-      {showBranch && (
-        <BranchPopover
-          direction={direction}
-          lineStyle={lineStyle}
-          onDirection={handleDirection}
-          onLineStyle={handleLineStyle}
-          onClose={closeBranch}
-        />
-      )}
+  const sliderPct = ((zoom - 20) / 120) * 100;
+  const trackBg = isDark ? "#4b5563" : "#DEE0E3";
 
-      {/* Toolbar pill */}
-      <div className="flex w-8 flex-col items-stretch overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-600 dark:bg-[#2b2f36]">
+  return (
+    <div className="absolute bottom-3 left-3 z-50">
+      {/* Main pill */}
+      <div
+        className="flex flex-col rounded-lg border border-[#DEE0E3] bg-white dark:border-gray-600 dark:bg-[#2b2f36]"
+        style={{ boxShadow: "0 2px 8px rgba(31,35,41,0.06)" }}
+      >
         {/* Undo */}
         <button
           type="button"
-          className={`${BTN_BASE} ${BTN_INACTIVE}`}
-          title={t("docs.undo")}
+          className={`${BTN} ${BTN_CLR} rounded-t-lg`}
+          title={`${t("docs.undo")} (Ctrl+Z)`}
           onClick={handleUndo}
         >
           <UndoIcon />
@@ -474,56 +282,97 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
         {/* Redo */}
         <button
           type="button"
-          className={`${BTN_BASE} ${BTN_INACTIVE}`}
-          title={t("docs.redo")}
+          className={`${BTN} ${BTN_CLR}`}
+          title={`${t("docs.redo")} (Ctrl+Shift+Z)`}
           onClick={handleRedo}
         >
           <RedoIcon />
         </button>
 
-        <div className={DIVIDER} style={{ height: 1 }} />
-
         {/* Branch display */}
-        <button
-          type="button"
-          className={`${BTN_BASE} ${showBranch ? BTN_ACTIVE : BTN_INACTIVE}`}
-          title={t("docs.branchDisplay")}
-          onClick={toggleBranch}
-        >
-          <BranchDisplayIcon />
-        </button>
+        <div ref={branchRef} className="relative">
+          <button
+            type="button"
+            className={`${BTN} ${showBranch ? SEL : BTN_CLR}`}
+            title={t("docs.branchDisplay")}
+            onClick={() => setShowBranch((v) => !v)}
+          >
+            <BranchDisplayIcon />
+          </button>
+          {showBranch && (
+            <div className="absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2">
+              <BranchPopover
+                direction={direction}
+                lineStyle={lineStyle}
+                onDirection={handleDirection}
+                onLineStyle={handleLineStyle}
+              />
+            </div>
+          )}
+        </div>
 
-        <div className={DIVIDER} style={{ height: 1 }} />
-
-        {/* Zoom percentage */}
-        <button
-          type="button"
-          className={`${BTN_BASE} ${BTN_INACTIVE} text-[10px] font-medium leading-none`}
-          title={t("docs.resetZoom")}
-          onClick={handleResetZoom}
+        {/* Zoom */}
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: hover zone wrapper for zoom slider */}
+        <div
+          className="relative"
+          onMouseEnter={() => setShowZoom(true)}
+          onMouseLeave={() => setShowZoom(false)}
         >
-          {zoom}%
-        </button>
+          <button
+            type="button"
+            className={`${BTN} ${BTN_CLR} rounded-b-lg text-[11px] font-medium`}
+            title={t("docs.resetZoom")}
+            onClick={() => mind.scale(1)}
+          >
+            {zoom}%
+          </button>
 
-        {/* Zoom out */}
-        <button
-          type="button"
-          className={`${BTN_BASE} ${BTN_INACTIVE}`}
-          title={t("docs.zoomOut")}
-          onClick={handleZoomOut}
-        >
-          <ZoomOutIcon />
-        </button>
-
-        {/* Zoom in */}
-        <button
-          type="button"
-          className={`${BTN_BASE} ${BTN_INACTIVE}`}
-          title={t("docs.zoomIn")}
-          onClick={handleZoomIn}
-        >
-          <ZoomInIcon />
-        </button>
+          {/* Zoom slider panel — bridge div starts at left:100% for seamless hover */}
+          <div
+            className={`absolute left-full top-0 transition-opacity duration-150 ease-in-out ${showZoom ? "opacity-100" : "pointer-events-none opacity-0"}`}
+          >
+            <div
+              className="ml-2 flex h-9 items-center gap-2 rounded-lg border border-[#DEE0E3] bg-white px-2 dark:border-gray-600 dark:bg-[#2b2f36]"
+              style={{ boxShadow: "0 2px 8px rgba(31,35,41,0.06)" }}
+            >
+              <button
+                type="button"
+                className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150 hover:bg-[rgba(31,35,41,0.08)] dark:hover:bg-white/8`}
+                title={t("docs.fitToScreen")}
+                onClick={handleFitToScreen}
+              >
+                <FitToScreenIcon />
+              </button>
+              <button
+                type="button"
+                className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150 hover:bg-[rgba(31,35,41,0.08)] dark:hover:bg-white/8`}
+                title={t("docs.zoomOut")}
+                onClick={handleZoomOut}
+              >
+                <ZoomOutIcon />
+              </button>
+              <input
+                type="range"
+                min={20}
+                max={140}
+                value={zoom}
+                onChange={handleSliderChange}
+                className="h-0.5 w-[120px] cursor-pointer appearance-none rounded-full outline-none [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#3370FF] [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3370FF]"
+                style={{
+                  background: `linear-gradient(to right, #3370FF ${sliderPct}%, ${trackBg} ${sliderPct}%)`,
+                }}
+              />
+              <button
+                type="button"
+                className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150 hover:bg-[rgba(31,35,41,0.08)] dark:hover:bg-white/8`}
+                title={t("docs.zoomIn")}
+                onClick={handleZoomIn}
+              >
+                <ZoomInIcon />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
