@@ -8,6 +8,7 @@
 
 import MindElixir from "mind-elixir";
 import "mind-elixir/style.css";
+import "./mind-overrides.css";
 
 import type { MindElixirData, MindElixirInstance } from "mind-elixir";
 import type { LangPack } from "mind-elixir/i18n";
@@ -16,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useThemeCore } from "@/system";
 
+import { FEISHU_DARK_THEME, FEISHU_LIGHT_THEME } from "./mind-theme";
 import { useMindCollab } from "./use-mind-collab";
 
 // ── Locale mapping ─────────────────────────────────────────────────────────
@@ -84,8 +86,8 @@ export function MindEditor({
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       if (!mindRef.current || isReplayingRef.current) return;
-      const data = mindRef.current.getData();
-      onChangeRef.current(data);
+      const { theme: _t, ...data } = mindRef.current.getData();
+      onChangeRef.current(data as MindElixirData);
     }, 800);
   }, []);
 
@@ -99,19 +101,27 @@ export function MindEditor({
       ? initialContent
       : MindElixir.new("思维导图");
 
+    // Strip embedded theme from data — we always apply our own Feishu theme
+    const { theme: _savedTheme, ...cleanData } = data;
+
     const locale = LOCALE_MAP[langRef.current] ?? zh_CN;
+    const customTheme = isDarkRef.current
+      ? FEISHU_DARK_THEME
+      : FEISHU_LIGHT_THEME;
     const mind = new MindElixir({
       el,
-      direction: data.direction ?? 2,
+      direction: cleanData.direction ?? 2,
       editable: true,
       contextMenu: { locale },
       toolBar: true,
       keypress: true,
       allowUndo: true,
-      theme: isDarkRef.current ? MindElixir.DARK_THEME : MindElixir.THEME,
+      theme: customTheme,
     });
 
-    mind.init(data);
+    mind.init(cleanData as MindElixirData);
+    // Re-apply after init (init can override from data.theme)
+    mind.changeTheme(customTheme);
 
     // Listen for any operation and debounce-save
     mind.bus.addListener("operation", () => debouncedSave());
@@ -128,11 +138,12 @@ export function MindEditor({
   }, [debouncedSave]);
 
   // ── Theme sync ─────────────────────────────────────────────────────────
+  const customTheme = isDark ? FEISHU_DARK_THEME : FEISHU_LIGHT_THEME;
+
   useEffect(() => {
     if (!mindRef.current) return;
-    const newTheme = isDark ? MindElixir.DARK_THEME : MindElixir.THEME;
-    mindRef.current.changeTheme(newTheme);
-  }, [isDark]);
+    mindRef.current.changeTheme(customTheme);
+  }, [customTheme]);
 
   // ── Collab ─────────────────────────────────────────────────────────────
   useMindCollab({
@@ -140,10 +151,11 @@ export function MindEditor({
     userName: userName ?? "Anonymous",
     mind: mindInstance,
     isReplayingRef,
+    customTheme,
   });
 
   return (
-    <div className="relative flex-1 overflow-hidden">
+    <div className="mind-feishu relative flex-1 overflow-hidden">
       <div ref={containerRef} className="h-full w-full" />
     </div>
   );

@@ -1,0 +1,86 @@
+/**
+ * Feishu-inspired CSS overrides for mind-elixir.
+ * Scoped under .mind-feishu to avoid leaking.
+ */
+
+/* ── Root node ─────────────────────────────────────── */
+.mind-feishu me-root me-tpc {
+  font-weight: 500;
+  font-size: 20px;
+  letter-spacing: 0.01em;
+  padding: 10px 28px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(51, 112, 255, 0.18);
+}
+
+/* ── Main (level 1) nodes ──────────────────────────── */
+.mind-feishu me-main > me-wrapper > me-parent > me-tpc {
+  font-weight: 500;
+  font-size: 15px;
+  padding: 7px 18px;
+  border-width: 1px;
+  border-style: solid;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition:
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.mind-feishu me-main > me-wrapper > me-parent > me-tpc:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.09);
+}
+
+/* ── Sub (level 2+) nodes ──────────────────────────── */
+.mind-feishu me-parent me-tpc {
+  font-size: 14px;
+  font-weight: 400;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+/* ── Selected state ────────────────────────────────── */
+.mind-feishu .selected {
+  outline-width: 2px;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ── SVG lines: softer, rounded caps ───────────────── */
+.mind-feishu .lines path,
+.mind-feishu .subLines path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.7;
+}
+
+/* ── Expand / collapse button ──────────────────────── */
+.mind-feishu me-epd {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.mind-feishu me-parent:hover me-epd {
+  opacity: 0.6;
+}
+
+/* ── Toolbar & context-menu polish ─────────────────── */
+.mind-feishu .mind-elixir-toolbar {
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--panel-border-color);
+}
+
+/* ── Ghost (drag preview) ──────────────────────────── */
+.mind-feishu .mind-elixir-ghost {
+  border-radius: 8px;
+  border-width: 1px;
+  opacity: 0.8;
+}
+
+/* ── Edit input box ────────────────────────────────── */
+.mind-feishu #input-box {
+  border-radius: 6px;
+  outline: 2px solid var(--selected);
+  outline-offset: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}

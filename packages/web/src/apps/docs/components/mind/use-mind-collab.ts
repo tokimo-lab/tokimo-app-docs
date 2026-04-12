@@ -10,7 +10,7 @@
  *   Y.Map("mindmap") → "snapshot": MindElixirData JSON (full state)
  */
 
-import type { MindElixirData, MindElixirInstance } from "mind-elixir";
+import type { MindElixirData, MindElixirInstance, Theme } from "mind-elixir";
 import { useEffect, useRef } from "react";
 import { Awareness } from "y-protocols/awareness";
 import { WebsocketProvider } from "y-websocket";
@@ -21,6 +21,14 @@ import {
   unregisterAwareness,
   updateConnectionStatus,
 } from "../collab/awareness-store";
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Strip embedded theme from data so refresh() won't override our custom theme. */
+function stripTheme(data: MindElixirData): MindElixirData {
+  const { theme: _, ...rest } = data;
+  return rest as MindElixirData;
+}
 
 // ── WebSocket URL builder ───────────────────────────────────────────────────
 
@@ -42,6 +50,8 @@ interface UseMindCollabOptions {
   mind: MindElixirInstance | null;
   /** Ref that indicates remote replay is in progress (skip local saves). */
   isReplayingRef: React.MutableRefObject<boolean>;
+  /** Custom theme to re-apply after each remote refresh (prevents theme override). */
+  customTheme?: Theme;
 }
 
 /**
@@ -55,8 +65,11 @@ export function useMindCollab({
   userName,
   mind,
   isReplayingRef,
+  customTheme,
 }: UseMindCollabOptions): void {
   const cleanupRef = useRef<(() => void) | null>(null);
+  const customThemeRef = useRef(customTheme);
+  customThemeRef.current = customTheme;
 
   useEffect(() => {
     if (!nodeId || !mind) return;
@@ -101,15 +114,17 @@ export function useMindCollab({
       // Seed snapshot if this is a new room
       const existing = mindMap.get("snapshot");
       if (!existing) {
-        const data = mind.getData();
+        const data = stripTheme(mind.getData());
         mindMap.set("snapshot", JSON.parse(JSON.stringify(data)));
       } else {
         // Load remote snapshot into local mind-elixir
         try {
-          const remoteData = existing as MindElixirData;
+          const remoteData = stripTheme(existing as MindElixirData);
           if (remoteData?.nodeData) {
             isReplayingRef.current = true;
-            mind.refresh(remoteData);
+            mind.refresh(remoteData as MindElixirData);
+            if (customThemeRef.current)
+              mind.changeTheme(customThemeRef.current, false);
             isReplayingRef.current = false;
           }
         } catch (e) {
@@ -126,7 +141,9 @@ export function useMindCollab({
 
         try {
           isReplayingRef.current = true;
-          mind.refresh(snapshot);
+          mind.refresh(stripTheme(snapshot) as MindElixirData);
+          if (customThemeRef.current)
+            mind.changeTheme(customThemeRef.current, false);
           isReplayingRef.current = false;
         } catch (e) {
           console.warn("[MindCollab] Failed to apply remote snapshot:", e);
@@ -138,7 +155,7 @@ export function useMindCollab({
       // Forward local operations to Y.Map
       const handleLocalOperation = () => {
         if (isReplayingRef.current) return;
-        const data = mind.getData();
+        const data = stripTheme(mind.getData());
         // Deep clone to avoid Yjs reference issues
         mindMap.set("snapshot", JSON.parse(JSON.stringify(data)));
       };
@@ -154,7 +171,11 @@ export function useMindCollab({
     // Store cleanup
     cleanupRef.current = () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      localOperationListener?.();
+      try {
+        localOperationListener?.();
+      } catch {
+        // mind-elixir instance may already be destroyed
+      }
       if (observerAttached) {
         mindMap.unobserve(() => {});
       }
