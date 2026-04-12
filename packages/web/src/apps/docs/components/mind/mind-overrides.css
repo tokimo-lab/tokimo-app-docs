@@ -3,6 +3,11 @@
  * Scoped under .mind-feishu to avoid leaking.
  */
 
+/* Fix sub-node alignment: balance margin-top with padding-bottom */
+.mind-feishu .map-container me-children {
+  padding-bottom: var(--node-gap-y);
+}
+
 /* ── Root node ─────────────────────────────────────── */
 .mind-feishu me-root me-tpc {
   font-weight: 500;
@@ -192,4 +197,72 @@
 :is(.dark, [data-theme="dark"]) .mind-feishu .context-menu .menu-list li#cm-unfucus,
 :is(.dark, [data-theme="dark"]) .mind-feishu .context-menu .menu-list li#cm-down {
   border-bottom-color: #3d4150;
+}
+
+/* ── Vertical (down) layout overrides ────────────── */
+
+.mind-down .map-canvas me-nodes {
+  flex-direction: column;
+}
+
+.mind-down me-root {
+  margin: 20px 0;
+}
+
+.mind-down me-main {
+  display: flex !important;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.mind-down me-main > me-wrapper {
+  margin: 0 var(--main-gap-y);
+}
+
+.mind-down me-wrapper {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  width: auto !important;
+}
+
+.mind-down me-parent,
+.mind-down me-children {
+  display: block !important;
+  vertical-align: unset;
+}
+
+.mind-down me-children {
+  display: flex !important;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  padding-bottom: 0;
+}
+
+.mind-down me-parent {
+  margin-top: 0;
+  padding: 6px 12px;
+}
+
+.mind-down me-children > me-wrapper {
+  margin: 0 calc(var(--node-gap-y) / 2);
+}
+
+/* Expand button: below node for vertical layout */
+.mind-down me-main > me-wrapper > me-parent > me-epd {
+  top: unset;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  right: unset;
+}
+
+.mind-down me-epd {
+  top: unset !important;
+  bottom: -5px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  right: unset !important;
 }

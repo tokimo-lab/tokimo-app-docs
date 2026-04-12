@@ -22,6 +22,7 @@ import {
   CurvedLinePreview,
   FitToScreenIcon,
   FullscreenIcon,
+  MindmapDownIcon,
   MindmapLeftIcon,
   MindmapRightIcon,
   MindmapSideIcon,
@@ -34,7 +35,7 @@ import {
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-type Direction = 0 | 1 | 2;
+type Direction = 0 | 1 | 2 | 3;
 type LineStyle = "curved" | "angular";
 
 interface MindBottomToolbarProps {
@@ -117,6 +118,7 @@ const STRUCTURES: Array<{
   { dir: 1, key: "layoutRight", Icon: MindmapRightIcon },
   { dir: 0, key: "layoutLeft", Icon: MindmapLeftIcon },
   { dir: 2, key: "layoutSide", Icon: MindmapSideIcon },
+  { dir: 3, key: "layoutDown", Icon: MindmapDownIcon },
 ];
 
 function BranchPopover({
@@ -340,9 +342,16 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
   const handleDirection = useCallback(
     (dir: Direction) => {
       if (!mind) return;
+      mind.container.classList.remove("mind-down");
       if (dir === 0) mind.initLeft();
       else if (dir === 1) mind.initRight();
-      else mind.initSide();
+      else if (dir === 2) mind.initSide();
+      else {
+        mind.direction = 3 as never;
+        mind.container.classList.add("mind-down");
+        mind.refresh();
+        mind.toCenter();
+      }
       setDirection(dir);
     },
     [mind],

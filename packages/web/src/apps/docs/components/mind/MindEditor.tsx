@@ -133,6 +133,11 @@ export function MindEditor({
     // Re-apply after init (init can override from data.theme)
     mind.changeTheme(customTheme);
 
+    // Restore vertical (down) layout if saved with direction 3
+    if ((cleanData.direction as number) === 3) {
+      mind.container.classList.add("mind-down");
+    }
+
     // Listen for any operation and debounce-save
     mind.bus.addListener("operation", () => debouncedSave());
 
