@@ -7,6 +7,7 @@
 
 import type { MindElixirInstance } from "mind-elixir";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useThemeCore } from "@/system";
 import {
@@ -54,6 +55,38 @@ const SEL =
   "bg-blue-500/20 text-blue-500 dark:bg-blue-500/25 dark:text-blue-400";
 const UNSEL =
   "text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300";
+
+// ── Portal Popover (escapes overflow:hidden containers) ─────────────────────
+
+interface PortalPopoverProps {
+  anchorRef: React.RefObject<HTMLDivElement | null>;
+  children: React.ReactNode;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+}
+
+function PortalPopover({
+  anchorRef,
+  children,
+  onMouseEnter,
+  onMouseLeave,
+}: PortalPopoverProps) {
+  const rect = anchorRef.current?.getBoundingClientRect();
+  if (!rect) return null;
+  // Position to the right of anchor, bottom-aligned
+  const style: React.CSSProperties = {
+    position: "fixed",
+    left: rect.right + 8,
+    bottom: window.innerHeight - rect.bottom,
+    zIndex: 9999,
+  };
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: hover bridge for portal popover
+    <div style={style} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+      {children}
+    </div>
+  );
+}
 
 // ── Branch Display Popover ──────────────────────────────────────────────────
 
@@ -156,6 +189,7 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
   const [lineStyle, setLineStyle] = useState<LineStyle>("angular");
 
   const branchRef = useRef<HTMLDivElement>(null);
+  const zoomRef = useRef<HTMLDivElement>(null);
   const fullscreenDataRef = useRef<{
     mapCenterX: number;
     mapCenterY: number;
@@ -291,11 +325,11 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
   return (
     <div className="absolute bottom-3 left-3 z-50">
       {/* Main pill — matches top-left MindViewSwitcher w-8 style */}
-      <div className="flex w-8 flex-col items-stretch overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-600 dark:bg-[#2b2f36]">
+      <div className="flex w-8 flex-col items-stretch rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-600 dark:bg-[#2b2f36]">
         {/* Undo */}
         <button
           type="button"
-          className={`${BTN} ${BTN_CLR}`}
+          className={`${BTN} ${BTN_CLR} rounded-t-[7px]`}
           title={`${t("docs.undo")} (Ctrl+Z)`}
           onClick={handleUndo}
         >
@@ -327,16 +361,22 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
           >
             <BranchDisplayIcon />
           </button>
-          <div
-            className={`absolute bottom-0 left-full z-50 ml-2 transition-opacity duration-150 ease-in-out ${showBranch ? "opacity-100" : "pointer-events-none opacity-0"}`}
-          >
-            <BranchPopover
-              direction={direction}
-              lineStyle={lineStyle}
-              onDirection={handleDirection}
-              onLineStyle={handleLineStyle}
-            />
-          </div>
+          {showBranch &&
+            createPortal(
+              <PortalPopover
+                anchorRef={branchRef}
+                onMouseEnter={() => setShowBranch(true)}
+                onMouseLeave={() => setShowBranch(false)}
+              >
+                <BranchPopover
+                  direction={direction}
+                  lineStyle={lineStyle}
+                  onDirection={handleDirection}
+                  onLineStyle={handleLineStyle}
+                />
+              </PortalPopover>,
+              document.body,
+            )}
         </div>
 
         {/* Fullscreen */}
@@ -362,61 +402,67 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
         {/* Zoom — hover to expand slider */}
         {/* biome-ignore lint/a11y/noStaticElementInteractions: hover zone for zoom slider */}
         <div
+          ref={zoomRef}
           className="relative"
           onMouseEnter={() => setShowZoom(true)}
           onMouseLeave={() => setShowZoom(false)}
         >
           <button
             type="button"
-            className={`${BTN} ${BTN_CLR} text-[10px] font-medium leading-none`}
+            className={`${BTN} ${BTN_CLR} rounded-b-[7px] text-[10px] font-medium leading-none`}
             title={t("docs.resetZoom")}
             onClick={() => mind.scale(1)}
           >
             {zoom}%
           </button>
 
-          {/* Zoom slider panel */}
-          <div
-            className={`absolute bottom-0 left-full ml-2 transition-opacity duration-150 ease-in-out ${showZoom ? "opacity-100" : "pointer-events-none opacity-0"}`}
-          >
-            <div className="flex h-8 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-1.5 shadow-sm dark:border-gray-600 dark:bg-[#2b2f36]">
-              <button
-                type="button"
-                className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150`}
-                title={t("docs.fitToScreen")}
-                onClick={handleFitToScreen}
+          {showZoom &&
+            createPortal(
+              <PortalPopover
+                anchorRef={zoomRef}
+                onMouseEnter={() => setShowZoom(true)}
+                onMouseLeave={() => setShowZoom(false)}
               >
-                <FitToScreenIcon />
-              </button>
-              <button
-                type="button"
-                className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150`}
-                title={t("docs.zoomOut")}
-                onClick={handleZoomOut}
-              >
-                <ZoomOutIcon />
-              </button>
-              <input
-                type="range"
-                min={20}
-                max={140}
-                value={zoom}
-                onChange={handleSliderChange}
-                className="h-0.5 w-[100px] cursor-pointer appearance-none rounded-full outline-none [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#3370FF] [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3370FF]"
-                style={{
-                  background: `linear-gradient(to right, #3370FF ${sliderPct}%, ${trackBg} ${sliderPct}%)`,
-                }}
-              />
-              <button
-                type="button"
-                className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150`}
-                title={t("docs.zoomIn")}
-                onClick={handleZoomIn}
-              >
-                <ZoomInIcon />
-              </button>
-            </div>
-          </div>
+                <div className="flex h-8 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-1.5 shadow-sm dark:border-gray-600 dark:bg-[#2b2f36]">
+                  <button
+                    type="button"
+                    className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150`}
+                    title={t("docs.fitToScreen")}
+                    onClick={handleFitToScreen}
+                  >
+                    <FitToScreenIcon />
+                  </button>
+                  <button
+                    type="button"
+                    className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150`}
+                    title={t("docs.zoomOut")}
+                    onClick={handleZoomOut}
+                  >
+                    <ZoomOutIcon />
+                  </button>
+                  <input
+                    type="range"
+                    min={20}
+                    max={140}
+                    value={zoom}
+                    onChange={handleSliderChange}
+                    className="h-0.5 w-[100px] cursor-pointer appearance-none rounded-full outline-none [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#3370FF] [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3370FF]"
+                    style={{
+                      background: `linear-gradient(to right, #3370FF ${sliderPct}%, ${trackBg} ${sliderPct}%)`,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150`}
+                    title={t("docs.zoomIn")}
+                    onClick={handleZoomIn}
+                  >
+                    <ZoomInIcon />
+                  </button>
+                </div>
+              </PortalPopover>,
+              document.body,
+            )}
         </div>
       </div>
     </div>
