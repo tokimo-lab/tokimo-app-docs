@@ -25,6 +25,7 @@ import {
   Heart,
   Pencil,
   Plus,
+  Presentation,
   RotateCcw,
   Sheet,
   Trash2,
@@ -90,6 +91,19 @@ function NodeIcon({
           isActive
             ? "text-purple-600 dark:text-purple-400"
             : "text-purple-500 dark:text-purple-600",
+        )}
+      />
+    );
+  }
+  if (node.type === "slide") {
+    return (
+      <Presentation
+        size={size}
+        className={cn(
+          "shrink-0",
+          isActive
+            ? "text-orange-600 dark:text-orange-400"
+            : "text-orange-500 dark:text-orange-600",
         )}
       />
     );
@@ -208,6 +222,12 @@ export function NodeTreeItem({
           onClick: () => onCreateDoc("mind", node.id),
         },
         {
+          key: "new-slide",
+          label: t("docs.newSlide"),
+          icon: <Presentation size={14} />,
+          onClick: () => onCreateDoc("slide", node.id),
+        },
+        {
           key: "new-subfolder",
           label: t("docs.newFolder"),
           icon: <FolderPlus size={14} />,
@@ -278,6 +298,12 @@ export function NodeTreeItem({
               label: t("docs.newMind"),
               icon: <BrainCircuit size={14} />,
               onClick: () => onCreateDoc("mind", node.id),
+            },
+            {
+              key: "new-slide",
+              label: t("docs.newSlide"),
+              icon: <Presentation size={14} />,
+              onClick: () => onCreateDoc("slide", node.id),
             },
             { type: "divider" as const },
           ]

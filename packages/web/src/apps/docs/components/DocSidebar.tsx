@@ -17,6 +17,7 @@ import {
   PanelLeft,
   PanelLeftClose,
   Plus,
+  Presentation,
   Search,
   Sheet,
   Star,
@@ -364,6 +365,12 @@ export function DocSidebar({
                   label: t("docs.newMind"),
                   icon: <BrainCircuit size={14} />,
                   onClick: () => onCreateNode("mind"),
+                },
+                {
+                  key: "slide",
+                  label: t("docs.newSlide"),
+                  icon: <Presentation size={14} />,
+                  onClick: () => onCreateNode("slide"),
                 },
                 {
                   key: "folder",
