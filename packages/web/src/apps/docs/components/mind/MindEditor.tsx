@@ -160,6 +160,8 @@ export function MindEditor({
   });
 
   // ── View mode switching ───────────────────────────────────────────────
+  const pendingOutlineDataRef = useRef<MindElixirData | null>(null);
+
   const handleModeChange = useCallback(
     (mode: ViewMode) => {
       if (mode === viewMode) return;
@@ -167,18 +169,30 @@ export function MindEditor({
         // Capture current mind map data for outline view
         const { theme: _t, ...data } = mindRef.current.getData();
         setOutlineData(data as MindElixirData);
-      } else if (mode === "mindmap" && outlineData && mindRef.current) {
-        // Apply outline edits back to mind-elixir
-        mindRef.current.refresh(outlineData);
-        mindRef.current.changeTheme(
-          isDarkRef.current ? FEISHU_DARK_THEME : FEISHU_LIGHT_THEME,
-          false,
-        );
+      } else if (mode === "mindmap" && outlineData) {
+        // Stash data — refresh AFTER container becomes visible (next layout)
+        pendingOutlineDataRef.current = outlineData;
       }
       setViewMode(mode);
     },
     [viewMode, outlineData],
   );
+
+  // Apply outline data after the mind map container is visible again
+  useEffect(() => {
+    if (viewMode !== "mindmap" || !pendingOutlineDataRef.current) return;
+    const data = pendingOutlineDataRef.current;
+    pendingOutlineDataRef.current = null;
+    // Wait one frame so the container has display != none and nodes are laid out
+    requestAnimationFrame(() => {
+      if (!mindRef.current) return;
+      mindRef.current.refresh(data);
+      mindRef.current.changeTheme(
+        isDarkRef.current ? FEISHU_DARK_THEME : FEISHU_LIGHT_THEME,
+        false,
+      );
+    });
+  }, [viewMode]);
 
   const handleOutlineChange = useCallback((data: MindElixirData) => {
     setOutlineData(data);
