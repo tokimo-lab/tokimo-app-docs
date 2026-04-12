@@ -161,23 +161,20 @@ export function angularMain({
 
 export function angularSub(
   this: MindElixirInstance,
-  { pT, pL, pW, pH, cT, cL, cW, cH, direction, isFirst }: SubLineParams,
+  { pT, pL, pW, pH, cT, cL, cW, cH, direction }: SubLineParams,
 ): string {
-  const GAP = Number.parseInt(
-    this.container.style.getPropertyValue("--node-gap-x"),
-    10,
-  );
-  const y1 = isFirst ? pT + pH / 2 : pT + pH;
-  const y2 = cT + cH;
+  // Center-to-center connections (Feishu-style), shared vertical trunk
+  const y1 = pT + pH / 2;
+  const y2 = cT + cH / 2;
 
   if (direction === LHS) {
     const x1 = pL;
-    const midX = x1 - GAP;
-    const endX = cL + cW;
-    return roundedAngularPath(x1, y1, midX, y2, endX);
+    const x2 = cL + cW;
+    const midX = (x1 + x2) / 2;
+    return roundedAngularPath(x1, y1, midX, y2, x2);
   }
   const x1 = pL + pW;
-  const midX = x1 + GAP;
-  const endX = cL;
-  return roundedAngularPath(x1, y1, midX, y2, endX);
+  const x2 = cL;
+  const midX = (x1 + x2) / 2;
+  return roundedAngularPath(x1, y1, midX, y2, x2);
 }

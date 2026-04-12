@@ -22,12 +22,10 @@ import {
   CurvedLinePreview,
   FitToScreenIcon,
   FullscreenIcon,
-  MindmapDownIcon,
   MindmapLeftIcon,
   MindmapRightIcon,
   MindmapSideIcon,
   RedoIcon,
-  ToCenterIcon,
   UndoIcon,
   ZoomIcon,
   ZoomInIcon,
@@ -36,7 +34,7 @@ import {
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-type Direction = 0 | 1 | 2 | 3;
+type Direction = 0 | 1 | 2;
 type LineStyle = "curved" | "angular";
 
 interface MindBottomToolbarProps {
@@ -119,7 +117,6 @@ const STRUCTURES: Array<{
   { dir: 1, key: "layoutRight", Icon: MindmapRightIcon },
   { dir: 0, key: "layoutLeft", Icon: MindmapLeftIcon },
   { dir: 2, key: "layoutSide", Icon: MindmapSideIcon },
-  { dir: 3, key: "layoutDown", Icon: MindmapDownIcon, disabled: true },
 ];
 
 function BranchPopover({
@@ -342,7 +339,7 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
 
   const handleDirection = useCallback(
     (dir: Direction) => {
-      if (!mind || dir === 3) return;
+      if (!mind) return;
       if (dir === 0) mind.initLeft();
       else if (dir === 1) mind.initRight();
       else mind.initSide();
@@ -439,16 +436,6 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
           <FullscreenIcon />
         </button>
 
-        {/* Re-center */}
-        <button
-          type="button"
-          className={`${BTN} ${BTN_CLR}`}
-          title={t("docs.fitToScreen")}
-          onClick={handleFitToScreen}
-        >
-          <ToCenterIcon />
-        </button>
-
         {/* Zoom — hover to expand slider */}
         {/* biome-ignore lint/a11y/noStaticElementInteractions: hover zone for zoom slider */}
         <div
@@ -477,14 +464,6 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
                   <button
                     type="button"
                     className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150`}
-                    title={t("docs.fitToScreen")}
-                    onClick={handleFitToScreen}
-                  >
-                    <FitToScreenIcon />
-                  </button>
-                  <button
-                    type="button"
-                    className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150`}
                     title={t("docs.zoomOut")}
                     onClick={handleZoomOut}
                   >
@@ -508,6 +487,14 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
                     onClick={handleZoomIn}
                   >
                     <ZoomInIcon />
+                  </button>
+                  <button
+                    type="button"
+                    className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150`}
+                    title={t("docs.fitToScreen")}
+                    onClick={handleFitToScreen}
+                  >
+                    <FitToScreenIcon />
                   </button>
                 </div>
               </PortalPopover>,

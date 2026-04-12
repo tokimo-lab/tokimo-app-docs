@@ -147,6 +147,42 @@ export function MindEditor({
     };
   }, [debouncedSave]);
 
+  // ── Middle mouse button drag ────────────────────────────────────────────
+  useEffect(() => {
+    if (!mindInstance) return;
+    const container = mindInstance.container;
+    let dragging = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    const onDown = (e: PointerEvent) => {
+      if (e.button !== 1) return;
+      e.preventDefault();
+      dragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      container.setPointerCapture(e.pointerId);
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!dragging) return;
+      mindInstance.move(e.clientX - lastX, e.clientY - lastY);
+      lastX = e.clientX;
+      lastY = e.clientY;
+    };
+    const onUp = () => {
+      dragging = false;
+    };
+
+    container.addEventListener("pointerdown", onDown);
+    container.addEventListener("pointermove", onMove);
+    container.addEventListener("pointerup", onUp);
+    return () => {
+      container.removeEventListener("pointerdown", onDown);
+      container.removeEventListener("pointermove", onMove);
+      container.removeEventListener("pointerup", onUp);
+    };
+  }, [mindInstance]);
+
   // ── Theme sync ─────────────────────────────────────────────────────────
   const customTheme = isDark ? FEISHU_DARK_THEME : FEISHU_LIGHT_THEME;
 
