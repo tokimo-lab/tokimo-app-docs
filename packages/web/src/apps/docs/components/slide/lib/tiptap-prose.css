@@ -1,0 +1,64 @@
+.tiptap-slide-text {
+  outline: none;
+  min-height: 100%;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.tiptap-slide-text p {
+  margin: 0;
+}
+
+.tiptap-slide-text h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0;
+}
+
+.tiptap-slide-text h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0;
+}
+
+.tiptap-slide-text h3 {
+  font-size: 1.17em;
+  font-weight: bold;
+  margin: 0;
+}
+
+.tiptap-slide-text ul,
+.tiptap-slide-text ol {
+  padding-left: 1.5em;
+  margin: 0;
+}
+
+.tiptap-slide-text blockquote {
+  border-left: 3px solid #ccc;
+  padding-left: 0.75em;
+  margin: 0;
+}
+
+.tiptap-slide-text a {
+  color: #4a90d9;
+  text-decoration: underline;
+}
+
+.tiptap-slide-text code {
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 3px;
+  padding: 0.1em 0.3em;
+  font-family: monospace;
+}
+
+.tiptap-slide-text mark {
+  background-color: #fef08a;
+}
+
+.tiptap-slide-text sub {
+  font-size: 0.75em;
+}
+
+.tiptap-slide-text sup {
+  font-size: 0.75em;
+}

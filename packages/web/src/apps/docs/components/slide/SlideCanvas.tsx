@@ -3,10 +3,15 @@ import { AlignmentLines } from "./canvas/AlignmentLines";
 import { ContextMenu } from "./canvas/ContextMenu";
 import { ElementWrapper } from "./canvas/ElementWrapper";
 import { SelectionBox } from "./canvas/SelectionBox";
+import { AudioElement } from "./elements/AudioElement";
+import { ChartElement } from "./elements/ChartElement";
 import { ImageElement } from "./elements/ImageElement";
+import { LaTeXElement } from "./elements/LaTeXElement";
 import { LineElement } from "./elements/LineElement";
 import { ShapeElement } from "./elements/ShapeElement";
+import { TableElement } from "./elements/TableElement";
 import { TextElement } from "./elements/TextElement";
+import { VideoElement } from "./elements/VideoElement";
 import { useAlignmentLines } from "./hooks/use-alignment-lines";
 import { useCanvasPan } from "./hooks/use-canvas-pan";
 import { useHotkeys } from "./hooks/use-hotkeys";
@@ -34,8 +39,11 @@ export function SlideCanvas({ slide, zoom }: SlideCanvasProps) {
   const selectedIds = useSlideStore((s) => s.selectedElementIds);
   const setSelectedIds = useSlideStore((s) => s.setSelectedElementIds);
   const updateElement = useSlideStore((s) => s.updateElement);
+  const updateElements = useSlideStore((s) => s.updateElements);
   const pushHistory = useSlideStore((s) => s.pushHistory);
   const addElement = useSlideStore((s) => s.addElement);
+  const formatPainterMode = useSlideStore((s) => s.formatPainterMode);
+  const applyFormatPainter = useSlideStore((s) => s.applyFormatPainter);
 
   // Hooks
   const { handleResizeStart } = useResizeElement(scale);
@@ -115,29 +123,55 @@ export function SlideCanvas({ slide, zoom }: SlideCanvasProps) {
     [scale, addElement],
   );
 
-  // Element select
+  // Element select (with group auto-selection)
   const handleSelectElement = useCallback(
     (id: string, append: boolean) => {
+      const clickedEl = slide.elements.find((el) => el.id === id);
+      const groupId = clickedEl?.groupId;
+
       if (append) {
-        setSelectedIds(
-          selectedIds.includes(id)
-            ? selectedIds.filter((eid) => eid !== id)
-            : [...selectedIds, id],
-        );
+        if (groupId) {
+          const groupIds = slide.elements
+            .filter((el) => el.groupId === groupId)
+            .map((el) => el.id);
+          const allInSelection = groupIds.every((gid) =>
+            selectedIds.includes(gid),
+          );
+          if (allInSelection) {
+            setSelectedIds(
+              selectedIds.filter((eid) => !groupIds.includes(eid)),
+            );
+          } else {
+            setSelectedIds([...new Set([...selectedIds, ...groupIds])]);
+          }
+        } else {
+          setSelectedIds(
+            selectedIds.includes(id)
+              ? selectedIds.filter((eid) => eid !== id)
+              : [...selectedIds, id],
+          );
+        }
       } else {
-        setSelectedIds([id]);
+        if (groupId) {
+          const groupIds = slide.elements
+            .filter((el) => el.groupId === groupId)
+            .map((el) => el.id);
+          setSelectedIds(groupIds);
+        } else {
+          setSelectedIds([id]);
+        }
       }
     },
-    [selectedIds, setSelectedIds],
+    [selectedIds, setSelectedIds, slide.elements],
   );
 
-  // Drag with alignment snapping
+  // Drag with alignment snapping (group-aware)
   const dragRef = useRef<{
     elementId: string;
     startX: number;
     startY: number;
-    origLeft: number;
-    origTop: number;
+    origPositions: Map<string, { left: number; top: number }>;
+    dragIds: string[];
     pushed: boolean;
   } | null>(null);
 
@@ -152,31 +186,46 @@ export function SlideCanvas({ slide, zoom }: SlideCanvasProps) {
       const dx = (e.clientX - drag.startX) / scale;
       const dy = (e.clientY - drag.startY) / scale;
 
-      let newLeft = Math.round(drag.origLeft + dx);
-      let newTop = Math.round(drag.origTop + dy);
+      if (drag.dragIds.length === 1) {
+        const orig = drag.origPositions.get(drag.elementId);
+        if (!orig) return;
+        let newLeft = Math.round(orig.left + dx);
+        let newTop = Math.round(orig.top + dy);
 
-      // Find this element for dimensions
-      const element = slide.elements.find(
-        (el: SlideElement) => el.id === drag.elementId,
-      );
-      if (element) {
-        const otherElements = slide.elements.filter(
-          (el: SlideElement) => el.id !== drag.elementId,
+        const element = slide.elements.find(
+          (el: SlideElement) => el.id === drag.elementId,
         );
-        const { snapX, snapY } = computeLines(
-          {
-            left: newLeft,
-            top: newTop,
-            width: element.width,
-            height: "height" in element ? (element.height as number) : 0,
-          },
-          otherElements,
-        );
-        if (snapX !== null) newLeft = Math.round(snapX);
-        if (snapY !== null) newTop = Math.round(snapY);
+        if (element) {
+          const otherElements = slide.elements.filter(
+            (el: SlideElement) => el.id !== drag.elementId,
+          );
+          const { snapX, snapY } = computeLines(
+            {
+              left: newLeft,
+              top: newTop,
+              width: element.width,
+              height: "height" in element ? (element.height as number) : 0,
+            },
+            otherElements,
+          );
+          if (snapX !== null) newLeft = Math.round(snapX);
+          if (snapY !== null) newTop = Math.round(snapY);
+        }
+
+        updateElement(drag.elementId, { left: newLeft, top: newTop });
+      } else {
+        const updates = drag.dragIds.map((id) => {
+          const orig = drag.origPositions.get(id);
+          return {
+            id,
+            changes: {
+              left: Math.round((orig?.left ?? 0) + dx),
+              top: Math.round((orig?.top ?? 0) + dy),
+            } as Partial<SlideElement>,
+          };
+        });
+        updateElements(updates);
       }
-
-      updateElement(drag.elementId, { left: newLeft, top: newTop });
     };
     const onUp = () => {
       dragRef.current = null;
@@ -191,6 +240,7 @@ export function SlideCanvas({ slide, zoom }: SlideCanvasProps) {
   }, [
     scale,
     updateElement,
+    updateElements,
     pushHistory,
     slide.elements,
     computeLines,
@@ -201,17 +251,46 @@ export function SlideCanvas({ slide, zoom }: SlideCanvasProps) {
     (e: React.MouseEvent, element: SlideElement) => {
       if ((e.target as HTMLElement).contentEditable === "true") return;
       if (element.lock) return;
+
+      // Format painter intercept
+      if (formatPainterMode !== "off") {
+        e.preventDefault();
+        applyFormatPainter(element.id);
+        return;
+      }
+
       e.preventDefault();
+
+      // Collect all element IDs that should move together
+      let dragIds: string[];
+      if (element.groupId) {
+        dragIds = slide.elements
+          .filter((el) => el.groupId === element.groupId)
+          .map((el) => el.id);
+      } else if (selectedIds.includes(element.id) && selectedIds.length > 1) {
+        dragIds = selectedIds;
+      } else {
+        dragIds = [element.id];
+      }
+
+      const origPositions = new Map<string, { left: number; top: number }>();
+      for (const id of dragIds) {
+        const el = slide.elements.find((el) => el.id === id);
+        if (el) {
+          origPositions.set(id, { left: el.left, top: el.top });
+        }
+      }
+
       dragRef.current = {
         elementId: element.id,
         startX: e.clientX,
         startY: e.clientY,
-        origLeft: element.left,
-        origTop: element.top,
+        origPositions,
+        dragIds,
         pushed: false,
       };
     },
-    [],
+    [slide.elements, selectedIds, formatPainterMode, applyFormatPainter],
   );
 
   // Background style
@@ -308,6 +387,63 @@ export function SlideCanvas({ slide, zoom }: SlideCanvasProps) {
               />
             </div>
           );
+        case "chart":
+          return (
+            // biome-ignore lint/a11y/noStaticElementInteractions: slide element needs mouse interaction
+            <div key={el.id} onMouseDown={handleMouseDown}>
+              <ChartElement
+                element={el}
+                selected={isSelected}
+                onSelect={handleSelectElement}
+              />
+            </div>
+          );
+        case "video":
+          return (
+            // biome-ignore lint/a11y/noStaticElementInteractions: slide element needs mouse interaction
+            <div key={el.id} onMouseDown={handleMouseDown}>
+              <VideoElement
+                element={el}
+                selected={isSelected}
+                onSelect={handleSelectElement}
+              />
+            </div>
+          );
+        case "audio":
+          return (
+            // biome-ignore lint/a11y/noStaticElementInteractions: slide element needs mouse interaction
+            <div key={el.id} onMouseDown={handleMouseDown}>
+              <AudioElement
+                element={el}
+                selected={isSelected}
+                onSelect={handleSelectElement}
+              />
+            </div>
+          );
+        case "latex":
+          return (
+            // biome-ignore lint/a11y/noStaticElementInteractions: slide element needs mouse interaction
+            <div key={el.id} onMouseDown={handleMouseDown}>
+              <LaTeXElement
+                element={el}
+                selected={isSelected}
+                onSelect={handleSelectElement}
+                onUpdate={updateElement}
+              />
+            </div>
+          );
+        case "table":
+          return (
+            // biome-ignore lint/a11y/noStaticElementInteractions: slide element needs mouse interaction
+            <div key={el.id} onMouseDown={handleMouseDown}>
+              <TableElement
+                element={el}
+                selected={isSelected}
+                onSelect={handleSelectElement}
+                onUpdate={updateElement}
+              />
+            </div>
+          );
         default:
           return null;
       }
@@ -328,11 +464,53 @@ export function SlideCanvas({ slide, zoom }: SlideCanvasProps) {
     );
   };
 
+  // Compute group bounding boxes for dashed outlines
+  const groupBoundingBoxes = (() => {
+    const groupIds = new Set<string>();
+    for (const id of selectedIds) {
+      const el = slide.elements.find((e) => e.id === id);
+      if (el?.groupId) groupIds.add(el.groupId);
+    }
+    const boxes: Array<{
+      groupId: string;
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+    }> = [];
+    for (const gid of groupIds) {
+      const groupEls = slide.elements.filter((el) => el.groupId === gid);
+      if (groupEls.length < 2) continue;
+      let minLeft = Number.POSITIVE_INFINITY;
+      let minTop = Number.POSITIVE_INFINITY;
+      let maxRight = Number.NEGATIVE_INFINITY;
+      let maxBottom = Number.NEGATIVE_INFINITY;
+      for (const el of groupEls) {
+        minLeft = Math.min(minLeft, el.left);
+        minTop = Math.min(minTop, el.top);
+        const w = el.width;
+        const h = "height" in el ? (el.height as number) : 0;
+        maxRight = Math.max(maxRight, el.left + w);
+        maxBottom = Math.max(maxBottom, el.top + h);
+      }
+      boxes.push({
+        groupId: gid,
+        left: minLeft,
+        top: minTop,
+        width: maxRight - minLeft,
+        height: maxBottom - minTop,
+      });
+    }
+    return boxes;
+  })();
+
   const cursorStyle = isPanning
     ? "grabbing"
     : isSpaceHeld()
       ? "grab"
-      : undefined;
+      : formatPainterMode !== "off"
+        ? "crosshair"
+        : undefined;
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: canvas area needs mouse interaction
@@ -358,6 +536,18 @@ export function SlideCanvas({ slide, zoom }: SlideCanvasProps) {
         onDoubleClick={handleCanvasDoubleClick}
       >
         {slide.elements.map(renderElement)}
+        {groupBoundingBoxes.map((box) => (
+          <div
+            key={`group-${box.groupId}`}
+            className="pointer-events-none absolute border-2 border-dashed border-blue-400"
+            style={{
+              left: box.left - 4,
+              top: box.top - 4,
+              width: box.width + 8,
+              height: box.height + 8,
+            }}
+          />
+        ))}
         <AlignmentLines lines={lines} />
         <SelectionBox rect={selectionRect} />
       </div>

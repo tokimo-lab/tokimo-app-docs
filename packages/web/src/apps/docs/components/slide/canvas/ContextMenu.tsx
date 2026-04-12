@@ -55,6 +55,8 @@ export function ContextMenu({ viewportRef }: ContextMenuProps) {
   const pushHistory = useSlideStore((s) => s.pushHistory);
   const updateElement = useSlideStore((s) => s.updateElement);
   const currentSlide = useSlideStore((s) => s.currentSlide);
+  const groupElements = useSlideStore((s) => s.groupElements);
+  const ungroupElements = useSlideStore((s) => s.ungroupElements);
 
   const close = useCallback(() => {
     setPosition(null);
@@ -131,6 +133,12 @@ export function ContextMenu({ viewportRef }: ContextMenuProps) {
   );
   const hasSelection = selectedIds.length > 0;
   const isLocked = targetElement?.lock ?? false;
+  const hasGroupedSelection = (() => {
+    if (!slide || selectedIds.length === 0) return false;
+    return slide.elements.some(
+      (el: SlideElement) => selectedIds.includes(el.id) && !!el.groupId,
+    );
+  })();
 
   const alignElement = useCallback(
     (axis: "horizontal" | "vertical", position: "start" | "center" | "end") => {
@@ -284,6 +292,40 @@ export function ContextMenu({ viewportRef }: ContextMenuProps) {
           close();
         },
       },
+      { label: "", separator: true },
+      {
+        label: "组合",
+        shortcut: "Ctrl+G",
+        disabled: selectedIds.length < 2,
+        action: () => {
+          if (selectedIds.length >= 2) {
+            groupElements(selectedIds);
+          }
+          close();
+        },
+      },
+      {
+        label: "取消组合",
+        shortcut: "Ctrl+Shift+G",
+        disabled: !hasGroupedSelection,
+        action: () => {
+          if (slide) {
+            const groupIds = new Set(
+              slide.elements
+                .filter(
+                  (el: SlideElement) =>
+                    selectedIds.includes(el.id) && !!el.groupId,
+                )
+                .map((el) => el.groupId as string),
+            );
+            for (const gid of groupIds) {
+              ungroupElements(gid);
+            }
+          }
+          close();
+        },
+      },
+      { label: "", separator: true },
       {
         label: isLocked ? "解锁" : "锁定",
         action: () => {
@@ -322,6 +364,9 @@ export function ContextMenu({ viewportRef }: ContextMenuProps) {
     deleteElements,
     hasSelection,
     selectedIds,
+    groupElements,
+    ungroupElements,
+    hasGroupedSelection,
     close,
   ]);
 
@@ -386,11 +431,15 @@ export function ContextMenu({ viewportRef }: ContextMenuProps) {
             // biome-ignore lint/a11y/noStaticElementInteractions: context menu item
             <div
               key={item.label}
-              className="flex cursor-pointer items-center justify-between px-3 py-1.5 text-sm text-neutral-800 hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-700"
+              className={`flex items-center justify-between px-3 py-1.5 text-sm ${
+                item.disabled
+                  ? "cursor-default text-neutral-400 dark:text-neutral-600"
+                  : "cursor-pointer text-neutral-800 hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-700"
+              }`}
               onMouseDown={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (item.action) item.action();
+                if (!item.disabled && item.action) item.action();
               }}
               onMouseEnter={(e) => handleSubMenuEnter(item, e)}
             >

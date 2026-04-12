@@ -20,6 +20,9 @@ export function ImageElement({
     [element.id, onSelect],
   );
 
+  const scaleX = element.flipH ? -1 : 1;
+  const scaleY = element.flipV ? -1 : 1;
+
   return (
     <div
       data-element-id={element.id}
@@ -29,13 +32,19 @@ export function ImageElement({
         top: element.top,
         width: element.width,
         height: element.height,
-        transform: `rotate(${element.rotate}deg)`,
+        transform: `rotate(${element.rotate}deg) scale(${scaleX}, ${scaleY})`,
         opacity: element.opacity ?? 1,
         outline: selected ? "2px solid #4A90D9" : undefined,
         outlineOffset: 2,
         cursor: "move",
         borderRadius: element.radius ? `${element.radius}px` : undefined,
         overflow: "hidden",
+        boxShadow: element.shadow
+          ? `${element.shadow.offsetX}px ${element.shadow.offsetY}px ${element.shadow.blur}px ${element.shadow.color}`
+          : undefined,
+        border: element.outline
+          ? `${element.outline.width}px ${element.outline.style} ${element.outline.color}`
+          : undefined,
       }}
       onMouseDown={handleMouseDown}
       role="img"

@@ -4,8 +4,8 @@ import {
   Film,
   Image as ImageIcon,
   MessageSquare,
+  Minus,
   Paintbrush,
-  PenTool,
   Pentagon,
   Redo2,
   Sparkles,
@@ -14,33 +14,46 @@ import {
   Undo2,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import { SHAPES } from "./lib/shapes";
-import type { SlideShapeElement } from "./types";
+import { HamburgerMenu } from "./components/HamburgerMenu";
+import type { ShapeLibraryItem } from "./lib/shape-library";
+import { SHAPE_LIBRARY } from "./lib/shape-library";
+import type { SlideLineElement, SlideShapeElement } from "./types";
 import {
+  createAudioElement,
+  createChartElement,
+  createLatexElement,
+  createTableElement,
   createTextElement,
+  createVideoElement,
   generateId,
   VIEWPORT_HEIGHT,
   VIEWPORT_WIDTH,
 } from "./types";
 import { useSlideStore } from "./use-slide-store";
 
-interface SlideToolbarProps {
-  activePanel: string | null;
-  onPanelChange: (panel: string | null) => void;
-}
-
-export function SlideToolbar({
-  activePanel,
-  onPanelChange,
-}: SlideToolbarProps) {
+export function SlideToolbar() {
   const addElement = useSlideStore((s) => s.addElement);
   const undo = useSlideStore((s) => s.undo);
   const redo = useSlideStore((s) => s.redo);
   const historyIndex = useSlideStore((s) => s.historyIndex);
+  const formatPainterMode = useSlideStore((s) => s.formatPainterMode);
+  const activateFormatPainter = useSlideStore((s) => s.activateFormatPainter);
+  const deactivateFormatPainter = useSlideStore(
+    (s) => s.deactivateFormatPainter,
+  );
 
   const [textMenuOpen, setTextMenuOpen] = useState(false);
   const [shapeMenuOpen, setShapeMenuOpen] = useState(false);
+  const [chartMenuOpen, setChartMenuOpen] = useState(false);
+  const [mediaMenuOpen, setMediaMenuOpen] = useState(false);
+  const [tableMenuOpen, setTableMenuOpen] = useState(false);
+  const [lineMenuOpen, setLineMenuOpen] = useState(false);
+  const [tableHover, setTableHover] = useState<{
+    row: number;
+    col: number;
+  }>({ row: 0, col: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fpClickTimer = useRef<ReturnType<typeof setTimeout>>(null);
 
   const handleAddText = useCallback(
     (textType: "title" | "subtitle" | "body" | "heading" | "small") => {
@@ -51,7 +64,7 @@ export function SlideToolbar({
   );
 
   const handleAddShape = useCallback(
-    (shape: (typeof SHAPES)[number]) => {
+    (shape: ShapeLibraryItem) => {
       const el: SlideShapeElement = {
         id: generateId(),
         type: "shape",
@@ -66,6 +79,37 @@ export function SlideToolbar({
       };
       addElement(el);
       setShapeMenuOpen(false);
+    },
+    [addElement],
+  );
+
+  const handleAddLine = useCallback(
+    (lineType: "straight" | "polyline" | "curve") => {
+      const midX = VIEWPORT_WIDTH / 2;
+      const midY = VIEWPORT_HEIGHT / 2;
+      const controlPoints: [number, number][] =
+        lineType === "polyline"
+          ? [[midX, midY - 50]]
+          : lineType === "curve"
+            ? [[midX, midY - 80]]
+            : [];
+      const el: SlideLineElement = {
+        id: generateId(),
+        type: "line",
+        left: midX - 100,
+        top: midY,
+        width: 200,
+        start: [0, 50],
+        end: [200, 50],
+        style: "solid",
+        color: "#333333",
+        strokeWidth: 2,
+        points: ["", "arrow"],
+        lineType,
+        controlPoints,
+      };
+      addElement(el);
+      setLineMenuOpen(false);
     },
     [addElement],
   );
@@ -111,6 +155,10 @@ export function SlideToolbar({
   const closeAllMenus = useCallback(() => {
     setTextMenuOpen(false);
     setShapeMenuOpen(false);
+    setChartMenuOpen(false);
+    setMediaMenuOpen(false);
+    setTableMenuOpen(false);
+    setLineMenuOpen(false);
   }, []);
 
   const itemClass = (active: boolean) =>
@@ -120,8 +168,19 @@ export function SlideToolbar({
       active && "bg-blue-50 text-blue-500 dark:bg-blue-500/10",
     );
 
+  const handleAddTable = useCallback(
+    (rows: number, cols: number) => {
+      addElement(createTableElement(rows, cols));
+      setTableMenuOpen(false);
+    },
+    [addElement],
+  );
+
   return (
     <div className="flex items-center gap-0.5 py-1">
+      <HamburgerMenu />
+      <div className="mx-1.5 h-5 w-px bg-border-subtle" />
+
       {/* Undo/Redo */}
       <button
         type="button"
@@ -141,6 +200,41 @@ export function SlideToolbar({
         <Redo2 size={16} />
       </button>
 
+      {/* Format Painter */}
+      <button
+        type="button"
+        className={cn(
+          "cursor-pointer rounded p-1.5 hover:bg-black/5 dark:hover:bg-white/5",
+          formatPainterMode !== "off" &&
+            "bg-blue-50 text-blue-500 dark:bg-blue-500/10",
+        )}
+        title={
+          formatPainterMode === "persistent"
+            ? "格式刷 (持续模式，按 Esc 退出)"
+            : formatPainterMode === "single"
+              ? "格式刷 (单次模式)"
+              : "格式刷 (单击: 单次, 双击: 持续)"
+        }
+        onClick={() => {
+          if (formatPainterMode !== "off") {
+            deactivateFormatPainter();
+            return;
+          }
+          if (fpClickTimer.current) {
+            clearTimeout(fpClickTimer.current);
+            fpClickTimer.current = null;
+            activateFormatPainter("persistent");
+          } else {
+            fpClickTimer.current = setTimeout(() => {
+              fpClickTimer.current = null;
+              activateFormatPainter("single");
+            }, 250);
+          }
+        }}
+      >
+        <Paintbrush size={16} />
+      </button>
+
       <div className="mx-1.5 h-5 w-px bg-border-subtle" />
 
       {/* Text dropdown */}
@@ -151,6 +245,10 @@ export function SlideToolbar({
           onClick={() => {
             setTextMenuOpen(!textMenuOpen);
             setShapeMenuOpen(false);
+            setChartMenuOpen(false);
+            setMediaMenuOpen(false);
+            setTableMenuOpen(false);
+            setLineMenuOpen(false);
           }}
         >
           <Type size={18} />
@@ -193,6 +291,10 @@ export function SlideToolbar({
           onClick={() => {
             setShapeMenuOpen(!shapeMenuOpen);
             setTextMenuOpen(false);
+            setChartMenuOpen(false);
+            setMediaMenuOpen(false);
+            setTableMenuOpen(false);
+            setLineMenuOpen(false);
           }}
         >
           <Pentagon size={18} />
@@ -203,27 +305,35 @@ export function SlideToolbar({
             {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay */}
             {/* biome-ignore lint/a11y/useKeyWithClickEvents: no keyboard interaction needed */}
             <div className="fixed inset-0 z-40" onClick={closeAllMenus} />
-            <div className="absolute left-0 top-full z-50 mt-1 grid grid-cols-4 gap-1 rounded-md border border-border-subtle bg-white p-2 shadow-lg dark:bg-neutral-800">
-              {SHAPES.map((shape) => (
-                <button
-                  key={shape.name}
-                  type="button"
-                  className="flex cursor-pointer flex-col items-center gap-0.5 rounded p-1.5 hover:bg-black/5 dark:hover:bg-white/5"
-                  title={shape.label}
-                  onClick={() => handleAddShape(shape)}
-                >
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox={`0 0 ${shape.viewBox[0]} ${shape.viewBox[1]}`}
-                  >
-                    <path d={shape.path} fill="#666" />
-                  </svg>
-                  <span className="text-[10px] text-fg-muted">
-                    {shape.label}
-                  </span>
-                </button>
-              ))}
+            <div className="absolute left-0 top-full z-50 mt-1 w-[320px] rounded-md border border-border-subtle bg-white shadow-lg dark:bg-neutral-800">
+              <div className="max-h-[400px] overflow-y-auto p-2">
+                {SHAPE_LIBRARY.map((category) => (
+                  <div key={category.id} className="mb-2 last:mb-0">
+                    <div className="mb-1 px-1 text-[11px] font-medium text-fg-muted">
+                      {category.name}
+                    </div>
+                    <div className="grid grid-cols-8 gap-0.5">
+                      {category.shapes.map((shape) => (
+                        <button
+                          key={shape.id}
+                          type="button"
+                          className="flex cursor-pointer items-center justify-center rounded p-0.5 hover:bg-black/5 dark:hover:bg-white/5"
+                          title={shape.name}
+                          onClick={() => handleAddShape(shape)}
+                        >
+                          <svg
+                            width="32"
+                            height="32"
+                            viewBox={`0 0 ${shape.viewBox[0]} ${shape.viewBox[1]}`}
+                          >
+                            <path d={shape.path} fill="#666" />
+                          </svg>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </>
         )}
@@ -249,42 +359,250 @@ export function SlideToolbar({
         onChange={handleImageUpload}
       />
 
-      {/* 媒体 */}
-      <button type="button" className={itemClass(false)}>
-        <Film size={18} />
-        <span className="text-[11px] leading-tight">媒体</span>
-      </button>
+      {/* 媒体 dropdown */}
+      <div className="relative">
+        <button
+          type="button"
+          className={itemClass(mediaMenuOpen)}
+          onClick={() => {
+            setMediaMenuOpen(!mediaMenuOpen);
+            setTextMenuOpen(false);
+            setShapeMenuOpen(false);
+            setChartMenuOpen(false);
+            setTableMenuOpen(false);
+            setLineMenuOpen(false);
+          }}
+        >
+          <Film size={18} />
+          <span className="text-[11px] leading-tight">媒体</span>
+        </button>
+        {mediaMenuOpen && (
+          <>
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay */}
+            {/* biome-ignore lint/a11y/useKeyWithClickEvents: no keyboard interaction needed */}
+            <div className="fixed inset-0 z-40" onClick={closeAllMenus} />
+            <div className="absolute left-0 top-full z-50 mt-1 min-w-[120px] rounded-md border border-border-subtle bg-white py-1 shadow-lg dark:bg-neutral-800">
+              <button
+                type="button"
+                className="block w-full cursor-pointer px-3 py-1.5 text-left text-xs hover:bg-black/5 dark:hover:bg-white/5"
+                onClick={() => {
+                  addElement(createVideoElement());
+                  setMediaMenuOpen(false);
+                }}
+              >
+                视频
+              </button>
+              <button
+                type="button"
+                className="block w-full cursor-pointer px-3 py-1.5 text-left text-xs hover:bg-black/5 dark:hover:bg-white/5"
+                onClick={() => {
+                  addElement(createAudioElement());
+                  setMediaMenuOpen(false);
+                }}
+              >
+                音频
+              </button>
+            </div>
+          </>
+        )}
+      </div>
 
-      {/* 图表 */}
-      <button type="button" className={itemClass(false)}>
-        <BarChart3 size={18} />
-        <span className="text-[11px] leading-tight">图表</span>
-      </button>
+      {/* 图表 dropdown */}
+      <div className="relative">
+        <button
+          type="button"
+          className={itemClass(chartMenuOpen)}
+          onClick={() => {
+            setChartMenuOpen(!chartMenuOpen);
+            setTextMenuOpen(false);
+            setShapeMenuOpen(false);
+            setMediaMenuOpen(false);
+            setTableMenuOpen(false);
+            setLineMenuOpen(false);
+          }}
+        >
+          <BarChart3 size={18} />
+          <span className="text-[11px] leading-tight">图表</span>
+        </button>
+        {chartMenuOpen && (
+          <>
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay */}
+            {/* biome-ignore lint/a11y/useKeyWithClickEvents: no keyboard interaction needed */}
+            <div className="fixed inset-0 z-40" onClick={closeAllMenus} />
+            <div className="absolute left-0 top-full z-50 mt-1 min-w-[120px] rounded-md border border-border-subtle bg-white py-1 shadow-lg dark:bg-neutral-800">
+              {(
+                [
+                  ["bar", "柱状图"],
+                  ["column", "条形图"],
+                  ["line", "折线图"],
+                  ["area", "面积图"],
+                  ["scatter", "散点图"],
+                  ["pie", "饼图"],
+                  ["doughnut", "环形图"],
+                  ["radar", "雷达图"],
+                ] as const
+              ).map(([type, label]) => (
+                <button
+                  key={type}
+                  type="button"
+                  className="block w-full cursor-pointer px-3 py-1.5 text-left text-xs hover:bg-black/5 dark:hover:bg-white/5"
+                  onClick={() => {
+                    addElement(createChartElement(type));
+                    setChartMenuOpen(false);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
 
-      {/* 表格 */}
-      <button type="button" className={itemClass(false)}>
-        <Table2 size={18} />
-        <span className="text-[11px] leading-tight">表格</span>
-      </button>
-
-      {/* 绘图 */}
-      <button type="button" className={itemClass(false)}>
-        <PenTool size={18} />
-        <span className="text-[11px] leading-tight">绘图</span>
-      </button>
-
-      {/* 格式 */}
+      {/* 公式 */}
       <button
         type="button"
-        className={itemClass(activePanel === "format")}
+        className={itemClass(false)}
         onClick={() => {
           closeAllMenus();
-          onPanelChange("format");
+          addElement(createLatexElement());
         }}
+        title="插入公式"
       >
-        <Paintbrush size={18} />
-        <span className="text-[11px] leading-tight">格式</span>
+        <span className="font-serif text-base italic leading-none">Σ</span>
+        <span className="text-[11px] leading-tight">公式</span>
       </button>
+
+      {/* 表格 dropdown */}
+      <div className="relative">
+        <button
+          type="button"
+          className={itemClass(tableMenuOpen)}
+          onClick={() => {
+            setTableMenuOpen(!tableMenuOpen);
+            setTextMenuOpen(false);
+            setShapeMenuOpen(false);
+            setChartMenuOpen(false);
+            setMediaMenuOpen(false);
+            setLineMenuOpen(false);
+          }}
+        >
+          <Table2 size={18} />
+          <span className="text-[11px] leading-tight">表格</span>
+        </button>
+        {tableMenuOpen && (
+          <>
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay */}
+            {/* biome-ignore lint/a11y/useKeyWithClickEvents: no keyboard interaction needed */}
+            <div className="fixed inset-0 z-40" onClick={closeAllMenus} />
+            <div className="absolute left-0 top-full z-50 mt-1 rounded-md border border-border-subtle bg-white p-2 shadow-lg dark:bg-neutral-800">
+              <div className="mb-1 text-center text-xs text-fg-muted">
+                {tableHover.row > 0
+                  ? `${tableHover.row} × ${tableHover.col}`
+                  : "选择大小"}
+              </div>
+              <div className="grid grid-cols-6 gap-0.5">
+                {Array.from({ length: 36 }, (_, idx) => {
+                  const r = Math.floor(idx / 6);
+                  const c = idx % 6;
+                  return (
+                    <button
+                      key={`table-${r}-${c}`}
+                      type="button"
+                      className="h-4 w-4 cursor-pointer rounded-sm border border-neutral-300 dark:border-neutral-600"
+                      style={{
+                        backgroundColor:
+                          r < tableHover.row && c < tableHover.col
+                            ? "#4472C4"
+                            : undefined,
+                      }}
+                      onMouseEnter={() =>
+                        setTableHover({ row: r + 1, col: c + 1 })
+                      }
+                      onMouseLeave={() => setTableHover({ row: 0, col: 0 })}
+                      onClick={() => handleAddTable(r + 1, c + 1)}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* 线条 */}
+      <div className="relative">
+        <button
+          type="button"
+          className={itemClass(lineMenuOpen)}
+          onClick={() => {
+            setLineMenuOpen(!lineMenuOpen);
+            setTextMenuOpen(false);
+            setShapeMenuOpen(false);
+            setChartMenuOpen(false);
+            setMediaMenuOpen(false);
+            setTableMenuOpen(false);
+          }}
+        >
+          <Minus size={18} />
+          <span className="text-[11px] leading-tight">线条</span>
+        </button>
+        {lineMenuOpen && (
+          <>
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay */}
+            {/* biome-ignore lint/a11y/useKeyWithClickEvents: no keyboard interaction needed */}
+            <div className="fixed inset-0 z-40" onClick={closeAllMenus} />
+            <div className="absolute left-0 top-full z-50 mt-1 w-36 rounded-md border border-border-subtle bg-white shadow-lg dark:bg-neutral-800">
+              <div className="p-1">
+                {(
+                  [
+                    ["straight", "直线"],
+                    ["polyline", "折线"],
+                    ["curve", "曲线"],
+                  ] as const
+                ).map(([type, label]) => (
+                  <button
+                    key={type}
+                    type="button"
+                    className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-black/5 dark:hover:bg-white/5"
+                    onClick={() => handleAddLine(type)}
+                  >
+                    <svg width="24" height="14" viewBox="0 0 24 14">
+                      {type === "straight" && (
+                        <line
+                          x1="2"
+                          y1="12"
+                          x2="22"
+                          y2="2"
+                          stroke="#666"
+                          strokeWidth="2"
+                        />
+                      )}
+                      {type === "polyline" && (
+                        <polyline
+                          points="2,12 12,2 22,12"
+                          fill="none"
+                          stroke="#666"
+                          strokeWidth="2"
+                        />
+                      )}
+                      {type === "curve" && (
+                        <path
+                          d="M2,12 Q12,-2 22,12"
+                          fill="none"
+                          stroke="#666"
+                          strokeWidth="2"
+                        />
+                      )}
+                    </svg>
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* 动画 */}
       <button type="button" className={itemClass(false)}>

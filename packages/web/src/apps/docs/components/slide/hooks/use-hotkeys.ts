@@ -16,6 +16,11 @@ export function useHotkeys(slide: Slide) {
   const sendBackward = useSlideStore((s) => s.sendBackward);
   const bringToFront = useSlideStore((s) => s.bringToFront);
   const sendToBack = useSlideStore((s) => s.sendToBack);
+  const groupElements = useSlideStore((s) => s.groupElements);
+  const ungroupElements = useSlideStore((s) => s.ungroupElements);
+  const deactivateFormatPainter = useSlideStore(
+    (s) => s.deactivateFormatPainter,
+  );
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -25,6 +30,16 @@ export function useHotkeys(slide: Slide) {
 
       const mod = e.metaKey || e.ctrlKey;
 
+      // Escape — deactivate format painter
+      if (e.key === "Escape") {
+        const fpMode = useSlideStore.getState().formatPainterMode;
+        if (fpMode !== "off") {
+          e.preventDefault();
+          deactivateFormatPainter();
+          return;
+        }
+      }
+
       // Delete / Backspace
       if (
         (e.key === "Delete" || e.key === "Backspace") &&
@@ -32,6 +47,34 @@ export function useHotkeys(slide: Slide) {
       ) {
         e.preventDefault();
         deleteElements(selectedIds);
+        return;
+      }
+
+      // Ungroup: Ctrl+Shift+G (must check before Ctrl+G)
+      if (e.key === "g" && mod && e.shiftKey) {
+        e.preventDefault();
+        if (selectedIds.length > 0) {
+          const selectedElements = slide.elements.filter((el: SlideElement) =>
+            selectedIds.includes(el.id),
+          );
+          const groupIds = new Set(
+            selectedElements
+              .map((el) => el.groupId)
+              .filter((gid): gid is string => !!gid),
+          );
+          for (const gid of groupIds) {
+            ungroupElements(gid);
+          }
+        }
+        return;
+      }
+
+      // Group: Ctrl+G
+      if (e.key === "g" && mod && !e.shiftKey) {
+        e.preventDefault();
+        if (selectedIds.length >= 2) {
+          groupElements(selectedIds);
+        }
         return;
       }
 
@@ -84,6 +127,24 @@ export function useHotkeys(slide: Slide) {
         return;
       }
 
+      // Search: Ctrl+F
+      if (e.key === "f" && mod) {
+        e.preventDefault();
+        window.dispatchEvent(
+          new CustomEvent("slide-search", { detail: { replace: false } }),
+        );
+        return;
+      }
+
+      // Search & Replace: Ctrl+H
+      if (e.key === "h" && mod) {
+        e.preventDefault();
+        window.dispatchEvent(
+          new CustomEvent("slide-search", { detail: { replace: true } }),
+        );
+        return;
+      }
+
       // Layer ordering
       if (e.key === "ArrowUp" && mod && selectedIds.length === 1) {
         e.preventDefault();
@@ -122,5 +183,8 @@ export function useHotkeys(slide: Slide) {
     sendBackward,
     bringToFront,
     sendToBack,
+    groupElements,
+    ungroupElements,
+    deactivateFormatPainter,
   ]);
 }
