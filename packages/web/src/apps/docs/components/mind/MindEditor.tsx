@@ -123,6 +123,10 @@ export function MindEditor({
       keypress: true,
       allowUndo: true,
       theme: customTheme,
+      // Append viselect's clipping element to document.body instead of map-container.
+      // The FloatingWindow has backdrop-filter which creates a new containing block,
+      // causing position:fixed selection areas to be offset from the actual mouse position.
+      selectionContainer: document.body,
     });
 
     mind.init(cleanData as MindElixirData);

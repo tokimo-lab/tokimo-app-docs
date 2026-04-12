@@ -29,6 +29,7 @@ import {
   RedoIcon,
   ToCenterIcon,
   UndoIcon,
+  ZoomIcon,
   ZoomInIcon,
   ZoomOutIcon,
 } from "./mind-toolbar-icons";
@@ -71,18 +72,30 @@ function PortalPopover({
   onMouseEnter,
   onMouseLeave,
 }: PortalPopoverProps) {
-  const rect = anchorRef.current?.getBoundingClientRect();
-  if (!rect) return null;
-  // Position to the right of anchor, bottom-aligned
-  const style: React.CSSProperties = {
-    position: "fixed",
-    left: rect.right + 8,
-    bottom: window.innerHeight - rect.bottom,
-    zIndex: 9999,
-  };
+  const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
+
+  useEffect(() => {
+    const el = anchorRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setPos({ left: rect.right, bottom: window.innerHeight - rect.bottom });
+  }, [anchorRef]);
+
+  if (!pos) return null;
+
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: hover bridge for portal popover
-    <div style={style} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+    <div
+      style={{
+        position: "fixed",
+        left: pos.left,
+        bottom: pos.bottom,
+        zIndex: 9999,
+        paddingLeft: 8,
+      }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       {children}
     </div>
   );
@@ -190,10 +203,36 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
 
   const branchRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef<HTMLDivElement>(null);
+  const branchTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const zoomTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   const fullscreenDataRef = useRef<{
     mapCenterX: number;
     mapCenterY: number;
   } | null>(null);
+
+  // Delayed hover helpers — allow mouse travel from button to popover
+  const openBranch = useCallback(() => {
+    if (branchTimerRef.current) clearTimeout(branchTimerRef.current);
+    setShowBranch(true);
+  }, []);
+  const closeBranch = useCallback(() => {
+    branchTimerRef.current = setTimeout(() => setShowBranch(false), 200);
+  }, []);
+  const openZoom = useCallback(() => {
+    if (zoomTimerRef.current) clearTimeout(zoomTimerRef.current);
+    setShowZoom(true);
+  }, []);
+  const closeZoom = useCallback(() => {
+    zoomTimerRef.current = setTimeout(() => setShowZoom(false), 200);
+  }, []);
+
+  // Cleanup timers
+  useEffect(() => {
+    return () => {
+      if (branchTimerRef.current) clearTimeout(branchTimerRef.current);
+      if (zoomTimerRef.current) clearTimeout(zoomTimerRef.current);
+    };
+  }, []);
 
   // Sync direction from mind instance
   useEffect(() => {
@@ -217,9 +256,13 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
     return () => mind.bus.removeListener("scale", handler);
   }, [mind]);
 
-  // Fullscreen change handler
+  // Fullscreen change handler — targets the .mind-feishu container (includes toolbar)
   useEffect(() => {
     if (!mind) return;
+    const fsContainer = mind.container.closest(".mind-feishu") as
+      | HTMLElement
+      | undefined;
+    if (!fsContainer) return;
     const handleFullscreenChange = () => {
       const data = fullscreenDataRef.current;
       if (!data) return;
@@ -234,9 +277,12 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
         mind.move(tx - Number(m[1]), ty - Number(m[2]));
       }
     };
-    mind.el.addEventListener("fullscreenchange", handleFullscreenChange);
+    fsContainer.addEventListener("fullscreenchange", handleFullscreenChange);
     return () =>
-      mind.el.removeEventListener("fullscreenchange", handleFullscreenChange);
+      fsContainer.removeEventListener(
+        "fullscreenchange",
+        handleFullscreenChange,
+      );
   }, [mind]);
 
   const handleUndo = useCallback(() => mind?.undo(), [mind]);
@@ -266,6 +312,10 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
 
   const handleFullscreen = useCallback(() => {
     if (!mind) return;
+    const fsContainer = mind.container.closest(".mind-feishu") as
+      | HTMLElement
+      | undefined;
+    if (!fsContainer) return;
     // Record current state for repositioning after fullscreen change
     const rect = mind.container.getBoundingClientRect();
     const style = mind.map.style.transform;
@@ -276,8 +326,8 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
       mapCenterX: (rect.width / 2 - curX) / mind.scaleVal,
       mapCenterY: (rect.height / 2 - curY) / mind.scaleVal,
     };
-    if (document.fullscreenElement !== mind.el) {
-      mind.el.requestFullscreen();
+    if (document.fullscreenElement !== fsContainer) {
+      fsContainer.requestFullscreen();
     } else {
       document.exitFullscreen();
     }
@@ -351,8 +401,8 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
         <div
           ref={branchRef}
           className="relative"
-          onMouseEnter={() => setShowBranch(true)}
-          onMouseLeave={() => setShowBranch(false)}
+          onMouseEnter={openBranch}
+          onMouseLeave={closeBranch}
         >
           <button
             type="button"
@@ -365,8 +415,8 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
             createPortal(
               <PortalPopover
                 anchorRef={branchRef}
-                onMouseEnter={() => setShowBranch(true)}
-                onMouseLeave={() => setShowBranch(false)}
+                onMouseEnter={openBranch}
+                onMouseLeave={closeBranch}
               >
                 <BranchPopover
                   direction={direction}
@@ -404,24 +454,24 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
         <div
           ref={zoomRef}
           className="relative"
-          onMouseEnter={() => setShowZoom(true)}
-          onMouseLeave={() => setShowZoom(false)}
+          onMouseEnter={openZoom}
+          onMouseLeave={closeZoom}
         >
           <button
             type="button"
-            className={`${BTN} ${BTN_CLR} rounded-b-[7px] text-[10px] font-medium leading-none`}
-            title={t("docs.resetZoom")}
+            className={`${BTN} ${BTN_CLR} rounded-b-[7px]`}
+            title={`${zoom}%`}
             onClick={() => mind.scale(1)}
           >
-            {zoom}%
+            <ZoomIcon />
           </button>
 
           {showZoom &&
             createPortal(
               <PortalPopover
                 anchorRef={zoomRef}
-                onMouseEnter={() => setShowZoom(true)}
-                onMouseLeave={() => setShowZoom(false)}
+                onMouseEnter={openZoom}
+                onMouseLeave={closeZoom}
               >
                 <div className="flex h-8 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-1.5 shadow-sm dark:border-gray-600 dark:bg-[#2b2f36]">
                   <button

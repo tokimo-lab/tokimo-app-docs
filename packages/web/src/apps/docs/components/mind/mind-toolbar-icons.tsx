@@ -59,6 +59,21 @@ export function ToCenterIcon() {
   );
 }
 
+export function ZoomIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M10.5 4a6.5 6.5 0 1 0 3.936 11.686l3.939 3.939a1 1 0 0 0 1.414-1.414l-3.939-3.939A6.5 6.5 0 0 0 10.5 4ZM6 10.5a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0Z"
+        fill="currentColor"
+      />
+      <path
+        d="M10.5 7.5a1 1 0 0 1 1 1v1.5H13a1 1 0 1 1 0 2h-1.5V13.5a1 1 0 1 1-2 0V12H8a1 1 0 1 1 0-2h1.5V8.5a1 1 0 0 1 1-1Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 export function FitToScreenIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16">

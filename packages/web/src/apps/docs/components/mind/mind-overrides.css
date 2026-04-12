@@ -95,6 +95,15 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* ── Fullscreen background ──────────────────────────── */
+.mind-feishu:fullscreen {
+  background: white;
+}
+
+:is(.dark, [data-theme="dark"]) .mind-feishu:fullscreen {
+  background: #1e2028;
+}
+
 /* ── Context menu (Feishu-inspired) ────────────────── */
 
 /* Light mode */
