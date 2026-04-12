@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import type { Slide } from "./types";
 import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from "./types";
@@ -122,6 +122,18 @@ export function SlideThumbnailPanel() {
 
   return (
     <div className="flex w-[200px] flex-shrink-0 flex-col border-r border-border-subtle bg-fill-secondary dark:bg-neutral-900">
+      <div className="border-b border-border-subtle p-2">
+        <button
+          type="button"
+          className="flex w-full cursor-pointer items-center justify-center gap-1 rounded px-2 py-1.5 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary"
+          onClick={() => addSlide(currentIndex)}
+        >
+          <Plus size={14} />
+          新建幻灯片
+          <ChevronDown size={12} />
+        </button>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-2">
         {slides.map((slide, i) => (
           // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard navigation not needed for thumbnail items
@@ -146,17 +158,6 @@ export function SlideThumbnailPanel() {
             {renderThumb(slide)}
           </div>
         ))}
-      </div>
-
-      <div className="border-t border-border-subtle p-2">
-        <button
-          type="button"
-          className="flex w-full cursor-pointer items-center justify-center gap-1 rounded px-2 py-1.5 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary"
-          onClick={() => addSlide(currentIndex)}
-        >
-          <Plus size={14} />
-          新建幻灯片
-        </button>
       </div>
 
       {contextMenu && (

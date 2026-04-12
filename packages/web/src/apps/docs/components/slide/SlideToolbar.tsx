@@ -1,4 +1,18 @@
-import { ChevronDown, Image, Maximize, Redo2, Type, Undo2 } from "lucide-react";
+import { cn } from "@tokiomo/components";
+import {
+  BarChart3,
+  Film,
+  Image as ImageIcon,
+  MessageSquare,
+  Paintbrush,
+  PenTool,
+  Pentagon,
+  Redo2,
+  Sparkles,
+  Table2,
+  Type,
+  Undo2,
+} from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { SHAPES } from "./lib/shapes";
 import type { SlideShapeElement } from "./types";
@@ -11,10 +25,14 @@ import {
 import { useSlideStore } from "./use-slide-store";
 
 interface SlideToolbarProps {
-  onPresent: () => void;
+  activePanel: string | null;
+  onPanelChange: (panel: string | null) => void;
 }
 
-export function SlideToolbar({ onPresent }: SlideToolbarProps) {
+export function SlideToolbar({
+  activePanel,
+  onPanelChange,
+}: SlideToolbarProps) {
   const addElement = useSlideStore((s) => s.addElement);
   const undo = useSlideStore((s) => s.undo);
   const redo = useSlideStore((s) => s.redo);
@@ -90,30 +108,59 @@ export function SlideToolbar({ onPresent }: SlideToolbarProps) {
     [addElement],
   );
 
+  const closeAllMenus = useCallback(() => {
+    setTextMenuOpen(false);
+    setShapeMenuOpen(false);
+  }, []);
+
+  const itemClass = (active: boolean) =>
+    cn(
+      "flex cursor-pointer flex-col items-center justify-center gap-0.5 rounded-md px-3 py-1.5 min-w-[44px]",
+      "hover:bg-black/5 dark:hover:bg-white/5",
+      active && "bg-blue-50 text-blue-500 dark:bg-blue-500/10",
+    );
+
   return (
-    <div className="flex items-center gap-1 border-b border-border-subtle bg-fill-secondary px-3 py-1 dark:bg-neutral-900">
+    <div className="flex items-center gap-0.5 py-1">
+      {/* Undo/Redo */}
+      <button
+        type="button"
+        className="cursor-pointer rounded p-1.5 hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-30"
+        onClick={undo}
+        disabled={historyIndex < 0}
+        title="撤销 (Ctrl+Z)"
+      >
+        <Undo2 size={16} />
+      </button>
+      <button
+        type="button"
+        className="cursor-pointer rounded p-1.5 hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-30"
+        onClick={redo}
+        title="重做 (Ctrl+Shift+Z)"
+      >
+        <Redo2 size={16} />
+      </button>
+
+      <div className="mx-1.5 h-5 w-px bg-border-subtle" />
+
       {/* Text dropdown */}
       <div className="relative">
         <button
           type="button"
-          className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs hover:bg-fill-tertiary"
+          className={itemClass(textMenuOpen)}
           onClick={() => {
             setTextMenuOpen(!textMenuOpen);
             setShapeMenuOpen(false);
           }}
         >
-          <Type size={14} />
-          文本
-          <ChevronDown size={12} />
+          <Type size={18} />
+          <span className="text-[11px] leading-tight">文本</span>
         </button>
         {textMenuOpen && (
           <>
             {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay */}
             {/* biome-ignore lint/a11y/useKeyWithClickEvents: no keyboard interaction needed */}
-            <div
-              className="fixed inset-0 z-40"
-              onClick={() => setTextMenuOpen(false)}
-            />
+            <div className="fixed inset-0 z-40" onClick={closeAllMenus} />
             <div className="absolute left-0 top-full z-50 mt-1 min-w-[120px] rounded-md border border-border-subtle bg-white py-1 shadow-lg dark:bg-neutral-800">
               {(
                 [
@@ -127,7 +174,7 @@ export function SlideToolbar({ onPresent }: SlideToolbarProps) {
                 <button
                   key={type}
                   type="button"
-                  className="block w-full cursor-pointer px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
+                  className="block w-full cursor-pointer px-3 py-1.5 text-left text-xs hover:bg-black/5 dark:hover:bg-white/5"
                   onClick={() => handleAddText(type)}
                 >
                   {label}
@@ -142,39 +189,26 @@ export function SlideToolbar({ onPresent }: SlideToolbarProps) {
       <div className="relative">
         <button
           type="button"
-          className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs hover:bg-fill-tertiary"
+          className={itemClass(shapeMenuOpen)}
           onClick={() => {
             setShapeMenuOpen(!shapeMenuOpen);
             setTextMenuOpen(false);
           }}
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-          </svg>
-          图形
-          <ChevronDown size={12} />
+          <Pentagon size={18} />
+          <span className="text-[11px] leading-tight">图形</span>
         </button>
         {shapeMenuOpen && (
           <>
             {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay */}
             {/* biome-ignore lint/a11y/useKeyWithClickEvents: no keyboard interaction needed */}
-            <div
-              className="fixed inset-0 z-40"
-              onClick={() => setShapeMenuOpen(false)}
-            />
+            <div className="fixed inset-0 z-40" onClick={closeAllMenus} />
             <div className="absolute left-0 top-full z-50 mt-1 grid grid-cols-4 gap-1 rounded-md border border-border-subtle bg-white p-2 shadow-lg dark:bg-neutral-800">
               {SHAPES.map((shape) => (
                 <button
                   key={shape.name}
                   type="button"
-                  className="flex cursor-pointer flex-col items-center gap-0.5 rounded p-1.5 hover:bg-fill-tertiary"
+                  className="flex cursor-pointer flex-col items-center gap-0.5 rounded p-1.5 hover:bg-black/5 dark:hover:bg-white/5"
                   title={shape.label}
                   onClick={() => handleAddShape(shape)}
                 >
@@ -198,11 +232,14 @@ export function SlideToolbar({ onPresent }: SlideToolbarProps) {
       {/* Image */}
       <button
         type="button"
-        className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs hover:bg-fill-tertiary"
-        onClick={() => fileInputRef.current?.click()}
+        className={itemClass(false)}
+        onClick={() => {
+          closeAllMenus();
+          fileInputRef.current?.click();
+        }}
       >
-        <Image size={14} />
-        图片
+        <ImageIcon size={18} />
+        <span className="text-[11px] leading-tight">图片</span>
       </button>
       <input
         ref={fileInputRef}
@@ -212,37 +249,53 @@ export function SlideToolbar({ onPresent }: SlideToolbarProps) {
         onChange={handleImageUpload}
       />
 
-      <div className="mx-2 h-4 w-px bg-border-subtle" />
-
-      {/* Undo/Redo */}
-      <button
-        type="button"
-        className="cursor-pointer rounded p-1 hover:bg-fill-tertiary disabled:opacity-30"
-        onClick={undo}
-        disabled={historyIndex < 0}
-        title="撤销 (Ctrl+Z)"
-      >
-        <Undo2 size={14} />
-      </button>
-      <button
-        type="button"
-        className="cursor-pointer rounded p-1 hover:bg-fill-tertiary disabled:opacity-30"
-        onClick={redo}
-        title="重做 (Ctrl+Shift+Z)"
-      >
-        <Redo2 size={14} />
+      {/* 媒体 */}
+      <button type="button" className={itemClass(false)}>
+        <Film size={18} />
+        <span className="text-[11px] leading-tight">媒体</span>
       </button>
 
-      <div className="flex-1" />
+      {/* 图表 */}
+      <button type="button" className={itemClass(false)}>
+        <BarChart3 size={18} />
+        <span className="text-[11px] leading-tight">图表</span>
+      </button>
 
-      {/* Present */}
+      {/* 表格 */}
+      <button type="button" className={itemClass(false)}>
+        <Table2 size={18} />
+        <span className="text-[11px] leading-tight">表格</span>
+      </button>
+
+      {/* 绘图 */}
+      <button type="button" className={itemClass(false)}>
+        <PenTool size={18} />
+        <span className="text-[11px] leading-tight">绘图</span>
+      </button>
+
+      {/* 格式 */}
       <button
         type="button"
-        className="flex cursor-pointer items-center gap-1 rounded bg-blue-500 px-3 py-1 text-xs text-white transition-colors hover:bg-blue-600"
-        onClick={onPresent}
+        className={itemClass(activePanel === "format")}
+        onClick={() => {
+          closeAllMenus();
+          onPanelChange("format");
+        }}
       >
-        <Maximize size={14} />
-        演示
+        <Paintbrush size={18} />
+        <span className="text-[11px] leading-tight">格式</span>
+      </button>
+
+      {/* 动画 */}
+      <button type="button" className={itemClass(false)}>
+        <Sparkles size={18} />
+        <span className="text-[11px] leading-tight">动画</span>
+      </button>
+
+      {/* 评论 */}
+      <button type="button" className={itemClass(false)}>
+        <MessageSquare size={18} />
+        <span className="text-[11px] leading-tight">评论</span>
       </button>
     </div>
   );

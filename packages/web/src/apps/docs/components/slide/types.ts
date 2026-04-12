@@ -252,6 +252,13 @@ export function createImageElement(
   };
 }
 
+// Layout template type
+export interface SlideLayout {
+  id: string;
+  name: string;
+  elements: SlideElement[];
+}
+
 export function isSlidePresentation(v: unknown): v is SlidePresentation {
   return (
     typeof v === "object" &&

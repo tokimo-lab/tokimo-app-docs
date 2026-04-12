@@ -9,9 +9,10 @@ import { useSlideStore } from "./use-slide-store";
 
 interface SlideCanvasProps {
   slide: Slide;
+  zoom?: number;
 }
 
-export function SlideCanvas({ slide }: SlideCanvasProps) {
+export function SlideCanvas({ slide, zoom }: SlideCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const selectedIds = useSlideStore((s) => s.selectedElementIds);
@@ -22,8 +23,9 @@ export function SlideCanvas({ slide }: SlideCanvasProps) {
   const redo = useSlideStore((s) => s.redo);
   const pushHistory = useSlideStore((s) => s.pushHistory);
 
-  // Scale to fit
+  // Auto-scale from container
   useEffect(() => {
+    if (zoom) return;
     const el = containerRef.current;
     if (!el) return;
     const observer = new ResizeObserver((entries) => {
@@ -39,7 +41,12 @@ export function SlideCanvas({ slide }: SlideCanvasProps) {
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [zoom]);
+
+  // Manual zoom override
+  useEffect(() => {
+    if (zoom) setScale(zoom / 100);
+  }, [zoom]);
 
   // Click empty space → deselect
   const handleCanvasClick = useCallback(
@@ -177,15 +184,14 @@ export function SlideCanvas({ slide }: SlideCanvasProps) {
   // Render element
   const renderElement = (el: SlideElement) => {
     const isSelected = selectedIds.includes(el.id);
-    const wrapperProps = {
-      key: el.id,
-      onMouseDown: (e: React.MouseEvent) => handleElementMouseDown(e, el),
-    };
+    const handleMouseDown = (e: React.MouseEvent) =>
+      handleElementMouseDown(e, el);
 
     switch (el.type) {
       case "text":
         return (
-          <div {...wrapperProps}>
+          // biome-ignore lint/a11y/noStaticElementInteractions: slide element needs mouse interaction
+          <div key={el.id} onMouseDown={handleMouseDown}>
             <TextElement
               element={el}
               selected={isSelected}
@@ -197,7 +203,8 @@ export function SlideCanvas({ slide }: SlideCanvasProps) {
         );
       case "image":
         return (
-          <div {...wrapperProps}>
+          // biome-ignore lint/a11y/noStaticElementInteractions: slide element needs mouse interaction
+          <div key={el.id} onMouseDown={handleMouseDown}>
             <ImageElement
               element={el}
               selected={isSelected}
@@ -207,7 +214,8 @@ export function SlideCanvas({ slide }: SlideCanvasProps) {
         );
       case "shape":
         return (
-          <div {...wrapperProps}>
+          // biome-ignore lint/a11y/noStaticElementInteractions: slide element needs mouse interaction
+          <div key={el.id} onMouseDown={handleMouseDown}>
             <ShapeElement
               element={el}
               selected={isSelected}
@@ -217,7 +225,8 @@ export function SlideCanvas({ slide }: SlideCanvasProps) {
         );
       case "line":
         return (
-          <div {...wrapperProps}>
+          // biome-ignore lint/a11y/noStaticElementInteractions: slide element needs mouse interaction
+          <div key={el.id} onMouseDown={handleMouseDown}>
             <LineElement
               element={el}
               selected={isSelected}
@@ -234,13 +243,13 @@ export function SlideCanvas({ slide }: SlideCanvasProps) {
     // biome-ignore lint/a11y/noStaticElementInteractions: canvas area needs mouse interaction for element deselection
     <div
       ref={containerRef}
-      className="relative flex flex-1 items-center justify-center overflow-hidden bg-neutral-200 dark:bg-neutral-800"
+      className="relative flex flex-1 items-center justify-center overflow-hidden bg-neutral-300 dark:bg-neutral-800"
       onMouseDown={handleCanvasClick}
     >
       {/* biome-ignore lint/a11y/noStaticElementInteractions: viewport area needs mouse interaction for element deselection */}
       <div
         data-viewport="true"
-        className="relative bg-white shadow-lg"
+        className="relative bg-white shadow-xl"
         style={{
           width: VIEWPORT_WIDTH,
           height: VIEWPORT_HEIGHT,

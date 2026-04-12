@@ -31,6 +31,9 @@ interface SlideActions {
   updateElement: (id: string, updates: Partial<SlideElement>) => void;
   deleteElements: (ids: string[]) => void;
   setSelectedElementIds: (ids: string[]) => void;
+  updateSlideNotes: (notes: string) => void;
+  applyLayout: (elements: SlideElement[]) => void;
+  applyBackgroundToAll: (bg: SlideBackground) => void;
   undo: () => void;
   redo: () => void;
   pushHistory: () => void;
@@ -206,6 +209,36 @@ const actions: SlideActions = {
 
   setSelectedElementIds: (ids: string[]) =>
     setState({ selectedElementIds: ids }),
+
+  updateSlideNotes: (notes: string) => {
+    const idx = state.currentSlideIndex;
+    pushHistory();
+    const slides = state.presentation.slides.map((s: Slide, i: number) =>
+      i === idx ? { ...s, notes } : s,
+    );
+    setState({ presentation: { ...state.presentation, slides } });
+  },
+
+  applyLayout: (elements: SlideElement[]) => {
+    const idx = state.currentSlideIndex;
+    pushHistory();
+    const slides = state.presentation.slides.map((s: Slide, i: number) =>
+      i === idx ? { ...s, elements } : s,
+    );
+    setState({
+      presentation: { ...state.presentation, slides },
+      selectedElementIds: [],
+    });
+  },
+
+  applyBackgroundToAll: (bg: SlideBackground) => {
+    pushHistory();
+    const slides = state.presentation.slides.map((s: Slide) => ({
+      ...s,
+      background: bg,
+    }));
+    setState({ presentation: { ...state.presentation, slides } });
+  },
 
   pushHistory,
 

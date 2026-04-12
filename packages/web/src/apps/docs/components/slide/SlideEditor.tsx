@@ -1,8 +1,12 @@
+import { Maximize } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SlideCanvas } from "./SlideCanvas";
+import { SlideFormatPanel } from "./SlideFormatPanel";
 import { SlidePresenter } from "./SlidePresenter";
+import { SlideSpeakerNotes } from "./SlideSpeakerNotes";
 import { SlideThumbnailPanel } from "./SlideThumbnailPanel";
 import { SlideToolbar } from "./SlideToolbar";
+import { SlideZoomControls } from "./SlideZoomControls";
 import { createDefaultPresentation, isSlidePresentation } from "./types";
 import { useSlideCollab } from "./use-slide-collab";
 import { useSlideStore } from "./use-slide-store";
@@ -24,13 +28,14 @@ export function SlideEditor({
   const currentSlideIndex = useSlideStore((s) => s.currentSlideIndex);
   const setPresentation = useSlideStore((s) => s.setPresentation);
   const [presenting, setPresenting] = useState(false);
+  const [activePanel, setActivePanel] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(0);
   const isReplayingRef = useRef(false);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   // Init from content — intentionally run only once on mount.
-  // Content is captured at mount time and collab will handle further syncing.
   const contentRef = useRef(content);
   useEffect(() => {
     const data = isSlidePresentation(contentRef.current)
@@ -69,13 +74,16 @@ export function SlideEditor({
   });
 
   const currentSlide = presentation.slides[currentSlideIndex];
-
   const handlePresent = useCallback(() => setPresenting(true), []);
   const handleExitPresent = useCallback(() => {
     setPresenting(false);
     if (document.fullscreenElement) {
       document.exitFullscreen?.().catch(() => {});
     }
+  }, []);
+
+  const handlePanelChange = useCallback((panel: string | null) => {
+    setActivePanel((prev) => (prev === panel ? null : panel));
   }, []);
 
   if (presenting) {
@@ -90,15 +98,40 @@ export function SlideEditor({
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <SlideToolbar onPresent={handlePresent} />
-      <div className="flex min-h-0 min-w-0 flex-1">
+      {/* Top bar: toolbar + zoom + present */}
+      <div className="flex items-center border-b border-border-subtle bg-white px-2 dark:bg-neutral-900">
+        <SlideToolbar
+          activePanel={activePanel}
+          onPanelChange={handlePanelChange}
+        />
+        <div className="flex-1" />
+        <SlideZoomControls zoom={zoom || 100} onZoomChange={setZoom} />
+        <div className="mx-2 h-4 w-px bg-border-subtle" />
+        <button
+          type="button"
+          className="flex cursor-pointer items-center gap-1 rounded bg-blue-500 px-3 py-1 text-xs text-white transition-colors hover:bg-blue-600"
+          onClick={handlePresent}
+        >
+          <Maximize size={14} />
+          演示
+        </button>
+      </div>
+
+      {/* Main area */}
+      <div className="flex min-h-0 flex-1">
         <SlideThumbnailPanel />
-        {currentSlide ? (
-          <SlideCanvas slide={currentSlide} />
-        ) : (
-          <div className="flex flex-1 items-center justify-center text-fg-muted">
-            无幻灯片
-          </div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {currentSlide ? (
+            <SlideCanvas slide={currentSlide} zoom={zoom} />
+          ) : (
+            <div className="flex flex-1 items-center justify-center text-fg-muted">
+              无幻灯片
+            </div>
+          )}
+          <SlideSpeakerNotes />
+        </div>
+        {activePanel === "format" && (
+          <SlideFormatPanel onClose={() => setActivePanel(null)} />
         )}
       </div>
     </div>
