@@ -1,5 +1,5 @@
 import { AppSidebar, Tooltip } from "@tokiomo/components";
-import { Plus, Settings } from "lucide-react";
+import { PanelLeft, PanelLeftClose, Plus, Settings } from "lucide-react";
 import type { DocSpaceOutput } from "@/generated/rust-types/DocSpaceOutput";
 import { AppIcon } from "@/shared/components/icons";
 
@@ -10,6 +10,7 @@ export default function DocsSpaceSidebar({
   collapsed,
   onCreateClick,
   onSettingsClick,
+  onToggleCollapse,
 }: {
   spaces: DocSpaceOutput[];
   activeId: string | null;
@@ -17,6 +18,7 @@ export default function DocsSpaceSidebar({
   collapsed?: boolean;
   onCreateClick: () => void;
   onSettingsClick: () => void;
+  onToggleCollapse?: () => void;
 }) {
   const sections = [
     {
@@ -48,6 +50,15 @@ export default function DocsSpaceSidebar({
           <Settings className="h-4 w-4" />
         </button>
       </Tooltip>
+      <Tooltip title="展开侧边栏" placement="right">
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-fg-muted transition-all hover:bg-black/[0.08] hover:text-fg-secondary dark:hover:bg-white/[0.08]"
+        >
+          <PanelLeft className="h-4 w-4" />
+        </button>
+      </Tooltip>
     </div>
   );
 
@@ -69,6 +80,15 @@ export default function DocsSpaceSidebar({
           className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-fg-muted transition-all hover:bg-black/[0.08] hover:text-fg-secondary dark:hover:bg-white/[0.08]"
         >
           <Settings className="h-4 w-4" />
+        </button>
+      </Tooltip>
+      <Tooltip title="收起侧边栏">
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="ml-auto flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-fg-muted transition-all hover:bg-black/[0.08] hover:text-fg-secondary dark:hover:bg-white/[0.08]"
+        >
+          <PanelLeftClose className="h-4 w-4" />
         </button>
       </Tooltip>
     </div>

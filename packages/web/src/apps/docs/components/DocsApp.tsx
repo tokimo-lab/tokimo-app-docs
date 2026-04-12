@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "@/generated/rust-api";
 import type { DocSpaceOutput } from "@/generated/rust-types/DocSpaceOutput";
 import { useContainerWidth } from "@/shared/hooks/use-container-width";
+import { useSidebarCollapsed } from "@/shared/hooks/use-sidebar-collapsed";
 import { useWindowNav } from "@/system";
 import DocsAppPage from "../pages/DocsAppPage";
 import DocsSettingsModal from "./DocsSettingsModal";
@@ -18,7 +19,10 @@ export default function DocsApp() {
   const initialized = useRef(false);
   const { updateTitle } = useWindowNav();
   const [containerRef, containerWidth] = useContainerWidth();
-  const sidebarCollapsed = containerWidth > 0 && containerWidth < 720;
+  const { collapsed: sidebarCollapsed, onToggleCollapse } = useSidebarCollapsed(
+    "docs",
+    containerWidth > 0 && containerWidth < 720,
+  );
 
   useEffect(() => {
     if (!spaces?.length || initialized.current) return;
@@ -97,6 +101,7 @@ export default function DocsApp() {
           collapsed={sidebarCollapsed}
           onCreateClick={() => setSettingsOpen(true)}
           onSettingsClick={() => setSettingsOpen(true)}
+          onToggleCollapse={onToggleCollapse}
         />
         <div className="min-w-0 overflow-hidden h-full">
           {activeSpaceId && <DocsAppPage spaceId={activeSpaceId} />}

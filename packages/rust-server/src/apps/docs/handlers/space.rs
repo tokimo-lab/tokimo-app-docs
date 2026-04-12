@@ -23,8 +23,11 @@ pub struct CreateSpaceInput {
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSpaceInput {
     pub name: Option<String>,
+    #[serde(default, with = "::serde_with::rust::double_option")]
     pub icon: Option<Option<String>>,
+    #[serde(default, with = "::serde_with::rust::double_option")]
     pub color: Option<Option<String>>,
+    #[serde(default, with = "::serde_with::rust::double_option")]
     pub description: Option<Option<String>>,
     pub sort_order: Option<i32>,
 }

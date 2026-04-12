@@ -15,4 +15,22 @@ export const manifest: AppManifest = {
   views: {
     "/": () => import("./components/DocsApp"),
   },
+
+  userSettings: {
+    order: 14,
+    sections: [
+      {
+        key: "sidebar",
+        label: "settings.sidebar.title",
+        fields: [
+          {
+            key: "sidebarCollapsed",
+            type: "boolean",
+            label: "settings.sidebar.defaultCollapsed",
+            defaultValue: false,
+          },
+        ],
+      },
+    ],
+  },
 };

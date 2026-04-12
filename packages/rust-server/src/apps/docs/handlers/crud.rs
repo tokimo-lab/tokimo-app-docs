@@ -26,8 +26,11 @@ pub struct CreateNodeInput {
 #[serde(rename_all = "camelCase")]
 pub struct UpdateNodeInput {
     pub title: Option<String>,
+    #[serde(default, with = "::serde_with::rust::double_option")]
     pub content: Option<Option<serde_json::Value>>,
+    #[serde(default, with = "::serde_with::rust::double_option")]
     pub icon: Option<Option<String>>,
+    #[serde(default, with = "::serde_with::rust::double_option")]
     pub cover_image: Option<Option<String>>,
     pub tags: Option<Vec<String>>,
 }
