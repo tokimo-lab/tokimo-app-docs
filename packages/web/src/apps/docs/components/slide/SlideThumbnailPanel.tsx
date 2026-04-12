@@ -1,5 +1,6 @@
 import { ChevronDown, Plus } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+import { SlideRenderer } from "./SlideRenderer";
 import type { Slide } from "./types";
 import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from "./types";
 import { useSlideStore } from "./use-slide-store";
@@ -56,70 +57,6 @@ export function SlideThumbnailPanel() {
     e.dataTransfer.dropEffect = "move";
   }, []);
 
-  const renderThumb = (slide: Slide) => {
-    const bg = slide.background;
-    const bgStyle: React.CSSProperties = { backgroundColor: "#fff" };
-    if (bg?.type === "solid" && bg.color) bgStyle.backgroundColor = bg.color;
-    else if (bg?.type === "gradient" && bg.gradient) {
-      const stops = bg.gradient.colors
-        .map((c) => `${c.color} ${c.offset * 100}%`)
-        .join(", ");
-      bgStyle.background =
-        bg.gradient.type === "linear"
-          ? `linear-gradient(${bg.gradient.angle ?? 0}deg, ${stops})`
-          : `radial-gradient(circle, ${stops})`;
-    }
-
-    return (
-      <div
-        className="relative overflow-hidden"
-        style={{ width: THUMB_WIDTH, height: THUMB_HEIGHT, ...bgStyle }}
-      >
-        {slide.elements
-          .filter(
-            (el): el is Extract<typeof el, { type: "text" }> =>
-              el.type === "text",
-          )
-          .slice(0, 3)
-          .map((el) => (
-            <div
-              key={el.id}
-              className="absolute overflow-hidden text-[4px] leading-tight"
-              style={{
-                left: el.left * THUMB_SCALE,
-                top: el.top * THUMB_SCALE,
-                width: el.width * THUMB_SCALE,
-                height: el.height * THUMB_SCALE,
-                color: el.defaultColor,
-              }}
-              // biome-ignore lint/security/noDangerouslySetInnerHtml: thumbnail preview of user-authored slide text
-              dangerouslySetInnerHTML={{ __html: el.content }}
-            />
-          ))}
-        {slide.elements
-          .filter((el) => el.type === "shape" || el.type === "image")
-          .slice(0, 5)
-          .map((el) => (
-            <div
-              key={el.id}
-              className="absolute rounded-sm"
-              style={{
-                left: el.left * THUMB_SCALE,
-                top: el.top * THUMB_SCALE,
-                width: el.width * THUMB_SCALE,
-                height: el.height * THUMB_SCALE,
-                backgroundColor:
-                  el.type === "shape"
-                    ? (el as Extract<typeof el, { type: "shape" }>).fill
-                    : "#e0e0e0",
-                opacity: 0.6,
-              }}
-            />
-          ))}
-      </div>
-    );
-  };
-
   return (
     <div className="flex w-[200px] flex-shrink-0 flex-col border-r border-border-subtle bg-fill-secondary dark:bg-neutral-900">
       <div className="border-b border-border-subtle p-2">
@@ -155,7 +92,11 @@ export function SlideThumbnailPanel() {
             <div className="flex items-center gap-1 px-1 pt-1">
               <span className="text-[10px] text-fg-muted">{i + 1}</span>
             </div>
-            {renderThumb(slide)}
+            <SlideRenderer
+              slide={slide}
+              width={THUMB_WIDTH}
+              height={THUMB_HEIGHT}
+            />
           </div>
         ))}
       </div>
