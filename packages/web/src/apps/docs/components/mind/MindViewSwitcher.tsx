@@ -7,6 +7,7 @@
  */
 
 import type { MindElixirInstance } from "mind-elixir";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export type ViewMode = "mindmap" | "outline";
@@ -127,7 +128,7 @@ function LayoutSideIcon({ className }: { className?: string }) {
 const BTN_BASE =
   "cursor-pointer p-1.5 transition-colors flex items-center justify-center";
 const BTN_ACTIVE =
-  "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400";
+  "bg-blue-500/20 text-blue-500 dark:bg-blue-500/25 dark:text-blue-400";
 const BTN_INACTIVE =
   "text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300";
 const DIVIDER = "h-px w-full bg-gray-200 dark:bg-gray-600 mx-1";
@@ -140,13 +141,20 @@ export function MindViewSwitcher({
   mind,
 }: MindViewSwitcherProps) {
   const { t } = useTranslation();
+  const [, forceUpdate] = useState(0);
 
-  const handleDirection = (dir: 0 | 1 | 2) => {
-    if (!mind) return;
-    if (dir === 0) mind.initLeft();
-    else if (dir === 1) mind.initRight();
-    else mind.initSide();
-  };
+  const activeDir: 0 | 1 | 2 = (mind?.direction as 0 | 1 | 2) ?? 1;
+
+  const handleDirection = useCallback(
+    (dir: 0 | 1 | 2) => {
+      if (!mind) return;
+      if (dir === 0) mind.initLeft();
+      else if (dir === 1) mind.initRight();
+      else mind.initSide();
+      forceUpdate((n) => n + 1);
+    },
+    [mind],
+  );
 
   const showDirections = mode === "mindmap" && mind;
 
@@ -178,7 +186,7 @@ export function MindViewSwitcher({
           <div className={DIVIDER} />
           <button
             type="button"
-            className={`${BTN_BASE} ${BTN_INACTIVE}`}
+            className={`${BTN_BASE} ${activeDir === 0 ? BTN_ACTIVE : BTN_INACTIVE}`}
             title={t("docs.layoutLeft")}
             onClick={() => handleDirection(0)}
           >
@@ -186,7 +194,7 @@ export function MindViewSwitcher({
           </button>
           <button
             type="button"
-            className={`${BTN_BASE} ${BTN_INACTIVE}`}
+            className={`${BTN_BASE} ${activeDir === 1 ? BTN_ACTIVE : BTN_INACTIVE}`}
             title={t("docs.layoutRight")}
             onClick={() => handleDirection(1)}
           >
@@ -194,7 +202,7 @@ export function MindViewSwitcher({
           </button>
           <button
             type="button"
-            className={`${BTN_BASE} ${BTN_INACTIVE}`}
+            className={`${BTN_BASE} ${activeDir === 2 ? BTN_ACTIVE : BTN_INACTIVE}`}
             title={t("docs.layoutSide")}
             onClick={() => handleDirection(2)}
           >
