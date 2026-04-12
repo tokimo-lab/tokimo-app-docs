@@ -30,12 +30,13 @@ export function SlideRenderer({ slide, width, height }: SlideRendererProps) {
       className="relative overflow-hidden"
       style={{ width, height, ...bgStyle }}
     >
+      {/* Use CSS zoom instead of transform: scale() — zoom affects layout dimensions */}
       <div
-        className="pointer-events-none absolute left-0 top-0 origin-top-left"
+        className="pointer-events-none relative"
         style={{
           width: VIEWPORT_WIDTH,
           height: VIEWPORT_HEIGHT,
-          transform: `scale(${scale})`,
+          zoom: scale,
         }}
       >
         {slide.elements.map((el) => (
