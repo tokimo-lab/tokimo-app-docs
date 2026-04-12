@@ -1,8 +1,8 @@
 /**
  * Feishu-inspired bottom-left toolbar for the mind map editor.
  *
- * Provides undo/redo, branch display (structure + line style), and zoom.
- * Design matches Feishu's mind map toolbar exactly.
+ * Provides undo/redo, branch display (structure + line style), zoom,
+ * fullscreen, and re-center. Button style matches the top-left view switcher.
  */
 
 import type { MindElixirInstance } from "mind-elixir";
@@ -20,11 +20,13 @@ import {
   BranchDisplayIcon,
   CurvedLinePreview,
   FitToScreenIcon,
+  FullscreenIcon,
   MindmapDownIcon,
   MindmapLeftIcon,
   MindmapRightIcon,
   MindmapSideIcon,
   RedoIcon,
+  ToCenterIcon,
   UndoIcon,
   ZoomInIcon,
   ZoomOutIcon,
@@ -39,17 +41,19 @@ interface MindBottomToolbarProps {
   mind: MindElixirInstance | null;
 }
 
-// ── Style constants ─────────────────────────────────────────────────────────
+// ── Style constants (matching MindViewSwitcher top-left style) ──────────────
 
 const BTN =
-  "flex h-9 w-12 cursor-pointer items-center justify-center transition-colors duration-150";
+  "cursor-pointer p-1.5 transition-colors flex items-center justify-center";
 const BTN_CLR =
-  "text-[#1F2329] hover:bg-[rgba(31,35,41,0.08)] dark:text-gray-300 dark:hover:bg-white/8";
-const BTN_DISABLED = "text-[#bcc0c7] dark:text-gray-600 cursor-default";
+  "text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300";
+const BTN_ACTIVE =
+  "bg-blue-500/20 text-blue-500 dark:bg-blue-500/25 dark:text-blue-400";
+const BTN_DISABLED = "text-gray-300 dark:text-gray-600 cursor-default";
 const SEL =
-  "bg-[rgba(51,112,255,0.1)] text-[#3370FF] dark:bg-[rgba(51,112,255,0.15)]";
+  "bg-blue-500/20 text-blue-500 dark:bg-blue-500/25 dark:text-blue-400";
 const UNSEL =
-  "text-[#1F2329] hover:bg-[rgba(31,35,41,0.08)] dark:text-gray-300 dark:hover:bg-white/8";
+  "text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300";
 
 // ── Branch Display Popover ──────────────────────────────────────────────────
 
@@ -81,23 +85,17 @@ function BranchPopover({
   const { t } = useTranslation();
 
   const structBtnCls = (active: boolean, disabled?: boolean) =>
-    `flex h-9 flex-1 cursor-pointer items-center justify-center rounded transition-colors duration-150 ${
+    `flex h-8 flex-1 cursor-pointer items-center justify-center rounded transition-colors duration-150 ${
       disabled ? BTN_DISABLED : active ? SEL : UNSEL
     }`;
 
   const lineBtnCls = (active: boolean) =>
-    `flex h-9 flex-1 cursor-pointer items-center justify-center rounded transition-colors duration-150 ${active ? SEL : UNSEL}`;
+    `flex h-8 flex-1 cursor-pointer items-center justify-center rounded transition-colors duration-150 ${active ? SEL : UNSEL}`;
 
   return (
-    <div
-      className="w-[254px] rounded-md border border-[#DEE0E3] bg-white dark:border-gray-600 dark:bg-[#2b2f36]"
-      style={{
-        padding: "13px 12px 11px 13px",
-        boxShadow: "0 4px 8px rgba(31,35,41,0.1)",
-      }}
-    >
+    <div className="w-[240px] rounded-lg border border-gray-200 bg-white p-2.5 shadow-lg dark:border-gray-600 dark:bg-[#2b2f36]">
       {/* Structure */}
-      <div className="mb-2.5">
+      <div className="mb-2">
         <div className="mb-1.5 text-[11px] font-medium text-gray-400 dark:text-gray-500">
           {t("docs.structure")}
         </div>
@@ -158,6 +156,10 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
   const [lineStyle, setLineStyle] = useState<LineStyle>("angular");
 
   const branchRef = useRef<HTMLDivElement>(null);
+  const fullscreenDataRef = useRef<{
+    mapCenterX: number;
+    mapCenterY: number;
+  } | null>(null);
 
   // Sync direction from mind instance
   useEffect(() => {
@@ -181,22 +183,27 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
     return () => mind.bus.removeListener("scale", handler);
   }, [mind]);
 
-  // Outside-click to close branch popover
+  // Fullscreen change handler
   useEffect(() => {
-    if (!showBranch) return;
-    function handleClick(e: MouseEvent) {
-      if (branchRef.current && !branchRef.current.contains(e.target as Node)) {
-        setShowBranch(false);
+    if (!mind) return;
+    const handleFullscreenChange = () => {
+      const data = fullscreenDataRef.current;
+      if (!data) return;
+      const rect = mind.container.getBoundingClientRect();
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const tx = cx - data.mapCenterX * mind.scaleVal;
+      const ty = cy - data.mapCenterY * mind.scaleVal;
+      const style = mind.map.style.transform;
+      const m = style.match(/translate\((.+?)px,\s*(.+?)px\)/);
+      if (m) {
+        mind.move(tx - Number(m[1]), ty - Number(m[2]));
       }
-    }
-    const raf = requestAnimationFrame(() => {
-      document.addEventListener("mousedown", handleClick);
-    });
-    return () => {
-      cancelAnimationFrame(raf);
-      document.removeEventListener("mousedown", handleClick);
     };
-  }, [showBranch]);
+    mind.el.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      mind.el.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, [mind]);
 
   const handleUndo = useCallback(() => mind?.undo(), [mind]);
   const handleRedo = useCallback(() => mind?.redo(), [mind]);
@@ -222,6 +229,25 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
   }, [mind]);
 
   const handleFitToScreen = useCallback(() => mind?.toCenter(), [mind]);
+
+  const handleFullscreen = useCallback(() => {
+    if (!mind) return;
+    // Record current state for repositioning after fullscreen change
+    const rect = mind.container.getBoundingClientRect();
+    const style = mind.map.style.transform;
+    const m = style.match(/translate\((.+?)px,\s*(.+?)px\)/);
+    const curX = m ? Number(m[1]) : 0;
+    const curY = m ? Number(m[2]) : 0;
+    fullscreenDataRef.current = {
+      mapCenterX: (rect.width / 2 - curX) / mind.scaleVal,
+      mapCenterY: (rect.height / 2 - curY) / mind.scaleVal,
+    };
+    if (document.fullscreenElement !== mind.el) {
+      mind.el.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  }, [mind]);
 
   const handleSliderChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -264,15 +290,12 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
 
   return (
     <div className="absolute bottom-3 left-3 z-50">
-      {/* Main pill */}
-      <div
-        className="flex flex-col rounded-lg border border-[#DEE0E3] bg-white dark:border-gray-600 dark:bg-[#2b2f36]"
-        style={{ boxShadow: "0 2px 8px rgba(31,35,41,0.06)" }}
-      >
+      {/* Main pill — matches top-left MindViewSwitcher w-8 style */}
+      <div className="flex w-8 flex-col items-stretch overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-600 dark:bg-[#2b2f36]">
         {/* Undo */}
         <button
           type="button"
-          className={`${BTN} ${BTN_CLR} rounded-t-lg`}
+          className={`${BTN} ${BTN_CLR}`}
           title={`${t("docs.undo")} (Ctrl+Z)`}
           onClick={handleUndo}
         >
@@ -289,30 +312,55 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
           <RedoIcon />
         </button>
 
-        {/* Branch display */}
-        <div ref={branchRef} className="relative">
+        {/* Branch display — hover to show popover */}
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: hover zone for branch popover */}
+        <div
+          ref={branchRef}
+          className="relative"
+          onMouseEnter={() => setShowBranch(true)}
+          onMouseLeave={() => setShowBranch(false)}
+        >
           <button
             type="button"
-            className={`${BTN} ${showBranch ? SEL : BTN_CLR}`}
+            className={`${BTN} ${showBranch ? BTN_ACTIVE : BTN_CLR}`}
             title={t("docs.branchDisplay")}
-            onClick={() => setShowBranch((v) => !v)}
           >
             <BranchDisplayIcon />
           </button>
-          {showBranch && (
-            <div className="absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2">
-              <BranchPopover
-                direction={direction}
-                lineStyle={lineStyle}
-                onDirection={handleDirection}
-                onLineStyle={handleLineStyle}
-              />
-            </div>
-          )}
+          <div
+            className={`absolute bottom-0 left-full z-50 ml-2 transition-opacity duration-150 ease-in-out ${showBranch ? "opacity-100" : "pointer-events-none opacity-0"}`}
+          >
+            <BranchPopover
+              direction={direction}
+              lineStyle={lineStyle}
+              onDirection={handleDirection}
+              onLineStyle={handleLineStyle}
+            />
+          </div>
         </div>
 
-        {/* Zoom */}
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: hover zone wrapper for zoom slider */}
+        {/* Fullscreen */}
+        <button
+          type="button"
+          className={`${BTN} ${BTN_CLR}`}
+          title={t("docs.fullscreen")}
+          onClick={handleFullscreen}
+        >
+          <FullscreenIcon />
+        </button>
+
+        {/* Re-center */}
+        <button
+          type="button"
+          className={`${BTN} ${BTN_CLR}`}
+          title={t("docs.fitToScreen")}
+          onClick={handleFitToScreen}
+        >
+          <ToCenterIcon />
+        </button>
+
+        {/* Zoom — hover to expand slider */}
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: hover zone for zoom slider */}
         <div
           className="relative"
           onMouseEnter={() => setShowZoom(true)}
@@ -320,24 +368,21 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
         >
           <button
             type="button"
-            className={`${BTN} ${BTN_CLR} rounded-b-lg text-[11px] font-medium`}
+            className={`${BTN} ${BTN_CLR} text-[10px] font-medium leading-none`}
             title={t("docs.resetZoom")}
             onClick={() => mind.scale(1)}
           >
             {zoom}%
           </button>
 
-          {/* Zoom slider panel — bridge div starts at left:100% for seamless hover */}
+          {/* Zoom slider panel */}
           <div
-            className={`absolute left-full top-0 transition-opacity duration-150 ease-in-out ${showZoom ? "opacity-100" : "pointer-events-none opacity-0"}`}
+            className={`absolute bottom-0 left-full ml-2 transition-opacity duration-150 ease-in-out ${showZoom ? "opacity-100" : "pointer-events-none opacity-0"}`}
           >
-            <div
-              className="ml-2 flex h-9 items-center gap-2 rounded-lg border border-[#DEE0E3] bg-white px-2 dark:border-gray-600 dark:bg-[#2b2f36]"
-              style={{ boxShadow: "0 2px 8px rgba(31,35,41,0.06)" }}
-            >
+            <div className="flex h-8 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-1.5 shadow-sm dark:border-gray-600 dark:bg-[#2b2f36]">
               <button
                 type="button"
-                className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150 hover:bg-[rgba(31,35,41,0.08)] dark:hover:bg-white/8`}
+                className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150`}
                 title={t("docs.fitToScreen")}
                 onClick={handleFitToScreen}
               >
@@ -345,7 +390,7 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
               </button>
               <button
                 type="button"
-                className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150 hover:bg-[rgba(31,35,41,0.08)] dark:hover:bg-white/8`}
+                className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150`}
                 title={t("docs.zoomOut")}
                 onClick={handleZoomOut}
               >
@@ -357,14 +402,14 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
                 max={140}
                 value={zoom}
                 onChange={handleSliderChange}
-                className="h-0.5 w-[120px] cursor-pointer appearance-none rounded-full outline-none [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#3370FF] [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3370FF]"
+                className="h-0.5 w-[100px] cursor-pointer appearance-none rounded-full outline-none [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#3370FF] [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3370FF]"
                 style={{
                   background: `linear-gradient(to right, #3370FF ${sliderPct}%, ${trackBg} ${sliderPct}%)`,
                 }}
               />
               <button
                 type="button"
-                className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150 hover:bg-[rgba(31,35,41,0.08)] dark:hover:bg-white/8`}
+                className={`${BTN_CLR} flex cursor-pointer items-center justify-center rounded p-1 transition-colors duration-150`}
                 title={t("docs.zoomIn")}
                 onClick={handleZoomIn}
               >

@@ -50,16 +50,16 @@ export function curvedMain({
   cW,
   cH,
   direction,
-  containerHeight,
 }: MainLineParams): string {
-  let x1 = pL + pW / 2;
+  // All lines emanate from a single fixed point on the parent edge (Feishu-style)
   const y1 = pT + pH / 2;
   const x2 = direction === LHS ? cL + cW : cL;
   const y2 = cT + cH / 2;
-  const pct = Math.abs(y2 - y1) / containerHeight;
-  const offset = (1 - pct) * 0.25 * (pW / 2);
-  x1 = direction === LHS ? x1 - pW / 10 - offset : x1 + pW / 10 + offset;
-  return `M ${x1} ${y1} Q ${x1} ${y2} ${x2} ${y2}`;
+  // Fixed junction point: right edge center (or left edge for LHS)
+  const x1 = direction === LHS ? pL : pL + pW;
+  // Control point at ~40% horizontal distance for a smooth S-curve
+  const cx = x1 + (x2 - x1) * 0.4;
+  return `M ${x1} ${y1} C ${cx} ${y1} ${cx} ${y2} ${x2} ${y2}`;
 }
 
 export function curvedSub(

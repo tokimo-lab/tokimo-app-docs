@@ -2,7 +2,7 @@
 
 export function UndoIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
       <path
         d="M8.707 2.293a1 1 0 0 1 0 1.414L5.414 7H14.5a7.5 7.5 0 0 1 0 15H11a1 1 0 1 1 0-2h3.5a5.5 5.5 0 1 0 0-11H5.414l3.293 3.293a1 1 0 1 1-1.414 1.414l-5-5a1 1 0 0 1 0-1.414l5-5a1 1 0 0 1 1.414 0Z"
         fill="currentColor"
@@ -13,7 +13,7 @@ export function UndoIcon() {
 
 export function RedoIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
       <path
         d="M15.293 2.293a1 1 0 0 0 0 1.414L18.586 7H9.5a7.5 7.5 0 0 0 0 15H13a1 1 0 1 0 0-2H9.5a5.5 5.5 0 1 1 0-11h9.086l-3.293 3.293a1 1 0 0 0 1.414 1.414l5-5a1 1 0 0 0 0-1.414l-5-5a1 1 0 0 0-1.414 0Z"
         fill="currentColor"
@@ -24,10 +24,36 @@ export function RedoIcon() {
 
 export function BranchDisplayIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
       <path
         fill="currentColor"
         d="M9.357 13c.732.663 1.487 1.446 2.234 2.22l.564.583c1.093 1.125 2.179 2.191 3.278 2.977C16.537 19.57 17.55 20 18.5 20H21a1 1 0 1 1 0 2h-2.5c-1.55 0-2.975-.695-4.23-1.593-1.26-.901-2.456-2.085-3.55-3.21l-.595-.615c-.884-.916-1.694-1.755-2.468-2.414C6.677 13.335 5.984 13 5.5 13H3a1 1 0 1 1 0-2h2.5c.484 0 1.178-.335 2.157-1.168.774-.659 1.584-1.498 2.468-2.414l.595-.615c1.094-1.125 2.29-2.309 3.55-3.21C15.525 2.695 16.95 2 18.5 2H21a1 1 0 1 1 0 2h-2.5c-.95 0-1.963.43-3.067 1.22-1.099.786-2.185 1.852-3.278 2.977q-.281.289-.564.582c-.747.775-1.502 1.558-2.234 2.221H21a1 1 0 1 1 0 2z"
+      />
+    </svg>
+  );
+}
+
+export function FullscreenIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M4 4h5a1 1 0 0 1 0 2H5v4a1 1 0 0 1-2 0V5a1 1 0 0 1 1-1Zm11 0h5a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0V6h-4a1 1 0 1 1 0-2ZM4 14a1 1 0 0 1 1 1v4h4a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1Zm16 0a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 1 1 0-2h4v-4a1 1 0 0 1 1-1Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+export function ToCenterIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 4a2 2 0 1 1 4 0 2 2 0 0 1-4 0Z"
+        fill="currentColor"
+      />
+      <path
+        d="M12 2a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 16a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1ZM2 12a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1Zm16 0a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2h-2a1 1 0 0 1-1-1Z"
+        fill="currentColor"
       />
     </svg>
   );
