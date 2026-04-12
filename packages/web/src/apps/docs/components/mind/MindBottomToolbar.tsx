@@ -252,7 +252,7 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
     setZoom(Math.round(mind.scaleVal * 100));
     const handler = (val: number) => setZoom(Math.round(val * 100));
     mind.bus.addListener("scale", handler);
-    return () => mind.bus.removeListener("scale", handler);
+    return () => mind.bus?.removeListener("scale", handler);
   }, [mind]);
 
   // Fullscreen change handler — targets the .mind-feishu container (includes toolbar)
