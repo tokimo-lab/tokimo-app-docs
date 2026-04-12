@@ -188,7 +188,11 @@ export function MindEditor({
 
   return (
     <div className="mind-feishu relative flex-1 overflow-hidden">
-      <MindViewSwitcher mode={viewMode} onModeChange={handleModeChange} />
+      <MindViewSwitcher
+        mode={viewMode}
+        onModeChange={handleModeChange}
+        mind={mindInstance}
+      />
       <div
         ref={containerRef}
         className="h-full w-full"

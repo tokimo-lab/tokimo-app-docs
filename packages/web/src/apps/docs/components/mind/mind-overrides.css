@@ -63,6 +63,11 @@
   opacity: 0.6;
 }
 
+/* ── Hide built-in left-top toolbar (replaced by MindViewSwitcher) ── */
+.mind-feishu .mind-elixir-toolbar.lt {
+  display: none;
+}
+
 /* ── Toolbar & context-menu polish ─────────────────── */
 .mind-feishu .mind-elixir-toolbar {
   border-radius: 8px;
