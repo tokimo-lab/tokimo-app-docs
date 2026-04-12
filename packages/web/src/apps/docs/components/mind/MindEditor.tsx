@@ -16,9 +16,12 @@ import { en, ja, zh_CN } from "mind-elixir/i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useThemeCore } from "@/system";
-
+import { MindOutlineView } from "./MindOutlineView";
+import { MindViewSwitcher } from "./MindViewSwitcher";
 import { FEISHU_DARK_THEME, FEISHU_LIGHT_THEME } from "./mind-theme";
 import { useMindCollab } from "./use-mind-collab";
+
+type ViewMode = "mindmap" | "outline";
 
 // ── Locale mapping ─────────────────────────────────────────────────────────
 
@@ -72,6 +75,8 @@ export function MindEditor({
   const [mindInstance, setMindInstance] = useState<MindElixirInstance | null>(
     null,
   );
+  const [viewMode, setViewMode] = useState<ViewMode>("mindmap");
+  const [outlineData, setOutlineData] = useState<MindElixirData | null>(null);
 
   const { theme } = useThemeCore();
   const isDark = theme === "dark";
@@ -154,9 +159,48 @@ export function MindEditor({
     customTheme,
   });
 
+  // ── View mode switching ───────────────────────────────────────────────
+  const handleModeChange = useCallback(
+    (mode: ViewMode) => {
+      if (mode === viewMode) return;
+      if (mode === "outline" && mindRef.current) {
+        // Capture current mind map data for outline view
+        const { theme: _t, ...data } = mindRef.current.getData();
+        setOutlineData(data as MindElixirData);
+      } else if (mode === "mindmap" && outlineData && mindRef.current) {
+        // Apply outline edits back to mind-elixir
+        mindRef.current.refresh(outlineData);
+        mindRef.current.changeTheme(
+          isDarkRef.current ? FEISHU_DARK_THEME : FEISHU_LIGHT_THEME,
+          false,
+        );
+      }
+      setViewMode(mode);
+    },
+    [viewMode, outlineData],
+  );
+
+  const handleOutlineChange = useCallback((data: MindElixirData) => {
+    setOutlineData(data);
+    const { theme: _t, ...clean } = data;
+    onChangeRef.current(clean as MindElixirData);
+  }, []);
+
   return (
     <div className="mind-feishu relative flex-1 overflow-hidden">
-      <div ref={containerRef} className="h-full w-full" />
+      <MindViewSwitcher mode={viewMode} onModeChange={handleModeChange} />
+      <div
+        ref={containerRef}
+        className="h-full w-full"
+        style={{ display: viewMode === "mindmap" ? undefined : "none" }}
+      />
+      {viewMode === "outline" && outlineData && (
+        <MindOutlineView
+          data={outlineData}
+          onChange={handleOutlineChange}
+          isDark={isDark}
+        />
+      )}
     </div>
   );
 }
