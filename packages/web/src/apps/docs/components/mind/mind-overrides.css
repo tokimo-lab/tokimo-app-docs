@@ -89,3 +89,93 @@
   outline-offset: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
+
+/* ── Context menu (Feishu-inspired) ────────────────── */
+
+/* Light mode */
+.mind-feishu .context-menu .menu-list {
+  background: #fff;
+  border: 1px solid #e5e6eb;
+  border-radius: 8px;
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.08),
+    0 0 1px rgba(0, 0, 0, 0.06);
+  padding: 4px 0;
+  overflow: hidden;
+  min-width: 200px;
+}
+
+.mind-feishu .context-menu .menu-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  font-size: 13px;
+  line-height: 20px;
+  color: #1f2329;
+  background: transparent;
+  border-bottom: none;
+  transition: background-color 0.1s ease;
+  cursor: pointer;
+}
+
+.mind-feishu .context-menu .menu-list li:hover {
+  background: #f2f3f5;
+  filter: none;
+}
+
+.mind-feishu .context-menu .menu-list li span:first-child {
+  flex: 1;
+}
+
+.mind-feishu .context-menu .menu-list li .key {
+  font-size: 11px;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #8f959e;
+  background: #f2f3f5;
+  border: 1px solid #e5e6eb;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 16px;
+  line-height: 18px;
+}
+
+/* Group separators (Feishu-style thin dividers between item groups) */
+.mind-feishu .context-menu .menu-list li#cm-add_sibling,
+.mind-feishu .context-menu .menu-list li#cm-remove_child,
+.mind-feishu .context-menu .menu-list li#cm-unfucus,
+.mind-feishu .context-menu .menu-list li#cm-down {
+  margin-bottom: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e6eb;
+}
+
+/* Dark mode */
+:is(.dark, [data-theme="dark"]) .mind-feishu .context-menu .menu-list {
+  background: #2b2f36;
+  border-color: #3d4150;
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.3),
+    0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+:is(.dark, [data-theme="dark"]) .mind-feishu .context-menu .menu-list li {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+:is(.dark, [data-theme="dark"]) .mind-feishu .context-menu .menu-list li:hover {
+  background: #353940;
+}
+
+:is(.dark, [data-theme="dark"]) .mind-feishu .context-menu .menu-list li .key {
+  color: rgba(255, 255, 255, 0.5);
+  background: #3d4150;
+  border-color: #4a4f5c;
+}
+
+:is(.dark, [data-theme="dark"]) .mind-feishu .context-menu .menu-list li#cm-add_sibling,
+:is(.dark, [data-theme="dark"]) .mind-feishu .context-menu .menu-list li#cm-remove_child,
+:is(.dark, [data-theme="dark"]) .mind-feishu .context-menu .menu-list li#cm-unfucus,
+:is(.dark, [data-theme="dark"]) .mind-feishu .context-menu .menu-list li#cm-down {
+  border-bottom-color: #3d4150;
+}
