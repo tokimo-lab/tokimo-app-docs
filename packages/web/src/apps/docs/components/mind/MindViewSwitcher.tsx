@@ -139,7 +139,7 @@ export function MindViewSwitcher({
   onModeChange,
   mind,
 }: MindViewSwitcherProps) {
-  const { t } = useTranslation("docs");
+  const { t } = useTranslation();
 
   const handleDirection = (dir: 0 | 1 | 2) => {
     if (!mind) return;
@@ -156,7 +156,7 @@ export function MindViewSwitcher({
       <button
         type="button"
         className={`${BTN_BASE} ${mode === "outline" ? BTN_ACTIVE : BTN_INACTIVE}`}
-        title={t("outlineView")}
+        title={t("docs.outlineView")}
         onClick={() => onModeChange("outline")}
       >
         <OutlineIcon />
@@ -166,7 +166,7 @@ export function MindViewSwitcher({
       <button
         type="button"
         className={`${BTN_BASE} ${mode === "mindmap" ? BTN_ACTIVE : BTN_INACTIVE}`}
-        title={t("mindMapView")}
+        title={t("docs.mindMapView")}
         onClick={() => onModeChange("mindmap")}
       >
         <MindMapIcon />
@@ -179,7 +179,7 @@ export function MindViewSwitcher({
           <button
             type="button"
             className={`${BTN_BASE} ${BTN_INACTIVE}`}
-            title={t("layoutLeft")}
+            title={t("docs.layoutLeft")}
             onClick={() => handleDirection(0)}
           >
             <LayoutLeftIcon />
@@ -187,7 +187,7 @@ export function MindViewSwitcher({
           <button
             type="button"
             className={`${BTN_BASE} ${BTN_INACTIVE}`}
-            title={t("layoutRight")}
+            title={t("docs.layoutRight")}
             onClick={() => handleDirection(1)}
           >
             <LayoutRightIcon />
@@ -195,7 +195,7 @@ export function MindViewSwitcher({
           <button
             type="button"
             className={`${BTN_BASE} ${BTN_INACTIVE}`}
-            title={t("layoutSide")}
+            title={t("docs.layoutSide")}
             onClick={() => handleDirection(2)}
           >
             <LayoutSideIcon />
