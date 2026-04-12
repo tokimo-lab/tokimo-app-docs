@@ -130,7 +130,7 @@ const BTN_ACTIVE =
   "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400";
 const BTN_INACTIVE =
   "text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300";
-const DIVIDER = "w-px self-stretch bg-gray-200 dark:bg-gray-600 my-1";
+const DIVIDER = "h-px w-full bg-gray-200 dark:bg-gray-600 mx-1";
 
 // ── Component ──────────────────────────────────────────────────────────────
 
@@ -151,7 +151,7 @@ export function MindViewSwitcher({
   const showDirections = mode === "mindmap" && mind;
 
   return (
-    <div className="absolute top-3 left-3 z-50 flex h-8 items-stretch overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-600 dark:bg-[#2b2f36]">
+    <div className="absolute top-3 left-3 z-50 flex w-8 flex-col items-stretch overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-600 dark:bg-[#2b2f36]">
       {/* View toggle: outline */}
       <button
         type="button"
