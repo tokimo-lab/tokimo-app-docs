@@ -68,6 +68,11 @@
   display: none;
 }
 
+/* ── Hide built-in right-bottom toolbar (replaced by MindBottomToolbar) ── */
+.mind-feishu .mind-elixir-toolbar.rb {
+  display: none;
+}
+
 /* ── Toolbar & context-menu polish ─────────────────── */
 .mind-feishu .mind-elixir-toolbar {
   border-radius: 8px;

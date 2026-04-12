@@ -16,6 +16,7 @@ import { en, ja, zh_CN } from "mind-elixir/i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useThemeCore } from "@/system";
+import { MindBottomToolbar } from "./MindBottomToolbar";
 import { MindOutlineView } from "./MindOutlineView";
 import { MindViewSwitcher } from "./MindViewSwitcher";
 import { FEISHU_DARK_THEME, FEISHU_LIGHT_THEME } from "./mind-theme";
@@ -202,11 +203,8 @@ export function MindEditor({
 
   return (
     <div className="mind-feishu relative flex-1 overflow-hidden">
-      <MindViewSwitcher
-        mode={viewMode}
-        onModeChange={handleModeChange}
-        mind={mindInstance}
-      />
+      <MindViewSwitcher mode={viewMode} onModeChange={handleModeChange} />
+      {viewMode === "mindmap" && <MindBottomToolbar mind={mindInstance} />}
       <div
         ref={containerRef}
         className="h-full w-full"
