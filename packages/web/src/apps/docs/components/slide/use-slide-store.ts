@@ -5,7 +5,11 @@ import type {
   SlideElement,
   SlidePresentation,
 } from "./types";
-import { createBlankSlide, createDefaultPresentation } from "./types";
+import {
+  createBlankSlide,
+  createDefaultPresentation,
+  generateId,
+} from "./types";
 
 const MAX_HISTORY = 50;
 
@@ -14,6 +18,7 @@ interface SlideState {
   presentation: SlidePresentation;
   currentSlideIndex: number;
   selectedElementIds: string[];
+  clipboard: SlideElement[];
   history: SlidePresentation[];
   historyIndex: number;
 }
@@ -29,11 +34,24 @@ interface SlideActions {
   updateSlideBackground: (bg: SlideBackground) => void;
   addElement: (element: SlideElement) => void;
   updateElement: (id: string, updates: Partial<SlideElement>) => void;
+  updateElements: (
+    updates: Array<{ id: string; changes: Partial<SlideElement> }>,
+  ) => void;
   deleteElements: (ids: string[]) => void;
   setSelectedElementIds: (ids: string[]) => void;
   updateSlideNotes: (notes: string) => void;
   applyLayout: (elements: SlideElement[]) => void;
   applyBackgroundToAll: (bg: SlideBackground) => void;
+  copyElements: () => void;
+  pasteElements: () => void;
+  cutElements: () => void;
+  duplicateElements: () => void;
+  bringForward: (id: string) => void;
+  sendBackward: (id: string) => void;
+  bringToFront: (id: string) => void;
+  sendToBack: (id: string) => void;
+  lockElement: (id: string) => void;
+  unlockElement: (id: string) => void;
   undo: () => void;
   redo: () => void;
   pushHistory: () => void;
@@ -49,6 +67,7 @@ let state: SlideState = {
   presentation: createDefaultPresentation(),
   currentSlideIndex: 0,
   selectedElementIds: [],
+  clipboard: [],
   history: [],
   historyIndex: -1,
 };
@@ -188,6 +207,25 @@ const actions: SlideActions = {
     setState({ presentation: { ...state.presentation, slides } });
   },
 
+  updateElements: (
+    updates: Array<{ id: string; changes: Partial<SlideElement> }>,
+  ) => {
+    const idx = state.currentSlideIndex;
+    const updateMap = new Map(updates.map((u) => [u.id, u.changes]));
+    const slides = state.presentation.slides.map((s: Slide, i: number) =>
+      i === idx
+        ? {
+            ...s,
+            elements: s.elements.map((el: SlideElement) => {
+              const changes = updateMap.get(el.id);
+              return changes ? ({ ...el, ...changes } as SlideElement) : el;
+            }),
+          }
+        : s,
+    );
+    setState({ presentation: { ...state.presentation, slides } });
+  },
+
   deleteElements: (ids: string[]) => {
     const idx = state.currentSlideIndex;
     pushHistory();
@@ -238,6 +276,129 @@ const actions: SlideActions = {
       background: bg,
     }));
     setState({ presentation: { ...state.presentation, slides } });
+  },
+
+  copyElements: () => {
+    const slide = state.presentation.slides[state.currentSlideIndex];
+    if (!slide) return;
+    const selected = slide.elements.filter((el: SlideElement) =>
+      state.selectedElementIds.includes(el.id),
+    );
+    if (selected.length > 0) {
+      setState({
+        clipboard: JSON.parse(JSON.stringify(selected)),
+      });
+    }
+  },
+
+  pasteElements: () => {
+    if (state.clipboard.length === 0) return;
+    pushHistory();
+    const offset = 20;
+    const newElements: SlideElement[] = state.clipboard.map(
+      (el: SlideElement) => ({
+        ...JSON.parse(JSON.stringify(el)),
+        id: generateId(),
+        left: el.left + offset,
+        top: el.top + offset,
+      }),
+    );
+    const idx = state.currentSlideIndex;
+    const slides = state.presentation.slides.map((s: Slide, i: number) =>
+      i === idx ? { ...s, elements: [...s.elements, ...newElements] } : s,
+    );
+    setState({
+      presentation: { ...state.presentation, slides },
+      selectedElementIds: newElements.map((el) => el.id),
+    });
+  },
+
+  cutElements: () => {
+    actions.copyElements();
+    if (state.selectedElementIds.length > 0) {
+      actions.deleteElements(state.selectedElementIds);
+    }
+  },
+
+  duplicateElements: () => {
+    actions.copyElements();
+    actions.pasteElements();
+  },
+
+  bringForward: (id: string) => {
+    const idx = state.currentSlideIndex;
+    const slide = state.presentation.slides[idx];
+    if (!slide) return;
+    const elIdx = slide.elements.findIndex((el: SlideElement) => el.id === id);
+    if (elIdx < 0 || elIdx >= slide.elements.length - 1) return;
+    pushHistory();
+    const elements = [...slide.elements];
+    [elements[elIdx], elements[elIdx + 1]] = [
+      elements[elIdx + 1],
+      elements[elIdx],
+    ];
+    const slides = state.presentation.slides.map((s: Slide, i: number) =>
+      i === idx ? { ...s, elements } : s,
+    );
+    setState({ presentation: { ...state.presentation, slides } });
+  },
+
+  sendBackward: (id: string) => {
+    const idx = state.currentSlideIndex;
+    const slide = state.presentation.slides[idx];
+    if (!slide) return;
+    const elIdx = slide.elements.findIndex((el: SlideElement) => el.id === id);
+    if (elIdx <= 0) return;
+    pushHistory();
+    const elements = [...slide.elements];
+    [elements[elIdx], elements[elIdx - 1]] = [
+      elements[elIdx - 1],
+      elements[elIdx],
+    ];
+    const slides = state.presentation.slides.map((s: Slide, i: number) =>
+      i === idx ? { ...s, elements } : s,
+    );
+    setState({ presentation: { ...state.presentation, slides } });
+  },
+
+  bringToFront: (id: string) => {
+    const idx = state.currentSlideIndex;
+    const slide = state.presentation.slides[idx];
+    if (!slide) return;
+    const elIdx = slide.elements.findIndex((el: SlideElement) => el.id === id);
+    if (elIdx < 0 || elIdx >= slide.elements.length - 1) return;
+    pushHistory();
+    const elements = slide.elements.filter((el: SlideElement) => el.id !== id);
+    elements.push(slide.elements[elIdx]);
+    const slides = state.presentation.slides.map((s: Slide, i: number) =>
+      i === idx ? { ...s, elements } : s,
+    );
+    setState({ presentation: { ...state.presentation, slides } });
+  },
+
+  sendToBack: (id: string) => {
+    const idx = state.currentSlideIndex;
+    const slide = state.presentation.slides[idx];
+    if (!slide) return;
+    const elIdx = slide.elements.findIndex((el: SlideElement) => el.id === id);
+    if (elIdx <= 0) return;
+    pushHistory();
+    const elements = slide.elements.filter((el: SlideElement) => el.id !== id);
+    elements.unshift(slide.elements[elIdx]);
+    const slides = state.presentation.slides.map((s: Slide, i: number) =>
+      i === idx ? { ...s, elements } : s,
+    );
+    setState({ presentation: { ...state.presentation, slides } });
+  },
+
+  lockElement: (id: string) => {
+    pushHistory();
+    actions.updateElement(id, { lock: true });
+  },
+
+  unlockElement: (id: string) => {
+    pushHistory();
+    actions.updateElement(id, { lock: false });
   },
 
   pushHistory,
