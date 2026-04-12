@@ -115,8 +115,9 @@ export function useDocsPage(spaceId: string) {
   const selectedDocId = selectedNodeType === "notion" ? selectedNodeId : null;
   const selectedSheetId = selectedNodeType === "sheet" ? selectedNodeId : null;
   const selectedMindId = selectedNodeType === "mind" ? selectedNodeId : null;
+  const selectedSlideId = selectedNodeType === "slide" ? selectedNodeId : null;
   const selectedContentNodeId =
-    selectedDocId ?? selectedSheetId ?? selectedMindId;
+    selectedDocId ?? selectedSheetId ?? selectedMindId ?? selectedSlideId;
   const currentFolderId = selectedNodeType === "folder" ? selectedNodeId : null;
 
   const handleSelectNode = useCallback(
@@ -148,6 +149,7 @@ export function useDocsPage(spaceId: string) {
   const selectedDoc = selectedDocId ? (detailQuery.data ?? null) : null;
   const selectedSheet = selectedSheetId ? (detailQuery.data ?? null) : null;
   const selectedMind = selectedMindId ? (detailQuery.data ?? null) : null;
+  const selectedSlide = selectedSlideId ? (detailQuery.data ?? null) : null;
   const queryClient = useQueryClient();
 
   // ── Version preview ─────────────────────────────────────────────────
@@ -334,6 +336,14 @@ export function useDocsPage(spaceId: string) {
     [selectedMindId],
   );
 
+  const handleSlideContentChange = useCallback(
+    (data: unknown) => {
+      if (!selectedSlideId) return;
+      updateMutRef.current.mutate({ id: selectedSlideId, content: data });
+    },
+    [selectedSlideId],
+  );
+
   const handleExportMarkdown = useCallback(() => {
     const editor = editorRef.current;
     if (editor) exportAsMarkdown(editor, stateRef.current.selectedDocTitle);
@@ -471,6 +481,8 @@ export function useDocsPage(spaceId: string) {
     selectedDoc,
     selectedSheet,
     selectedMind,
+    selectedSlide,
+    selectedSlideId,
     listQuery,
     detailQuery,
     versionQuery,
@@ -492,6 +504,7 @@ export function useDocsPage(spaceId: string) {
     handleTitleChange,
     handleSheetContentChange,
     handleMindContentChange,
+    handleSlideContentChange,
     handleExportMarkdown,
     handleImportMarkdown,
     handleExportDocx,

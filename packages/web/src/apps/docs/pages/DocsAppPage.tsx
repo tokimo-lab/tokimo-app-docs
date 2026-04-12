@@ -27,6 +27,7 @@ import {
 import { CommentSidebar } from "@/apps/docs/components/editor/elements/comment-sidebar";
 import { MindEditor } from "@/apps/docs/components/mind/MindEditor";
 import { SheetEditor } from "@/apps/docs/components/sheet/SheetEditor";
+import { SlideEditor } from "@/apps/docs/components/slide/SlideEditor";
 import VfsFilePickerModal from "@/apps/docs/components/VfsFilePickerModal";
 import { apiNodeToLocal, nextUniqueName } from "@/apps/docs/lib/doc-node";
 import { useMenuBar } from "@/system";
@@ -262,6 +263,37 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 content={s.selectedMind.content}
                 onChange={s.handleMindContentChange}
                 nodeId={s.selectedMind.id}
+                userName={s.user?.name}
+              />
+            )}
+          </>
+        ) : s.selectedSlide ? (
+          <>
+            <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
+              <button
+                type="button"
+                onClick={() => s.deselectNode()}
+                className="mr-1 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary cursor-pointer"
+                title={s.t("docs.backToList")}
+              >
+                <ArrowLeft size={14} />
+              </button>
+              <DocBreadcrumb
+                doc={s.selectedSlide}
+                allNodes={s.allNodes}
+                onNavigateFolder={(fid) => s.navigateToNode(fid)}
+              />
+              <div className="flex-1" />
+              <CollabPresenceBar nodeId={s.selectedSlide.id} />
+            </div>
+            {s.detailQuery.isLoading ? (
+              <Spin className="flex-1" />
+            ) : (
+              <SlideEditor
+                key={s.selectedSlide.id}
+                content={s.selectedSlide.content}
+                onChange={s.handleSlideContentChange}
+                nodeId={s.selectedSlide.id}
                 userName={s.user?.name}
               />
             )}
