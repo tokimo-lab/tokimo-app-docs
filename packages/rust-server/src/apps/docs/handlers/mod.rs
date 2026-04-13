@@ -4,6 +4,7 @@ pub mod comments;
 pub mod crud;
 pub mod space;
 pub mod versions;
+pub mod whiteboard_library;
 
 use crate::error::AppError;
 use uuid::Uuid;

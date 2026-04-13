@@ -15,9 +15,12 @@ import type {
   BinaryFiles,
   ExcalidrawImperativeAPI,
 } from "@excalidraw/excalidraw/types";
+import { Library } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useThemeCore } from "@/system";
+import { useWhiteboardLibraryAdapter } from "./useWhiteboardLibraryAdapter";
+import { WhiteboardLibraryPanel } from "./WhiteboardLibraryPanel";
 
 // Excalidraw langCode mapping from our i18next locale
 const LANG_MAP: Record<string, string> = {
@@ -50,9 +53,13 @@ export function WhiteboardEditor({
   nodeId,
 }: WhiteboardEditorProps) {
   const { theme } = useThemeCore();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation("docs");
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI | null>(null);
+  const [showLibraryPanel, setShowLibraryPanel] = useState(false);
+
+  // Persist user library to backend
+  useWhiteboardLibraryAdapter(excalidrawAPI);
 
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -127,10 +134,13 @@ export function WhiteboardEditor({
 
   return (
     <div className="relative h-full w-full whiteboard-editor">
-      {/* Hide Mermaid-to-Excalidraw "Generate" section in toolbar dropdown */}
+      {/* Hide Mermaid-to-Excalidraw "Generate" section + default "Browse libraries" link */}
       <style>{`
         .whiteboard-editor .App-toolbar__extra-tools-dropdown .dropdown-menu-container > div:not([class]),
         .whiteboard-editor .App-toolbar__extra-tools-dropdown .dropdown-menu-container > button:last-child {
+          display: none !important;
+        }
+        .whiteboard-editor .library-menu-browse-button {
           display: none !important;
         }
       `}</style>
@@ -156,8 +166,25 @@ export function WhiteboardEditor({
           <MainMenu.DefaultItems.ClearCanvas />
           <MainMenu.Separator />
           <MainMenu.DefaultItems.ChangeCanvasBackground />
+          <MainMenu.Separator />
+          <MainMenu.Item
+            onSelect={() => setShowLibraryPanel((v) => !v)}
+            icon={<Library className="w-4 h-4" />}
+          >
+            {t("whiteboardLibrary")}
+          </MainMenu.Item>
         </MainMenu>
       </Excalidraw>
+
+      {/* Library browsing panel */}
+      {showLibraryPanel && (
+        <div className="absolute top-0 right-0 h-full z-10">
+          <WhiteboardLibraryPanel
+            excalidrawAPI={excalidrawAPI}
+            onClose={() => setShowLibraryPanel(false)}
+          />
+        </div>
+      )}
     </div>
   );
 }
