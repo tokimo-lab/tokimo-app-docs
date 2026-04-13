@@ -1,5 +1,6 @@
 import { Maximize } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useDocViewport } from "../../hooks/use-doc-viewport";
 import { SearchReplace } from "./components/SearchReplace";
 import { SlidePanel } from "./panels/SlidePanel";
 import { SlideCanvas } from "./SlideCanvas";
@@ -28,6 +29,7 @@ export function SlideEditor({
   const presentation = useSlideStore((s) => s.presentation);
   const currentSlideIndex = useSlideStore((s) => s.currentSlideIndex);
   const setPresentation = useSlideStore((s) => s.setPresentation);
+  const setCurrentSlideIndex = useSlideStore((s) => s.setCurrentSlideIndex);
   const [presenting, setPresenting] = useState(false);
   const [zoom, setZoom] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -35,6 +37,14 @@ export function SlideEditor({
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  // Viewport state persistence
+  const {
+    viewState: savedViewport,
+    isLoading: viewportLoading,
+    saveViewport,
+  } = useDocViewport(nodeId);
+  const viewportRestoredRef = useRef(false);
 
   // Init from content — intentionally run only once on mount.
   const contentRef = useRef(content);
@@ -73,6 +83,47 @@ export function SlideEditor({
     },
     isReplayingRef,
   });
+
+  // ── Viewport restore ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (viewportLoading || viewportRestoredRef.current) return;
+    if (!presentation.slides.length) return;
+    viewportRestoredRef.current = true;
+
+    const sv = savedViewport as {
+      currentSlideIndex?: number;
+      zoom?: number;
+    } | null;
+    if (sv?.currentSlideIndex != null) {
+      const idx = Math.min(
+        sv.currentSlideIndex,
+        presentation.slides.length - 1,
+      );
+      setCurrentSlideIndex(idx);
+    }
+    if (sv?.zoom != null) {
+      setZoom(sv.zoom);
+    }
+  }, [
+    viewportLoading,
+    savedViewport,
+    presentation.slides.length,
+    setCurrentSlideIndex,
+  ]);
+
+  // ── Track slide/zoom changes ──────────────────────────────────────────
+  const prevSlideRef = useRef(currentSlideIndex);
+  const prevZoomRef = useRef(zoom);
+  useEffect(() => {
+    if (
+      currentSlideIndex !== prevSlideRef.current ||
+      zoom !== prevZoomRef.current
+    ) {
+      prevSlideRef.current = currentSlideIndex;
+      prevZoomRef.current = zoom;
+      saveViewport({ currentSlideIndex, zoom });
+    }
+  }, [currentSlideIndex, zoom, saveViewport]);
 
   const handlePresent = useCallback(() => setPresenting(true), []);
   const handleExitPresent = useCallback(() => {
