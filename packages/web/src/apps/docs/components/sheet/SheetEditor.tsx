@@ -17,6 +17,7 @@ import { useThemeCore } from "@/system";
 
 import "@univerjs/preset-sheets-core/lib/index.css";
 import "./sheet-overrides.css";
+import { useDocViewport } from "../../hooks/use-doc-viewport";
 import { SheetCursorOverlay } from "./SheetCursorOverlay";
 import { useSheetCollab } from "./use-sheet-collab";
 
@@ -75,6 +76,14 @@ export function SheetEditor({
     univer: ReturnType<typeof createUniver>["univer"];
     univerAPI: ReturnType<typeof createUniver>["univerAPI"];
   } | null>(null);
+
+  // Viewport state persistence (active sheet tab)
+  const {
+    viewState: savedViewport,
+    isLoading: viewportLoading,
+    saveViewport,
+  } = useDocViewport(nodeId);
+  const viewportRestoredRef = useRef(false);
 
   // Stable reference to initial content — only used on mount
   const initialContentRef = useRef(content);
@@ -158,6 +167,45 @@ export function SheetEditor({
   useEffect(() => {
     univerRef.current?.univerAPI.toggleDarkMode(theme === "dark");
   }, [theme]);
+
+  // ── Restore active sheet tab ──────────────────────────────────────────
+  useEffect(() => {
+    if (viewportLoading || viewportRestoredRef.current || !univerInstance)
+      return;
+    viewportRestoredRef.current = true;
+
+    const sv = savedViewport as { activeSheetId?: string } | null;
+    if (!sv?.activeSheetId) return;
+
+    const workbook = univerInstance.univerAPI.getActiveWorkbook();
+    if (!workbook) return;
+    const sheet = workbook.getSheetBySheetId(sv.activeSheetId);
+    if (sheet) {
+      workbook.setActiveSheet(sheet);
+    }
+  }, [viewportLoading, savedViewport, univerInstance]);
+
+  // ── Track active sheet changes ────────────────────────────────────────
+  useEffect(() => {
+    if (!univerInstance) return;
+    const disposable = univerInstance.univerAPI.onCommandExecuted((cmd) => {
+      // SetWorksheetActivateCommand fires when user switches tabs
+      if (
+        typeof cmd === "object" &&
+        cmd !== null &&
+        "id" in cmd &&
+        typeof (cmd as { id: string }).id === "string" &&
+        (cmd as { id: string }).id.includes("SetWorksheetActivate")
+      ) {
+        const wb = univerInstance.univerAPI.getActiveWorkbook();
+        const sheetId = wb?.getActiveSheet()?.getSheetId();
+        if (sheetId) {
+          saveViewport({ activeSheetId: sheetId });
+        }
+      }
+    });
+    return () => disposable.dispose();
+  }, [univerInstance, saveViewport]);
 
   return (
     <div className="relative h-full w-full">
