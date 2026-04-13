@@ -31,7 +31,9 @@ export type RecordData = Record<string, CellValue>;
 export interface BaseRecord {
   id: string;
   data: RecordData;
+  sortOrder: number;
   createdAt: string;
+  updatedAt: string;
 }
 
 // ── View types ──────────────────────────────────────────────────────────────
@@ -85,21 +87,13 @@ export interface BaseView {
   fieldOrder: string[];
 }
 
-// ── Table & Content ─────────────────────────────────────────────────────────
+// ── Content (single-table metadata) ─────────────────────────────────────────
 
-export interface BaseTable {
-  id: string;
-  name: string;
+/** Content structure stored in doc_nodes.content for type="base" */
+export interface BaseContent {
   fields: Field[];
-  records: BaseRecord[];
   views: BaseView[];
   activeViewId: string;
-}
-
-/** Root content structure stored in doc_nodes.content */
-export interface BaseContent {
-  tables: BaseTable[];
-  activeTableId: string;
 }
 
 // ── Default colors for select options ───────────────────────────────────────

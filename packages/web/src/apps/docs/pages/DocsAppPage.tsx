@@ -351,11 +351,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             {s.detailQuery.isLoading ? (
               <Spin className="flex-1" />
             ) : (
-              <BaseEditor
-                key={s.selectedBase.id}
-                content={s.selectedBase.content}
-                onChange={s.handleBaseContentChange}
-              />
+              <BaseEditor key={s.selectedBase.id} nodeId={s.selectedBase.id} />
             )}
           </>
         ) : s.selectedDoc ? (

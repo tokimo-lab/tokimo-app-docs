@@ -1,3 +1,4 @@
+pub mod base_record_repo;
 pub mod comment_repo;
 pub mod node_repo;
 pub mod space_repo;

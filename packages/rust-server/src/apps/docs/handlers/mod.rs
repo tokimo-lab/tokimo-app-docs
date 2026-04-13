@@ -1,3 +1,5 @@
+pub mod base_meta;
+pub mod base_records;
 pub mod browse;
 pub mod collab;
 pub mod comments;

@@ -1,7 +1,6 @@
 import type {
   BaseContent,
   BaseRecord,
-  BaseTable,
   BaseView,
   CellValue,
   Field,
@@ -43,10 +42,13 @@ export function createRecord(fields: Field[]): BaseRecord {
   for (const f of fields) {
     data[f.id] = getDefaultValue(f.type);
   }
+  const now = new Date().toISOString();
   return {
     id: generateId("rec"),
     data,
-    createdAt: new Date().toISOString(),
+    sortOrder: 0,
+    createdAt: now,
+    updatedAt: now,
   };
 }
 
@@ -63,8 +65,8 @@ export function createView(name: string, fields: Field[]): BaseView {
   };
 }
 
-export function createTable(name: string): BaseTable {
-  const fields = [
+export function createDefaultBaseFields(): Field[] {
+  return [
     createField("标题", "text"),
     createField("备注", "text"),
     createField("状态", "select", [
@@ -73,27 +75,15 @@ export function createTable(name: string): BaseTable {
       { id: generateId("opt"), label: "已完成", color: SELECT_COLORS[11] },
     ]),
   ];
-  const view = createView("Grid View", fields);
-  const records = [
-    createRecord(fields),
-    createRecord(fields),
-    createRecord(fields),
-  ];
-  return {
-    id: generateId("tbl"),
-    name,
-    fields,
-    records,
-    views: [view],
-    activeViewId: view.id,
-  };
 }
 
 export function createDefaultBaseContent(): BaseContent {
-  const table = createTable("Table 1");
+  const fields = createDefaultBaseFields();
+  const view = createView("Grid View", fields);
   return {
-    tables: [table],
-    activeTableId: table.id,
+    fields,
+    views: [view],
+    activeViewId: view.id,
   };
 }
 

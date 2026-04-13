@@ -1,31 +1,25 @@
+import { Loader2 } from "lucide-react";
 import { GridView } from "./grid/GridView";
-import { TableTabs } from "./TableTabs";
 import { BaseToolbar } from "./toolbar/BaseToolbar";
-import type { BaseContent } from "./types";
 import { useBaseEditor } from "./useBaseEditor";
 
 interface BaseEditorProps {
-  content: unknown;
-  onChange: (content: BaseContent) => void;
+  nodeId: string;
 }
 
-export function BaseEditor({ content, onChange }: BaseEditorProps) {
-  const state = useBaseEditor({ content, onChange });
+export function BaseEditor({ nodeId }: BaseEditorProps) {
+  const state = useBaseEditor({ nodeId });
+
+  if (state.isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center bg-surface-base">
+        <Loader2 size={24} className="animate-spin text-fg-muted" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-surface-base">
-      {/* Multi-table tabs */}
-      {state.base.tables.length > 0 && (
-        <TableTabs
-          tables={state.base.tables}
-          activeTableId={state.base.activeTableId}
-          onSetActive={state.setActiveTable}
-          onAdd={state.addTable}
-          onDelete={state.deleteTable}
-          onRename={state.renameTable}
-        />
-      )}
-
       {/* Toolbar: filter / sort / group / add field / view switcher */}
       <BaseToolbar state={state} />
 

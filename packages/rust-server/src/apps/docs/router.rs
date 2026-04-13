@@ -4,7 +4,10 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::apps::docs::handlers::{browse, collab, comments, crud, space, versions, view_state, whiteboard_library};
+use crate::apps::docs::handlers::{
+    base_meta, base_records, browse, collab, comments, crud, space, versions, view_state,
+    whiteboard_library,
+};
 use crate::AppState;
 
 pub fn build_docs_app_routes() -> Router<Arc<AppState>> {
@@ -106,5 +109,22 @@ pub fn build_docs_app_routes() -> Router<Arc<AppState>> {
         .route(
             "/api/apps/docs/nodes/{id}/view-state",
             get(view_state::get_view_state).put(view_state::put_view_state),
+        )
+        // ── Base (bitable) routes ─────────────────────────────────────────
+        .route(
+            "/api/apps/docs/base/{nodeId}",
+            get(base_meta::get_base_meta).patch(base_meta::update_base_meta),
+        )
+        .route(
+            "/api/apps/docs/base/{nodeId}/records",
+            get(base_records::list_records).post(base_records::create_record),
+        )
+        .route(
+            "/api/apps/docs/base/records/{recordId}",
+            patch(base_records::update_record).delete(base_records::delete_record),
+        )
+        .route(
+            "/api/apps/docs/base/{nodeId}/records/batch-delete",
+            post(base_records::batch_delete_records),
         )
 }
