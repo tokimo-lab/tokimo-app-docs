@@ -56,7 +56,7 @@ pub async fn list_libraries(
     let items: Vec<LibraryCatalogItem> = entries
         .into_iter()
         .map(|e| {
-            let item_count = e.item_names.as_ref().map(|v| v.len());
+            let item_count = e.item_names.as_ref().map(Vec::len);
             LibraryCatalogItem {
                 preview_url: format!("/api/apps/docs/whiteboard/libraries/{}/preview", e.id),
                 id: e.id,

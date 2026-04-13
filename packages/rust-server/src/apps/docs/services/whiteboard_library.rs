@@ -55,10 +55,10 @@ pub async fn get_catalog(
     // Fast path: read lock
     {
         let guard = catalog_lock().read().await;
-        if let Some(cache) = guard.as_ref() {
-            if cache.fetched_at.elapsed() < CACHE_TTL {
-                return Ok(cache.entries.clone());
-            }
+        if let Some(cache) = guard.as_ref()
+            && cache.fetched_at.elapsed() < CACHE_TTL
+        {
+            return Ok(cache.entries.clone());
         }
     }
 
@@ -166,12 +166,15 @@ pub async fn fetch_cached_file(
 }
 
 fn guess_content_type(filename: &str) -> &'static str {
-    if filename.ends_with(".png") {
-        "image/png"
-    } else if filename.ends_with(".excalidrawlib") || filename.ends_with(".json") {
-        "application/json"
-    } else {
-        "application/octet-stream"
+    use std::path::Path;
+    let ext = Path::new(filename)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+    match ext.to_ascii_lowercase().as_str() {
+        "png" => "image/png",
+        "excalidrawlib" | "json" => "application/json",
+        _ => "application/octet-stream",
     }
 }
 
