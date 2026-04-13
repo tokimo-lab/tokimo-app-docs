@@ -241,7 +241,15 @@ export function WhiteboardEditor({
         <div className="absolute top-0 right-0 h-full z-10">
           <WhiteboardLibraryPanel
             excalidrawAPI={excalidrawAPI}
-            onClose={() => setShowLibraryPanel(false)}
+            onClose={() => {
+              setShowLibraryPanel(false);
+              // Re-open native library sidebar so user sees the items they added
+              excalidrawAPI?.updateScene({
+                appState: {
+                  openSidebar: { name: "default", tab: "library" },
+                },
+              });
+            }}
           />
         </div>
       )}
