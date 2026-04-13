@@ -4,7 +4,7 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::apps::docs::handlers::{browse, collab, comments, crud, space, versions, whiteboard_library};
+use crate::apps::docs::handlers::{browse, collab, comments, crud, space, versions, view_state, whiteboard_library};
 use crate::AppState;
 
 pub fn build_docs_app_routes() -> Router<Arc<AppState>> {
@@ -101,5 +101,10 @@ pub fn build_docs_app_routes() -> Router<Arc<AppState>> {
         .route(
             "/api/apps/docs/whiteboard/user-library",
             get(whiteboard_library::get_user_library).put(whiteboard_library::save_user_library),
+        )
+        // View state routes (per-user viewport persistence)
+        .route(
+            "/api/apps/docs/nodes/{id}/view-state",
+            get(view_state::get_view_state).put(view_state::put_view_state),
         )
 }

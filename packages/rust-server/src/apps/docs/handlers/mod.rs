@@ -4,6 +4,7 @@ pub mod comments;
 pub mod crud;
 pub mod space;
 pub mod versions;
+pub mod view_state;
 pub mod whiteboard_library;
 
 use crate::error::AppError;
