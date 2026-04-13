@@ -12,6 +12,7 @@ interface GridRowProps {
   rowIndex: number;
   state: BaseEditorState;
   rowNumberWidth: number;
+  rowHeightPx: number;
 }
 
 export function GridRow({
@@ -20,6 +21,7 @@ export function GridRow({
   rowIndex,
   state,
   rowNumberWidth,
+  rowHeightPx,
 }: GridRowProps) {
   const [hovering, setHovering] = useState(false);
 
@@ -27,9 +29,10 @@ export function GridRow({
     // biome-ignore lint/a11y/noStaticElementInteractions: table row
     <div
       className={cn(
-        "flex h-8 border-b border-border-subtle transition-colors",
+        "flex border-b border-border-subtle transition-colors",
         hovering && "bg-fill-tertiary/50",
       )}
+      style={{ height: rowHeightPx }}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
     >

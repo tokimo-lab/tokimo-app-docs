@@ -1,8 +1,45 @@
 import { cn } from "@tokiomo/components";
-import { LayoutGrid, MoreHorizontal, Plus } from "lucide-react";
+import {
+  BarChart3,
+  Calendar,
+  Columns3,
+  FileText,
+  Image,
+  LayoutGrid,
+  MoreHorizontal,
+  Plus,
+  Table,
+} from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import type { BaseView } from "../types";
+import type { BaseView, ViewType } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
+
+const VIEW_TYPE_ICON: Record<ViewType, React.ReactNode> = {
+  grid: <Table size={14} />,
+  kanban: <Columns3 size={14} />,
+  calendar: <Calendar size={14} />,
+  gantt: <BarChart3 size={14} />,
+  gallery: <Image size={14} />,
+  form: <FileText size={14} />,
+};
+
+const VIEW_TYPE_LABELS: Record<ViewType, string> = {
+  grid: "表格视图",
+  kanban: "看板视图",
+  calendar: "日历视图",
+  gantt: "甘特视图",
+  gallery: "画册视图",
+  form: "表单视图",
+};
+
+const VIEW_TYPE_ORDER: ViewType[] = [
+  "grid",
+  "kanban",
+  "calendar",
+  "gantt",
+  "gallery",
+  "form",
+];
 
 interface ViewTabsBarProps {
   state: BaseEditorState;
@@ -10,6 +47,7 @@ interface ViewTabsBarProps {
 
 export function ViewTabsBar({ state }: ViewTabsBarProps) {
   const { activeView, activeTable } = state;
+  const [showNewViewMenu, setShowNewViewMenu] = useState(false);
 
   if (!activeTable) return null;
 
@@ -31,15 +69,43 @@ export function ViewTabsBar({ state }: ViewTabsBarProps) {
         ))}
       </div>
 
-      {/* Add view button */}
-      <button
-        type="button"
-        className="ml-1 flex shrink-0 cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary"
-        onClick={state.addView}
-      >
-        <Plus size={14} />
-        <span>新建视图</span>
-      </button>
+      {/* Add view button with dropdown */}
+      <div className="relative">
+        <button
+          type="button"
+          className="ml-1 flex shrink-0 cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary"
+          onClick={() => setShowNewViewMenu((v) => !v)}
+        >
+          <Plus size={14} />
+          <span>新建视图</span>
+        </button>
+        {showNewViewMenu && (
+          <>
+            {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setShowNewViewMenu(false)}
+            />
+            <div className="absolute top-full left-0 z-50 mt-1 min-w-[150px] rounded border border-border-base bg-surface-base py-1 shadow-lg">
+              {VIEW_TYPE_ORDER.map((vt) => (
+                <button
+                  key={vt}
+                  type="button"
+                  className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
+                  onClick={() => {
+                    state.addViewWithType(vt);
+                    setShowNewViewMenu(false);
+                  }}
+                >
+                  {VIEW_TYPE_ICON[vt]}
+                  {VIEW_TYPE_LABELS[vt]}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -83,6 +149,8 @@ function ViewTab({
     setTimeout(() => inputRef.current?.focus(), 0);
   }, [view.name]);
 
+  const viewIcon = VIEW_TYPE_ICON[view.type] ?? <LayoutGrid size={14} />;
+
   return (
     <div className="relative flex items-center">
       <button
@@ -99,7 +167,7 @@ function ViewTab({
           setMenuOpen(true);
         }}
       >
-        <LayoutGrid size={14} />
+        {viewIcon}
         {renaming ? (
           <input
             ref={inputRef}
@@ -118,13 +186,13 @@ function ViewTab({
         )}
       </button>
 
-      {/* More button (shows on hover) */}
+      {/* More button — always visible when active, hover otherwise */}
       {!renaming && (
         <button
           type="button"
           className={cn(
             "cursor-pointer rounded p-0.5 text-fg-muted hover:bg-fill-tertiary",
-            menuOpen ? "block" : "hidden group-hover:block",
+            isActive || menuOpen ? "block" : "hidden group-hover:block",
           )}
           onClick={(e) => {
             e.stopPropagation();

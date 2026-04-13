@@ -10,14 +10,17 @@ import type {
   FilterCondition,
   GroupRule,
   RecordData,
+  RowHeight,
   SelectOption,
   SortRule,
+  ViewType,
 } from "./types";
 import {
   applyGroups,
   createDefaultBaseContent,
   createField,
   createView,
+  createViewWithType,
   generateId,
   getProcessedRecords,
   getVisibleFields,
@@ -342,6 +345,127 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     [updateField],
   );
 
+  // ── New operations (Feishu parity) ──────────────────────────────────
+
+  const duplicateField = useCallback(
+    (fieldId: string) => {
+      const src = fieldsRef.current.find((f) => f.id === fieldId);
+      if (!src) return;
+      const dup = createField(`${src.name} 副本`, src.type, src.options);
+      dup.width = src.width;
+      const idx = fieldsRef.current.findIndex((f) => f.id === fieldId);
+      const newFields = [...fieldsRef.current];
+      newFields.splice(idx + 1, 0, dup);
+      commitMeta({
+        fields: newFields,
+        views: viewsRef.current.map((v) => {
+          const orderIdx = v.fieldOrder.indexOf(fieldId);
+          const newOrder = [...v.fieldOrder];
+          newOrder.splice(orderIdx + 1, 0, dup.id);
+          return { ...v, fieldOrder: newOrder };
+        }),
+      });
+    },
+    [commitMeta],
+  );
+
+  const insertFieldAfter = useCallback(
+    (afterFieldId: string, name: string, type: FieldType) => {
+      const field = createField(name, type);
+      const idx = fieldsRef.current.findIndex((f) => f.id === afterFieldId);
+      const newFields = [...fieldsRef.current];
+      newFields.splice(idx + 1, 0, field);
+      commitMeta({
+        fields: newFields,
+        views: viewsRef.current.map((v) => {
+          const orderIdx = v.fieldOrder.indexOf(afterFieldId);
+          const newOrder = [...v.fieldOrder];
+          newOrder.splice(orderIdx + 1, 0, field.id);
+          return { ...v, fieldOrder: newOrder };
+        }),
+      });
+    },
+    [commitMeta],
+  );
+
+  const addSortForField = useCallback(
+    (fieldId: string, direction: "asc" | "desc") => {
+      const view = viewsRef.current.find(
+        (v) => v.id === activeViewIdRef.current,
+      );
+      if (!view) return;
+      const rule: SortRule = { id: generateId("srt"), fieldId, direction };
+      updateView(view.id, { sorts: [...view.sorts, rule] });
+    },
+    [updateView],
+  );
+
+  const addFilterForField = useCallback(
+    (fieldId: string) => {
+      const view = viewsRef.current.find(
+        (v) => v.id === activeViewIdRef.current,
+      );
+      if (!view) return;
+      const cond: FilterCondition = {
+        id: generateId("flt"),
+        fieldId,
+        operator: "contains",
+        value: "",
+      };
+      updateView(view.id, {
+        filters: {
+          conjunction: view.filters.conjunction,
+          conditions: [...view.filters.conditions, cond],
+        },
+      });
+    },
+    [updateView],
+  );
+
+  const addGroupForField = useCallback(
+    (fieldId: string) => {
+      const view = viewsRef.current.find(
+        (v) => v.id === activeViewIdRef.current,
+      );
+      if (!view) return;
+      const rule: GroupRule = {
+        id: generateId("grp"),
+        fieldId,
+        direction: "asc",
+      };
+      updateView(view.id, { groups: [...view.groups, rule] });
+    },
+    [updateView],
+  );
+
+  const setRowHeight = useCallback(
+    (height: RowHeight) => {
+      const viewId = activeViewIdRef.current;
+      updateView(viewId, { rowHeight: height });
+    },
+    [updateView],
+  );
+
+  const setFrozenFieldCount = useCallback(
+    (count: number) => {
+      const viewId = activeViewIdRef.current;
+      updateView(viewId, { frozenFieldCount: count });
+    },
+    [updateView],
+  );
+
+  const addViewWithType = useCallback(
+    (type: ViewType) => {
+      const name = `View ${viewsRef.current.length + 1}`;
+      const view = createViewWithType(name, type, fieldsRef.current);
+      commitMeta({
+        views: [...viewsRef.current, view],
+        activeViewId: view.id,
+      });
+    },
+    [commitMeta],
+  );
+
   return {
     // Compatibility: GridView checks `activeTable` for null guard
     activeTable: metaQuery.data ? { fields, views } : undefined,
@@ -359,12 +483,15 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     addView,
     deleteView,
     updateView,
+    addViewWithType,
 
     // Field
     addField,
     updateField,
     deleteField,
     resizeField,
+    duplicateField,
+    insertFieldAfter,
 
     // Record
     addRecord,
@@ -375,6 +502,13 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     setFilters,
     setSorts,
     setGroups,
+    addSortForField,
+    addFilterForField,
+    addGroupForField,
+
+    // View settings
+    setRowHeight,
+    setFrozenFieldCount,
 
     // Select options
     addSelectOption,

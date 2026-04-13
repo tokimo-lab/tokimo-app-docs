@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+import type { RowHeight } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
 import type { RecordGroup } from "../utils";
 import { ADD_COL_WIDTH, CHECKBOX_COL_WIDTH, GridHeader } from "./GridHeader";
@@ -11,8 +12,18 @@ interface GridViewProps {
 
 const ROW_NUMBER_WIDTH = 48;
 
+const ROW_HEIGHT_MAP: Record<RowHeight, number> = {
+  short: 24,
+  medium: 32,
+  tall: 48,
+  extraTall: 64,
+};
+
 export function GridView({ state }: GridViewProps) {
-  const { visibleFields, groupedRecords, activeTable, records } = state;
+  const { visibleFields, groupedRecords, activeTable, activeView, records } =
+    state;
+
+  const rowHeightPx = ROW_HEIGHT_MAP[activeView?.rowHeight ?? "medium"];
 
   // Total minimum content width so rows always align with header
   const contentMinWidth = useMemo(() => {
@@ -25,6 +36,11 @@ export function GridView({ state }: GridViewProps) {
   const hasGroups =
     groupedRecords.length > 1 || groupedRecords[0]?.label !== "";
 
+  const handleFreezeUpTo = (fieldId: string) => {
+    const idx = visibleFields.findIndex((f) => f.id === fieldId);
+    state.setFrozenFieldCount(idx + 1);
+  };
+
   return (
     <div className="flex h-full flex-col overflow-auto">
       <div style={{ minWidth: contentMinWidth }}>
@@ -34,13 +50,25 @@ export function GridView({ state }: GridViewProps) {
           onDeleteField={state.deleteField}
           onUpdateField={state.updateField}
           onAddField={state.addField}
+          onDuplicateField={state.duplicateField}
+          onInsertFieldAfter={state.insertFieldAfter}
+          onSortField={state.addSortForField}
+          onFilterField={state.addFilterForField}
+          onGroupField={state.addGroupForField}
+          onFreezeUpTo={handleFreezeUpTo}
           rowNumberWidth={ROW_NUMBER_WIDTH}
+          rowHeightPx={rowHeightPx}
         />
 
         <div className="flex-1">
           {hasGroups
             ? groupedRecords.map((group) => (
-                <GroupSection key={group.key} group={group} state={state} />
+                <GroupSection
+                  key={group.key}
+                  group={group}
+                  state={state}
+                  rowHeightPx={rowHeightPx}
+                />
               ))
             : (groupedRecords[0]?.records ?? []).map((rec, idx) => (
                 <GridRow
@@ -50,13 +78,15 @@ export function GridView({ state }: GridViewProps) {
                   rowIndex={idx}
                   state={state}
                   rowNumberWidth={ROW_NUMBER_WIDTH}
+                  rowHeightPx={rowHeightPx}
                 />
               ))}
 
           {/* Add row — Feishu style: just "+" at the left margin */}
           <button
             type="button"
-            className="flex h-8 w-full cursor-pointer items-center border-b border-border-subtle text-fg-muted hover:bg-fill-tertiary"
+            className="flex w-full cursor-pointer items-center border-b border-border-subtle text-fg-muted hover:bg-fill-tertiary"
+            style={{ height: rowHeightPx }}
             onClick={state.addRecord}
           >
             <div
@@ -82,9 +112,11 @@ export function GridView({ state }: GridViewProps) {
 function GroupSection({
   group,
   state,
+  rowHeightPx,
 }: {
   group: RecordGroup;
   state: BaseEditorState;
+  rowHeightPx: number;
 }) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -108,6 +140,7 @@ function GroupSection({
             rowIndex={idx}
             state={state}
             rowNumberWidth={ROW_NUMBER_WIDTH}
+            rowHeightPx={rowHeightPx}
           />
         ))}
     </div>

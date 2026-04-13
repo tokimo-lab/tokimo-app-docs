@@ -1,12 +1,22 @@
 import { cn } from "@tokiomo/components";
 import {
+  ArrowDownZA,
+  ArrowUpAZ,
   Calendar,
   CheckSquare,
   ChevronDown,
+  Copy,
+  Edit,
+  FileText,
+  Filter,
+  Group,
   Hash,
   Link,
   List,
+  Lock,
+  Paintbrush,
   Plus,
+  PlusCircle,
   Trash2,
   Type,
 } from "lucide-react";
@@ -33,7 +43,18 @@ interface GridHeaderProps {
   onDeleteField: (fieldId: string) => void;
   onUpdateField: (fieldId: string, partial: Partial<Field>) => void;
   onAddField: (name: string, type: FieldType) => void;
+  onDuplicateField: (fieldId: string) => void;
+  onInsertFieldAfter: (
+    afterFieldId: string,
+    name: string,
+    type: FieldType,
+  ) => void;
+  onSortField: (fieldId: string, direction: "asc" | "desc") => void;
+  onFilterField: (fieldId: string) => void;
+  onGroupField: (fieldId: string) => void;
+  onFreezeUpTo: (fieldId: string) => void;
   rowNumberWidth: number;
+  rowHeightPx?: number;
 }
 
 export function GridHeader({
@@ -42,12 +63,23 @@ export function GridHeader({
   onDeleteField,
   onUpdateField,
   onAddField,
+  onDuplicateField,
+  onInsertFieldAfter,
+  onSortField,
+  onFilterField,
+  onGroupField,
+  onFreezeUpTo,
   rowNumberWidth,
+  rowHeightPx,
 }: GridHeaderProps) {
   const [showAddField, setShowAddField] = useState(false);
+  const headerHeight = Math.max(36, rowHeightPx ?? 36);
 
   return (
-    <div className="sticky top-0 z-10 flex h-9 border-b border-border-base bg-surface-secondary">
+    <div
+      className="sticky top-0 z-10 flex border-b border-border-base bg-surface-secondary"
+      style={{ height: headerHeight }}
+    >
       {/* Checkbox column */}
       <div
         className="flex shrink-0 items-center justify-center border-r border-border-subtle"
@@ -76,6 +108,13 @@ export function GridHeader({
           onResize={(w) => onResizeField(field.id, w)}
           onDelete={() => onDeleteField(field.id)}
           onUpdate={(p) => onUpdateField(field.id, p)}
+          onDuplicate={() => onDuplicateField(field.id)}
+          onInsertAfter={() => onInsertFieldAfter(field.id, "新字段", "text")}
+          onSortAsc={() => onSortField(field.id, "asc")}
+          onSortDesc={() => onSortField(field.id, "desc")}
+          onFilter={() => onFilterField(field.id)}
+          onGroup={() => onGroupField(field.id)}
+          onFreeze={() => onFreezeUpTo(field.id)}
         />
       ))}
 
@@ -112,9 +151,28 @@ interface HeaderCellProps {
   onResize: (width: number) => void;
   onDelete: () => void;
   onUpdate: (partial: Partial<Field>) => void;
+  onDuplicate: () => void;
+  onInsertAfter: () => void;
+  onSortAsc: () => void;
+  onSortDesc: () => void;
+  onFilter: () => void;
+  onGroup: () => void;
+  onFreeze: () => void;
 }
 
-function HeaderCell({ field, onResize, onDelete, onUpdate }: HeaderCellProps) {
+function HeaderCell({
+  field,
+  onResize,
+  onDelete,
+  onUpdate,
+  onDuplicate,
+  onInsertAfter,
+  onSortAsc,
+  onSortDesc,
+  onFilter,
+  onGroup,
+  onFreeze,
+}: HeaderCellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState(field.name);
@@ -144,6 +202,11 @@ function HeaderCell({ field, onResize, onDelete, onUpdate }: HeaderCellProps) {
     if (draft.trim()) onUpdate({ name: draft.trim() });
     setRenaming(false);
   }, [draft, onUpdate]);
+
+  const closeMenuAndRun = (action: () => void) => {
+    action();
+    setMenuOpen(false);
+  };
 
   return (
     <div
@@ -191,7 +254,8 @@ function HeaderCell({ field, onResize, onDelete, onUpdate }: HeaderCellProps) {
             className="fixed inset-0 z-40"
             onClick={() => setMenuOpen(false)}
           />
-          <div className="absolute top-full right-0 z-50 mt-1 min-w-[140px] rounded border border-border-base bg-surface-base py-1 shadow-lg">
+          <div className="absolute top-full right-0 z-50 mt-1 min-w-[180px] rounded border border-border-base bg-surface-base py-1 shadow-lg">
+            {/* Group 1: Edit */}
             <button
               type="button"
               className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
@@ -202,18 +266,102 @@ function HeaderCell({ field, onResize, onDelete, onUpdate }: HeaderCellProps) {
                 setTimeout(() => inputRef.current?.focus(), 0);
               }}
             >
-              重命名
+              <Edit size={12} />
+              修改字段/列
             </button>
             <button
               type="button"
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
+              onClick={() => setMenuOpen(false)}
+            >
+              <FileText size={12} />
+              编辑字段/列描述
+            </button>
+
+            <div className="my-1 h-px bg-border-subtle" />
+
+            {/* Group 2: Copy / Insert */}
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
+              onClick={() => setMenuOpen(false)}
+            >
+              <Paintbrush size={12} />
+              整列填色
+            </button>
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
+              onClick={() => closeMenuAndRun(onDuplicate)}
+            >
+              <Copy size={12} />
+              复制字段/列
+            </button>
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
+              onClick={() => closeMenuAndRun(onInsertAfter)}
+            >
+              <PlusCircle size={12} />
+              向右插入字段/列
+            </button>
+
+            <div className="my-1 h-px bg-border-subtle" />
+
+            {/* Group 3: Freeze */}
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
+              onClick={() => closeMenuAndRun(onFreeze)}
+            >
+              <Lock size={12} />
+              冻结至此字段/列
+            </button>
+
+            <div className="my-1 h-px bg-border-subtle" />
+
+            {/* Group 4: Sort / Group / Filter */}
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
+              onClick={() => closeMenuAndRun(onSortAsc)}
+            >
+              <ArrowUpAZ size={12} />A → Z 排序
+            </button>
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
+              onClick={() => closeMenuAndRun(onSortDesc)}
+            >
+              <ArrowDownZA size={12} />Z → A 排序
+            </button>
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
+              onClick={() => closeMenuAndRun(onGroup)}
+            >
+              <Group size={12} />
+              按「{field.name}」分组
+            </button>
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
+              onClick={() => closeMenuAndRun(onFilter)}
+            >
+              <Filter size={12} />
+              按「{field.name}」筛选
+            </button>
+
+            <div className="my-1 h-px bg-border-subtle" />
+
+            {/* Group 5: Delete */}
+            <button
+              type="button"
               className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs text-red-600 hover:bg-fill-tertiary"
-              onClick={() => {
-                onDelete();
-                setMenuOpen(false);
-              }}
+              onClick={() => closeMenuAndRun(onDelete)}
             >
               <Trash2 size={12} />
-              删除字段
+              删除字段/列
             </button>
           </div>
         </>

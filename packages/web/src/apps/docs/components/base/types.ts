@@ -38,7 +38,15 @@ export interface BaseRecord {
 
 // ── View types ──────────────────────────────────────────────────────────────
 
-export type ViewType = "grid" | "kanban" | "gallery" | "form";
+export type ViewType =
+  | "grid"
+  | "kanban"
+  | "gallery"
+  | "form"
+  | "calendar"
+  | "gantt";
+
+export type RowHeight = "short" | "medium" | "tall" | "extraTall";
 
 export type FilterOperator =
   | "eq"
@@ -85,6 +93,8 @@ export interface BaseView {
   groups: GroupRule[];
   hiddenFieldIds: string[];
   fieldOrder: string[];
+  rowHeight: RowHeight;
+  frozenFieldCount: number;
 }
 
 // ── Content (single-table metadata) ─────────────────────────────────────────

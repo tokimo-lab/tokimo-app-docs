@@ -10,6 +10,7 @@ import type {
   GroupRule,
   SelectOption,
   SortRule,
+  ViewType,
 } from "./types";
 import { SELECT_COLORS } from "./types";
 
@@ -62,6 +63,19 @@ export function createView(name: string, fields: Field[]): BaseView {
     groups: [],
     hiddenFieldIds: [],
     fieldOrder: fields.map((f) => f.id),
+    rowHeight: "medium",
+    frozenFieldCount: 0,
+  };
+}
+
+export function createViewWithType(
+  name: string,
+  type: ViewType,
+  fields: Field[],
+): BaseView {
+  return {
+    ...createView(name, fields),
+    type,
   };
 }
 
