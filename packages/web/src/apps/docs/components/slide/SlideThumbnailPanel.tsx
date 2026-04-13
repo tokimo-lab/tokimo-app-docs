@@ -7,7 +7,7 @@ import { SlideRenderer } from "./SlideRenderer";
 import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from "./types";
 import { useSlideStore } from "./use-slide-store";
 
-const THUMB_WIDTH = 120;
+const THUMB_WIDTH = 146;
 const THUMB_SCALE = THUMB_WIDTH / VIEWPORT_WIDTH;
 const THUMB_HEIGHT = Math.round(VIEWPORT_HEIGHT * THUMB_SCALE);
 
@@ -50,7 +50,7 @@ export function SlideThumbnailPanel({
     index: number;
   } | null>(null);
   const [layoutDropdownOpen, setLayoutDropdownOpen] = useState(false);
-  const dropdownBtnRef = useRef<HTMLButtonElement>(null);
+  const splitBtnGroupRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dragIndexRef = useRef<number | null>(null);
 
@@ -107,8 +107,8 @@ export function SlideThumbnailPanel({
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(e.target as Node) &&
-        dropdownBtnRef.current &&
-        !dropdownBtnRef.current.contains(e.target as Node)
+        splitBtnGroupRef.current &&
+        !splitBtnGroupRef.current.contains(e.target as Node)
       ) {
         setLayoutDropdownOpen(false);
       }
@@ -136,8 +136,8 @@ export function SlideThumbnailPanel({
     );
   }
 
-  // Dropdown position
-  const dropdownPos = dropdownBtnRef.current?.getBoundingClientRect();
+  // Dropdown position (aligned with split button group)
+  const splitRect = splitBtnGroupRef.current?.getBoundingClientRect();
 
   return (
     <div className="flex w-[196px] flex-shrink-0 flex-col bg-white dark:bg-neutral-900">
@@ -147,7 +147,7 @@ export function SlideThumbnailPanel({
         style={{ padding: "16px 6px 0 32px" }}
       >
         {/* Split button group */}
-        <div className="flex h-8">
+        <div ref={splitBtnGroupRef} className="flex h-8">
           {/* Main "新建幻灯片" button */}
           <button
             type="button"
@@ -159,7 +159,6 @@ export function SlideThumbnailPanel({
           </button>
           {/* Dropdown chevron button */}
           <button
-            ref={dropdownBtnRef}
             type="button"
             className="flex h-8 w-[27px] cursor-pointer items-center justify-center rounded-r-[6px] border border-l-0 border-[rgb(208,211,214)] bg-white transition-colors hover:bg-gray-50 dark:border-neutral-600 dark:bg-neutral-800 dark:hover:bg-neutral-700"
             onClick={() => setLayoutDropdownOpen((prev) => !prev)}
@@ -192,8 +191,8 @@ export function SlideThumbnailPanel({
           // biome-ignore lint/a11y/noStaticElementInteractions: thumbnail items need drag and context menu
           <div
             key={slide.id}
-            className="flex cursor-pointer items-start"
-            style={{ padding: "8px 18px 8px 32px" }}
+            className="relative cursor-pointer"
+            style={{ padding: "8px 0" }}
             onClick={() => setCurrentIndex(i)}
             onContextMenu={(e) => handleContextMenu(e, i)}
             draggable
@@ -201,9 +200,9 @@ export function SlideThumbnailPanel({
             onDrop={(e) => handleDrop(e, i)}
             onDragOver={handleDragOver}
           >
-            {/* Slide number */}
+            {/* Slide number — absolute in left gutter */}
             <span
-              className={`mt-1 w-[26px] shrink-0 text-center text-xs font-medium ${
+              className={`absolute left-[4px] top-[12px] w-[26px] text-center text-xs font-medium leading-3 ${
                 i === currentIndex
                   ? "text-[rgb(20,86,240)] dark:text-blue-400"
                   : "text-[rgb(100,106,115)] dark:text-neutral-400"
@@ -211,16 +210,16 @@ export function SlideThumbnailPanel({
             >
               {i + 1}
             </span>
-            {/* Selection border wrapper */}
+            {/* Selection border — wraps thumbnail area */}
             <div
-              className={`rounded-[10px] border-2 p-[3px] transition-colors ${
+              className={`ml-[28px] mr-[14px] rounded-[10px] border-2 p-px transition-colors ${
                 i === currentIndex
                   ? "border-[rgb(20,86,240)] dark:border-blue-400"
-                  : "border-transparent hover:border-black/15 dark:hover:border-neutral-500"
+                  : "border-transparent hover:border-[rgba(31,35,41,0.15)] dark:hover:border-neutral-500"
               }`}
             >
               {/* Thumbnail inner */}
-              <div className="overflow-hidden rounded-[6px] border border-black/15 dark:border-neutral-600">
+              <div className="overflow-hidden rounded-[6px] border border-[rgba(31,35,41,0.15)] dark:border-neutral-600">
                 <SlideRenderer
                   slide={slide}
                   width={THUMB_WIDTH}
@@ -234,7 +233,7 @@ export function SlideThumbnailPanel({
 
       {/* Layout template dropdown (portal) */}
       {layoutDropdownOpen &&
-        dropdownPos &&
+        splitRect &&
         createPortal(
           <>
             {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop to close dropdown */}
@@ -245,8 +244,8 @@ export function SlideThumbnailPanel({
             />
             <LayoutDropdown
               ref={dropdownRef}
-              top={dropdownPos.bottom + 4}
-              left={dropdownPos.left}
+              top={splitRect.bottom + 4}
+              left={splitRect.left}
               onSelect={handleInsertLayout}
               t={t}
             />
@@ -303,7 +302,7 @@ export function SlideThumbnailPanel({
 
 // ── Layout Dropdown ─────────────────────────────────────────
 
-const LAYOUT_THUMB_W = 64;
+const LAYOUT_THUMB_W = 130;
 const LAYOUT_THUMB_SCALE = LAYOUT_THUMB_W / VIEWPORT_WIDTH;
 const LAYOUT_THUMB_H = Math.round(VIEWPORT_HEIGHT * LAYOUT_THUMB_SCALE);
 
@@ -322,39 +321,58 @@ const LayoutDropdown = forwardRef<HTMLDivElement, LayoutDropdownProps>(
     return (
       <div
         ref={ref}
-        className="fixed z-[200] w-[280px] rounded-lg border border-border-subtle bg-white p-3 shadow-xl dark:bg-neutral-800"
-        style={{ top, left }}
+        className="fixed z-[200] w-[460px] rounded-lg bg-white dark:bg-neutral-800"
+        style={{
+          top,
+          left,
+          border: "1px solid rgb(222,224,227)",
+          boxShadow:
+            "rgba(31,35,41,0.04) 0px 8px 24px 8px, rgba(31,35,41,0.04) 0px 6px 12px 0px, rgba(31,35,41,0.06) 0px 4px 8px -8px",
+          animation: "feishuDropdownIn 0.15s ease-out",
+        }}
       >
-        {/* Header */}
-        <div className="mb-2 text-xs font-medium text-[rgb(31,35,41)] dark:text-neutral-200">
+        <style>{`
+          @keyframes feishuDropdownIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
+        {/* Header — 46px tall */}
+        <div
+          className="flex h-[46px] items-center text-sm text-[rgb(31,35,41)] dark:text-neutral-200"
+          style={{ padding: "0 12px" }}
+        >
           {t("docs.slideSelectLayout")}
         </div>
-        {/* Section label */}
-        <div className="mb-2 text-[11px] text-[rgb(100,106,115)] dark:text-neutral-400">
-          {t("docs.slideDefaultTemplate")}
-        </div>
-        {/* Grid */}
-        <div className="grid grid-cols-3 gap-2">
-          {SLIDE_LAYOUTS.map((layout) => (
-            // biome-ignore lint/a11y/useKeyWithClickEvents: layout grid item
-            // biome-ignore lint/a11y/noStaticElementInteractions: layout grid item
-            <div
-              key={layout.id}
-              className="group cursor-pointer"
-              onClick={() => onSelect(layout.elements)}
-            >
-              <div className="overflow-hidden rounded border border-black/10 transition-colors group-hover:border-[rgb(20,86,240)] dark:border-neutral-600 dark:group-hover:border-blue-400">
-                <SlideRenderer
-                  slide={{ id: layout.id, elements: layout.elements }}
-                  width={LAYOUT_THUMB_W}
-                  height={LAYOUT_THUMB_H}
-                />
+        {/* Scrollable content */}
+        <div className="max-h-[440px] overflow-y-auto px-3 pb-3">
+          {/* Section label */}
+          <div className="mb-2 text-xs text-[rgb(100,106,115)] dark:text-neutral-400">
+            {t("docs.slideDefaultTemplate")}
+          </div>
+          {/* Grid — 3 columns */}
+          <div className="grid grid-cols-3 gap-3">
+            {SLIDE_LAYOUTS.map((layout) => (
+              // biome-ignore lint/a11y/useKeyWithClickEvents: layout grid item
+              // biome-ignore lint/a11y/noStaticElementInteractions: layout grid item
+              <div
+                key={layout.id}
+                className="group cursor-pointer"
+                onClick={() => onSelect(layout.elements)}
+              >
+                <div className="overflow-hidden rounded border border-black/10 transition-colors group-hover:border-[rgb(20,86,240)] dark:border-neutral-600 dark:group-hover:border-blue-400">
+                  <SlideRenderer
+                    slide={{ id: layout.id, elements: layout.elements }}
+                    width={LAYOUT_THUMB_W}
+                    height={LAYOUT_THUMB_H}
+                  />
+                </div>
+                <div className="mt-1 truncate text-center text-xs text-[rgb(100,106,115)] dark:text-neutral-400">
+                  {t(LAYOUT_I18N_KEYS[layout.id] ?? layout.name)}
+                </div>
               </div>
-              <div className="mt-1 truncate text-center text-[10px] text-[rgb(100,106,115)] dark:text-neutral-400">
-                {t(LAYOUT_I18N_KEYS[layout.id] ?? layout.name)}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     );
