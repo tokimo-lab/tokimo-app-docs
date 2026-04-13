@@ -1,0 +1,89 @@
+import { cn } from "@tokiomo/components";
+import {
+  AreaChart,
+  BarChart3,
+  BarChartHorizontal,
+  CircleDot,
+  LineChart,
+  PieChart,
+  Radar,
+  ScatterChart,
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
+import type { SlideChartElement } from "../types";
+import { useSlideStore } from "../use-slide-store";
+
+const sectionClass = "border-b border-border-subtle px-4 py-3";
+const labelClass = "mb-3 text-xs font-medium text-fg-muted";
+
+const CHART_TYPES: {
+  type: SlideChartElement["chartType"];
+  icon: typeof BarChart3;
+  label: string;
+}[] = [
+  { type: "column", icon: BarChart3, label: "柱状图" },
+  { type: "bar", icon: BarChartHorizontal, label: "条形图" },
+  { type: "line", icon: LineChart, label: "折线图" },
+  { type: "area", icon: AreaChart, label: "面积图" },
+  { type: "scatter", icon: ScatterChart, label: "散点图" },
+  { type: "pie", icon: PieChart, label: "饼图" },
+  { type: "doughnut", icon: CircleDot, label: "环形图" },
+  { type: "radar", icon: Radar, label: "雷达图" },
+];
+
+export function ChartStylePanel({ element }: { element: SlideChartElement }) {
+  const { t } = useTranslation();
+  const updateElement = useSlideStore((s) => s.updateElement);
+  const pushHistory = useSlideStore((s) => s.pushHistory);
+
+  const update = (changes: Partial<SlideChartElement>) => {
+    pushHistory();
+    updateElement(element.id, changes);
+  };
+
+  const handleEditChart = () => {
+    window.dispatchEvent(
+      new CustomEvent("slide:edit-chart", {
+        detail: { elementId: element.id },
+      }),
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-0 pb-4">
+      {/* 图表类型 */}
+      <div className={sectionClass}>
+        <h3 className={labelClass}>{t("docs.chartTypeLabel")}</h3>
+        <div className="grid grid-cols-4 gap-1">
+          {CHART_TYPES.map(({ type, icon: Icon, label }) => (
+            <button
+              key={type}
+              type="button"
+              title={label}
+              className={cn(
+                "flex cursor-pointer flex-col items-center gap-1 rounded p-2 text-xs hover:bg-black/5 dark:hover:bg-white/5",
+                element.chartType === type &&
+                  "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
+              )}
+              onClick={() => update({ chartType: type })}
+            >
+              <Icon size={18} />
+              <span className="truncate text-[10px]">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 操作 */}
+      <div className={sectionClass}>
+        <button
+          type="button"
+          className="h-8 w-full cursor-pointer rounded bg-blue-500 text-xs font-medium text-white hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500"
+          onClick={handleEditChart}
+        >
+          {t("docs.editChartData")}
+        </button>
+      </div>
+    </div>
+  );
+}

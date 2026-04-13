@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChartEditDialog } from "../canvas/ChartEditDialog";
 import type { ChartData, SlideChartElement } from "../types";
 
@@ -17,6 +17,17 @@ export function ChartElement({
 }: ChartElementProps) {
   const [editing, setEditing] = useState(false);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ elementId: string }>).detail;
+      if (detail.elementId === element.id && onUpdate) {
+        setEditing(true);
+      }
+    };
+    window.addEventListener("slide:edit-chart", handler);
+    return () => window.removeEventListener("slide:edit-chart", handler);
+  }, [element.id, onUpdate]);
+
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       onSelect(element.id, e.shiftKey);
@@ -31,6 +42,13 @@ export function ChartElement({
   const handleDataChange = useCallback(
     (data: ChartData) => {
       onUpdate?.(element.id, { data });
+    },
+    [element.id, onUpdate],
+  );
+
+  const handleChartTypeChange = useCallback(
+    (type: SlideChartElement["chartType"]) => {
+      onUpdate?.(element.id, { chartType: type });
     },
     [element.id, onUpdate],
   );
@@ -267,7 +285,9 @@ export function ChartElement({
       {editing && (
         <ChartEditDialog
           data={element.data}
+          chartType={element.chartType}
           onChange={handleDataChange}
+          onChartTypeChange={handleChartTypeChange}
           onClose={handleClose}
         />
       )}

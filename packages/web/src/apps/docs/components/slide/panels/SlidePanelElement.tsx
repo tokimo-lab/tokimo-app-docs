@@ -2,12 +2,15 @@ import { useState } from "react";
 import type { SlideElement } from "../types";
 import { useSlideStore } from "../use-slide-store";
 import { AnimationPanel } from "./AnimationPanel";
+import { ChartStylePanel } from "./ChartStylePanel";
 import { ImageStylePanel } from "./ImageStylePanel";
+import { LatexStylePanel } from "./LatexStylePanel";
 import { LineStylePanel } from "./LineStylePanel";
 import { MultiSelectPanel } from "./MultiSelectPanel";
 import { PanelTabs } from "./PanelTabs";
 import { PositionPanel } from "./PositionPanel";
 import { ShapeStylePanel } from "./ShapeStylePanel";
+import { TableStylePanel } from "./TableStylePanel";
 import { TextStylePanel } from "./TextStylePanel";
 
 const TABS = [
@@ -39,6 +42,12 @@ function StyleTabContent({
       return <ShapeStylePanel element={element} />;
     case "line":
       return <LineStylePanel element={element} />;
+    case "table":
+      return <TableStylePanel element={element} />;
+    case "chart":
+      return <ChartStylePanel element={element} />;
+    case "latex":
+      return <LatexStylePanel element={element} />;
     default:
       return (
         <div className="p-4 text-sm text-fg-muted">选择元素查看样式选项</div>

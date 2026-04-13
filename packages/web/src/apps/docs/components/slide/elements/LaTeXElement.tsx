@@ -1,6 +1,6 @@
 import katex from "katex";
 import "katex/dist/katex.min.css";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FormulaEditDialog } from "../canvas/FormulaEditDialog";
 import type { SlideLatexElement } from "../types";
 
@@ -18,6 +18,17 @@ export function LaTeXElement({
   onUpdate,
 }: LaTeXElementProps) {
   const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ elementId: string }>).detail;
+      if (detail.elementId === element.id) {
+        setEditing(true);
+      }
+    };
+    window.addEventListener("slide:edit-latex", handler);
+    return () => window.removeEventListener("slide:edit-latex", handler);
+  }, [element.id]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
