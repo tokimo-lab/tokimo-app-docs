@@ -63,7 +63,7 @@ export function ResizeHandles({ onResizeStart }: ResizeHandlesProps) {
         // biome-ignore lint/a11y/noStaticElementInteractions: resize handle needs mouse interaction
         <div
           key={h.direction}
-          className="absolute z-10"
+          className="pointer-events-auto absolute z-10"
           style={{
             width: HANDLE_SIZE,
             height: HANDLE_SIZE,

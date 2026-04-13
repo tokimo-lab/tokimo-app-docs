@@ -24,7 +24,7 @@ export function RotateHandle({ onRotateStart, angle }: RotateHandleProps) {
       {/* Circular handle */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: rotate handle needs mouse interaction */}
       <div
-        className="absolute z-10"
+        className="pointer-events-auto absolute z-10"
         style={{
           left: "50%",
           top: -(STEM_LENGTH + HANDLE_SIZE),

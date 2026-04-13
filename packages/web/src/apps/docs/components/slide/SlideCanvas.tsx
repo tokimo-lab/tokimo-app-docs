@@ -404,6 +404,7 @@ export function SlideCanvas({ slide, zoom }: SlideCanvasProps) {
                 element={el}
                 selected={isSelected}
                 onSelect={handleSelectElement}
+                onUpdate={updateElement}
               />
             </div>
           );

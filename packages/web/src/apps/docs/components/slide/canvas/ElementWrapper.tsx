@@ -45,7 +45,7 @@ export function ElementWrapper({
           transform: rotateDeg,
         }}
       >
-        <div className="pointer-events-auto relative h-full w-full">
+        <div className="pointer-events-none relative h-full w-full">
           <ResizeHandles
             onResizeStart={(e, dir) => onResizeStart(e, element, dir)}
           />
