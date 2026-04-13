@@ -36,6 +36,8 @@ interface EChartsRendererProps {
   chartType: SlideChartElement["chartType"];
   data: ChartData;
   themeColors?: string[];
+  /** If true, enables hover/click/tooltip interactions */
+  interactive?: boolean;
   /** If true, disables animation (for thumbnails / static rendering) */
   noAnimation?: boolean;
 }
@@ -46,6 +48,7 @@ export function EChartsRenderer({
   chartType,
   data,
   themeColors,
+  interactive,
   noAnimation,
 }: EChartsRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -72,9 +75,16 @@ export function EChartsRenderer({
 
     const option = getChartOption({ chartType, data, themeColors });
     if (option) {
+      // Enable tooltip only in interactive mode
+      if (interactive) {
+        (option as Record<string, unknown>).tooltip = {
+          trigger:
+            chartType === "pie" || chartType === "doughnut" ? "item" : "axis",
+        };
+      }
       chart.setOption(option, true);
     }
-  }, [chartType, data, themeColors]);
+  }, [chartType, data, themeColors, interactive]);
 
   // Handle animation setting
   useEffect(() => {
@@ -93,7 +103,7 @@ export function EChartsRenderer({
   return (
     <div
       ref={containerRef}
-      className="pointer-events-none"
+      className={interactive ? undefined : "pointer-events-none"}
       style={{ width, height }}
     />
   );

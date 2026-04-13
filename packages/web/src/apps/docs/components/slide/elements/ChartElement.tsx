@@ -84,6 +84,7 @@ export function ChartElement({
         height={element.height}
         chartType={element.chartType}
         data={element.data}
+        interactive
       />
       {editing && (
         <ChartEditDialog
