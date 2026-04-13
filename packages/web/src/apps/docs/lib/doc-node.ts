@@ -20,7 +20,8 @@ export type DocNodeType =
   | "sheet"
   | "form"
   | "mind"
-  | "whiteboard";
+  | "whiteboard"
+  | "base";
 
 // ── DocNode (local alias with convenience fields) ───────────────────
 
@@ -157,6 +158,8 @@ export function untitledI18nKey(type: DocNodeType | string): string {
       return "docs.untitledMind";
     case "whiteboard":
       return "docs.untitledWhiteboard";
+    case "base":
+      return "docs.untitledBase";
     default:
       return "docs.untitledDocument";
   }

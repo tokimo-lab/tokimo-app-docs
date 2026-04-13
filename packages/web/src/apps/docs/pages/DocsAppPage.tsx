@@ -16,6 +16,7 @@ import {
   Upload,
 } from "lucide-react";
 import { Component, type ErrorInfo, type ReactNode, useMemo } from "react";
+import { BaseEditor } from "@/apps/docs/components/base/BaseEditor";
 import { CollabPresenceBar } from "@/apps/docs/components/collab/CollabPresenceBar";
 import { DocBrowserView } from "@/apps/docs/components/DocBrowserView";
 import { DocSidebar } from "@/apps/docs/components/DocSidebar";
@@ -327,6 +328,33 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 onChange={s.handleWhiteboardContentChange}
                 nodeId={s.selectedWhiteboard.id}
                 userName={s.user?.name}
+              />
+            )}
+          </>
+        ) : s.selectedBase ? (
+          <>
+            <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
+              <button
+                type="button"
+                onClick={() => s.deselectNode()}
+                className="mr-1 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary cursor-pointer"
+                title={s.t("docs.backToList")}
+              >
+                <ArrowLeft size={14} />
+              </button>
+              <DocBreadcrumb
+                doc={s.selectedBase}
+                allNodes={s.allNodes}
+                onNavigateFolder={(fid) => s.navigateToNode(fid)}
+              />
+            </div>
+            {s.detailQuery.isLoading ? (
+              <Spin className="flex-1" />
+            ) : (
+              <BaseEditor
+                key={s.selectedBase.id}
+                content={s.selectedBase.content}
+                onChange={s.handleBaseContentChange}
               />
             )}
           </>

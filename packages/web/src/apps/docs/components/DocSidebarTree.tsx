@@ -29,6 +29,7 @@ import {
   Presentation,
   RotateCcw,
   Sheet,
+  Table2,
   Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -118,6 +119,19 @@ function NodeIcon({
           isActive
             ? "text-teal-600 dark:text-teal-400"
             : "text-teal-500 dark:text-teal-600",
+        )}
+      />
+    );
+  }
+  if (node.type === "base") {
+    return (
+      <Table2
+        size={size}
+        className={cn(
+          "shrink-0",
+          isActive
+            ? "text-indigo-600 dark:text-indigo-400"
+            : "text-indigo-500 dark:text-indigo-600",
         )}
       />
     );
@@ -248,6 +262,12 @@ export function NodeTreeItem({
           onClick: () => onCreateDoc("whiteboard", node.id),
         },
         {
+          key: "new-base",
+          label: t("docs.newBase"),
+          icon: <Table2 size={14} />,
+          onClick: () => onCreateDoc("base", node.id),
+        },
+        {
           key: "new-subfolder",
           label: t("docs.newFolder"),
           icon: <FolderPlus size={14} />,
@@ -330,6 +350,12 @@ export function NodeTreeItem({
               label: t("docs.newWhiteboard"),
               icon: <PenTool size={14} />,
               onClick: () => onCreateDoc("whiteboard", node.id),
+            },
+            {
+              key: "new-base",
+              label: t("docs.newBase"),
+              icon: <Table2 size={14} />,
+              onClick: () => onCreateDoc("base", node.id),
             },
             { type: "divider" as const },
           ]

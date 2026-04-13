@@ -118,12 +118,14 @@ export function useDocsPage(spaceId: string) {
   const selectedSlideId = selectedNodeType === "slide" ? selectedNodeId : null;
   const selectedWhiteboardId =
     selectedNodeType === "whiteboard" ? selectedNodeId : null;
+  const selectedBaseId = selectedNodeType === "base" ? selectedNodeId : null;
   const selectedContentNodeId =
     selectedDocId ??
     selectedSheetId ??
     selectedMindId ??
     selectedSlideId ??
-    selectedWhiteboardId;
+    selectedWhiteboardId ??
+    selectedBaseId;
   const currentFolderId = selectedNodeType === "folder" ? selectedNodeId : null;
 
   const handleSelectNode = useCallback(
@@ -159,6 +161,7 @@ export function useDocsPage(spaceId: string) {
   const selectedWhiteboard = selectedWhiteboardId
     ? (detailQuery.data ?? null)
     : null;
+  const selectedBase = selectedBaseId ? (detailQuery.data ?? null) : null;
   const queryClient = useQueryClient();
 
   // ── Version preview ─────────────────────────────────────────────────
@@ -361,6 +364,14 @@ export function useDocsPage(spaceId: string) {
     [selectedWhiteboardId],
   );
 
+  const handleBaseContentChange = useCallback(
+    (data: unknown) => {
+      if (!selectedBaseId) return;
+      updateMutRef.current.mutate({ id: selectedBaseId, content: data });
+    },
+    [selectedBaseId],
+  );
+
   const handleExportMarkdown = useCallback(() => {
     const editor = editorRef.current;
     if (editor) exportAsMarkdown(editor, stateRef.current.selectedDocTitle);
@@ -500,6 +511,7 @@ export function useDocsPage(spaceId: string) {
     selectedMind,
     selectedSlide,
     selectedWhiteboard,
+    selectedBase,
     selectedSlideId,
     listQuery,
     detailQuery,
@@ -524,6 +536,7 @@ export function useDocsPage(spaceId: string) {
     handleMindContentChange,
     handleSlideContentChange,
     handleWhiteboardContentChange,
+    handleBaseContentChange,
     handleExportMarkdown,
     handleImportMarkdown,
     handleExportDocx,

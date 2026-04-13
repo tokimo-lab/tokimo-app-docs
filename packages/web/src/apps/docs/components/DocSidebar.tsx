@@ -22,6 +22,7 @@ import {
   Search,
   Sheet,
   Star,
+  Table2,
   Trash2,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
@@ -378,6 +379,12 @@ export function DocSidebar({
                   label: t("docs.newWhiteboard"),
                   icon: <PenTool size={14} />,
                   onClick: () => onCreateNode("whiteboard"),
+                },
+                {
+                  key: "base",
+                  label: t("docs.newBase"),
+                  icon: <Table2 size={14} />,
+                  onClick: () => onCreateNode("base"),
                 },
                 {
                   key: "folder",
