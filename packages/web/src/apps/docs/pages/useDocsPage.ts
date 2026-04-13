@@ -116,8 +116,14 @@ export function useDocsPage(spaceId: string) {
   const selectedSheetId = selectedNodeType === "sheet" ? selectedNodeId : null;
   const selectedMindId = selectedNodeType === "mind" ? selectedNodeId : null;
   const selectedSlideId = selectedNodeType === "slide" ? selectedNodeId : null;
+  const selectedWhiteboardId =
+    selectedNodeType === "whiteboard" ? selectedNodeId : null;
   const selectedContentNodeId =
-    selectedDocId ?? selectedSheetId ?? selectedMindId ?? selectedSlideId;
+    selectedDocId ??
+    selectedSheetId ??
+    selectedMindId ??
+    selectedSlideId ??
+    selectedWhiteboardId;
   const currentFolderId = selectedNodeType === "folder" ? selectedNodeId : null;
 
   const handleSelectNode = useCallback(
@@ -150,6 +156,9 @@ export function useDocsPage(spaceId: string) {
   const selectedSheet = selectedSheetId ? (detailQuery.data ?? null) : null;
   const selectedMind = selectedMindId ? (detailQuery.data ?? null) : null;
   const selectedSlide = selectedSlideId ? (detailQuery.data ?? null) : null;
+  const selectedWhiteboard = selectedWhiteboardId
+    ? (detailQuery.data ?? null)
+    : null;
   const queryClient = useQueryClient();
 
   // ── Version preview ─────────────────────────────────────────────────
@@ -344,6 +353,14 @@ export function useDocsPage(spaceId: string) {
     [selectedSlideId],
   );
 
+  const handleWhiteboardContentChange = useCallback(
+    (data: unknown) => {
+      if (!selectedWhiteboardId) return;
+      updateMutRef.current.mutate({ id: selectedWhiteboardId, content: data });
+    },
+    [selectedWhiteboardId],
+  );
+
   const handleExportMarkdown = useCallback(() => {
     const editor = editorRef.current;
     if (editor) exportAsMarkdown(editor, stateRef.current.selectedDocTitle);
@@ -482,6 +499,7 @@ export function useDocsPage(spaceId: string) {
     selectedSheet,
     selectedMind,
     selectedSlide,
+    selectedWhiteboard,
     selectedSlideId,
     listQuery,
     detailQuery,
@@ -505,6 +523,7 @@ export function useDocsPage(spaceId: string) {
     handleSheetContentChange,
     handleMindContentChange,
     handleSlideContentChange,
+    handleWhiteboardContentChange,
     handleExportMarkdown,
     handleImportMarkdown,
     handleExportDocx,

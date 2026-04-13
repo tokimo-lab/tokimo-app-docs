@@ -24,6 +24,7 @@ import {
   FolderPlus,
   Heart,
   Pencil,
+  PenTool,
   Plus,
   Presentation,
   RotateCcw,
@@ -104,6 +105,19 @@ function NodeIcon({
           isActive
             ? "text-orange-600 dark:text-orange-400"
             : "text-orange-500 dark:text-orange-600",
+        )}
+      />
+    );
+  }
+  if (node.type === "whiteboard") {
+    return (
+      <PenTool
+        size={size}
+        className={cn(
+          "shrink-0",
+          isActive
+            ? "text-teal-600 dark:text-teal-400"
+            : "text-teal-500 dark:text-teal-600",
         )}
       />
     );
@@ -228,6 +242,12 @@ export function NodeTreeItem({
           onClick: () => onCreateDoc("slide", node.id),
         },
         {
+          key: "new-whiteboard",
+          label: t("docs.newWhiteboard"),
+          icon: <PenTool size={14} />,
+          onClick: () => onCreateDoc("whiteboard", node.id),
+        },
+        {
           key: "new-subfolder",
           label: t("docs.newFolder"),
           icon: <FolderPlus size={14} />,
@@ -304,6 +324,12 @@ export function NodeTreeItem({
               label: t("docs.newSlide"),
               icon: <Presentation size={14} />,
               onClick: () => onCreateDoc("slide", node.id),
+            },
+            {
+              key: "new-whiteboard",
+              label: t("docs.newWhiteboard"),
+              icon: <PenTool size={14} />,
+              onClick: () => onCreateDoc("whiteboard", node.id),
             },
             { type: "divider" as const },
           ]
@@ -480,6 +506,12 @@ export function NodeTreeItem({
                         label: t("docs.newMind"),
                         icon: <BrainCircuit size={14} />,
                         onClick: () => onCreateDoc("mind", node.id),
+                      },
+                      {
+                        key: "whiteboard",
+                        label: t("docs.newWhiteboard"),
+                        icon: <PenTool size={14} />,
+                        onClick: () => onCreateDoc("whiteboard", node.id),
                       },
                       {
                         key: "folder",

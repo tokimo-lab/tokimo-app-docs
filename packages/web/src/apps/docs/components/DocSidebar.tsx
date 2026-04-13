@@ -16,6 +16,7 @@ import {
   FolderPlus,
   PanelLeft,
   PanelLeftClose,
+  PenTool,
   Plus,
   Presentation,
   Search,
@@ -371,6 +372,12 @@ export function DocSidebar({
                   label: t("docs.newSlide"),
                   icon: <Presentation size={14} />,
                   onClick: () => onCreateNode("slide"),
+                },
+                {
+                  key: "whiteboard",
+                  label: t("docs.newWhiteboard"),
+                  icon: <PenTool size={14} />,
+                  onClick: () => onCreateNode("whiteboard"),
                 },
                 {
                   key: "folder",
