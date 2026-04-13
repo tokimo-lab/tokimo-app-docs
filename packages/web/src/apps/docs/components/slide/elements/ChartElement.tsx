@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import type { SlideChartElement } from "../types";
+import { useCallback, useMemo, useState } from "react";
+import { ChartEditDialog } from "../canvas/ChartEditDialog";
+import type { ChartData, SlideChartElement } from "../types";
 
 interface ChartElementProps {
   element: SlideChartElement;
@@ -15,9 +16,6 @@ export function ChartElement({
   onUpdate,
 }: ChartElementProps) {
   const [editing, setEditing] = useState(false);
-  const [draftLabels, setDraftLabels] = useState("");
-  const [draftValues, setDraftValues] = useState("");
-  const editorRef = useRef<HTMLDivElement>(null);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -27,39 +25,17 @@ export function ChartElement({
   );
 
   const handleDoubleClick = useCallback(() => {
-    if (!onUpdate) return;
-    setDraftLabels(element.data.labels.join(", "));
-    setDraftValues((element.data.datasets[0]?.data ?? []).join(", "));
-    setEditing(true);
-  }, [element.data, onUpdate]);
+    if (onUpdate) setEditing(true);
+  }, [onUpdate]);
 
-  const handleSave = useCallback(() => {
-    setEditing(false);
-    if (!onUpdate) return;
-    const labels = draftLabels
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const values = draftValues
-      .split(",")
-      .map((s) => Number.parseFloat(s.trim()))
-      .filter((n) => !Number.isNaN(n));
-    if (labels.length > 0 && values.length > 0) {
-      onUpdate(element.id, {
-        data: {
-          labels,
-          datasets: [
-            {
-              ...(element.data.datasets[0] ?? {}),
-              data: values,
-            },
-          ],
-        },
-      });
-    }
-  }, [draftLabels, draftValues, element.data.datasets, element.id, onUpdate]);
+  const handleDataChange = useCallback(
+    (data: ChartData) => {
+      onUpdate?.(element.id, { data });
+    },
+    [element.id, onUpdate],
+  );
 
-  const handleCancel = useCallback(() => {
+  const handleClose = useCallback(() => {
     setEditing(false);
   }, []);
 
@@ -289,52 +265,11 @@ export function ChartElement({
     >
       {chartSvg}
       {editing && (
-        // biome-ignore lint/a11y/noStaticElementInteractions: chart data editor
-        <div
-          ref={editorRef}
-          className="absolute inset-0 z-10 flex flex-col gap-2 rounded bg-white p-3 shadow-lg dark:bg-neutral-800"
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-            Edit Chart Data
-          </div>
-          <label className="flex flex-col gap-1 text-xs">
-            <span className="text-neutral-600 dark:text-neutral-300">
-              Labels (comma separated)
-            </span>
-            <input
-              className="rounded border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-700"
-              value={draftLabels}
-              onChange={(e) => setDraftLabels(e.target.value)}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs">
-            <span className="text-neutral-600 dark:text-neutral-300">
-              Values (comma separated)
-            </span>
-            <input
-              className="rounded border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-700"
-              value={draftValues}
-              onChange={(e) => setDraftValues(e.target.value)}
-            />
-          </label>
-          <div className="mt-auto flex justify-end gap-2">
-            <button
-              type="button"
-              className="cursor-pointer rounded px-3 py-1 text-xs text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-              onClick={handleCancel}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="cursor-pointer rounded bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600"
-              onClick={handleSave}
-            >
-              Save
-            </button>
-          </div>
-        </div>
+        <ChartEditDialog
+          data={element.data}
+          onChange={handleDataChange}
+          onClose={handleClose}
+        />
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import { useCallback, useMemo, useState } from "react";
+import { FormulaEditDialog } from "../canvas/FormulaEditDialog";
 import type { SlideLatexElement } from "../types";
 
 interface LaTeXElementProps {
@@ -17,7 +18,6 @@ export function LaTeXElement({
   onUpdate,
 }: LaTeXElementProps) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(element.formula);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -27,16 +27,19 @@ export function LaTeXElement({
   );
 
   const handleDoubleClick = useCallback(() => {
-    setDraft(element.formula);
     setEditing(true);
-  }, [element.formula]);
+  }, []);
 
-  const handleBlur = useCallback(() => {
+  const handleSave = useCallback(
+    (formula: string) => {
+      onUpdate(element.id, { formula });
+    },
+    [element.id, onUpdate],
+  );
+
+  const handleClose = useCallback(() => {
     setEditing(false);
-    if (draft !== element.formula) {
-      onUpdate(element.id, { formula: draft });
-    }
-  }, [draft, element.formula, element.id, onUpdate]);
+  }, []);
 
   const renderedHtml = useMemo(() => {
     try {
@@ -68,24 +71,20 @@ export function LaTeXElement({
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
     >
-      {editing ? (
-        <textarea
-          className="h-full w-full resize-none rounded border border-blue-400 bg-white p-2 font-mono text-sm dark:bg-neutral-900"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={handleBlur}
-          // biome-ignore lint/a11y/noAutofocus: intentional focus on edit mode
-          autoFocus
-        />
-      ) : (
-        <div
-          className="flex h-full w-full items-center justify-center overflow-hidden"
-          style={{
-            fontSize: element.fontSize ?? 24,
-            color: element.color ?? "#333",
-          }}
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: KaTeX HTML output
-          dangerouslySetInnerHTML={{ __html: renderedHtml }}
+      <div
+        className="pointer-events-none flex h-full w-full items-center justify-center overflow-hidden"
+        style={{
+          fontSize: element.fontSize ?? 24,
+          color: element.color ?? "#333",
+        }}
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: KaTeX HTML output
+        dangerouslySetInnerHTML={{ __html: renderedHtml }}
+      />
+      {editing && (
+        <FormulaEditDialog
+          formula={element.formula}
+          onSave={handleSave}
+          onCancel={handleClose}
         />
       )}
     </div>
