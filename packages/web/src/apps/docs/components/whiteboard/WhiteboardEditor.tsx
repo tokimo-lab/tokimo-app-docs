@@ -97,6 +97,22 @@ export function WhiteboardEditor({
     };
   }, []);
 
+  // Intercept native "Browse libraries" link to open our custom panel
+  useEffect(() => {
+    const container = document.querySelector(".whiteboard-editor");
+    if (!container) return;
+    const handler = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (target.closest(".library-menu-browse-button")) {
+        e.preventDefault();
+        e.stopPropagation();
+        setShowLibraryPanel(true);
+      }
+    };
+    container.addEventListener("click", handler, true);
+    return () => container.removeEventListener("click", handler, true);
+  }, []);
+
   const handleChange = useCallback(
     (
       elements: readonly ExcalidrawElement[],
@@ -134,14 +150,14 @@ export function WhiteboardEditor({
 
   return (
     <div className="relative h-full w-full whiteboard-editor">
-      {/* Hide Mermaid-to-Excalidraw "Generate" section + default "Browse libraries" link */}
+      {/* Hide Mermaid-to-Excalidraw "Generate" section */}
       <style>{`
         .whiteboard-editor .App-toolbar__extra-tools-dropdown .dropdown-menu-container > div:not([class]),
         .whiteboard-editor .App-toolbar__extra-tools-dropdown .dropdown-menu-container > button:last-child {
           display: none !important;
         }
         .whiteboard-editor .library-menu-browse-button {
-          display: none !important;
+          cursor: pointer;
         }
       `}</style>
       <Excalidraw
