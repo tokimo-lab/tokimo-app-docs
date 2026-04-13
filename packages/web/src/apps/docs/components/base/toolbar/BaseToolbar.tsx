@@ -1,5 +1,13 @@
 import { cn } from "@tokiomo/components";
-import { ArrowUpDown, Eye, Filter, Group, Plus } from "lucide-react";
+import {
+  ArrowUpDown,
+  Filter,
+  Group,
+  Plus,
+  Redo2,
+  Settings2,
+  Undo2,
+} from "lucide-react";
 import { useState } from "react";
 import { FieldConfigPanel } from "../FieldConfigPanel";
 import type { BaseEditorState } from "../useBaseEditor";
@@ -16,7 +24,7 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
   const [showFilter, setShowFilter] = useState(false);
   const [showSort, setShowSort] = useState(false);
   const [showGroup, setShowGroup] = useState(false);
-  const [showAddField, setShowAddField] = useState(false);
+  const [showFieldConfig, setShowFieldConfig] = useState(false);
 
   if (!activeView || !activeTable) return null;
 
@@ -26,153 +34,154 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
 
   return (
     <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
-      {/* Filter */}
-      <div className="relative">
+      {/* Left group */}
+      <div className="flex items-center gap-1">
+        {/* Add record — primary action */}
         <button
           type="button"
-          className={cn(
-            "flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors cursor-pointer",
-            filterCount > 0
-              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-              : "text-fg-muted hover:bg-fill-tertiary",
-          )}
-          onClick={() => setShowFilter((v) => !v)}
+          className="flex cursor-pointer items-center gap-1 rounded px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+          onClick={state.addRecord}
         >
-          <Filter size={14} />
-          筛选
-          {filterCount > 0 && (
-            <span className="rounded-full bg-blue-600 px-1.5 text-[10px] text-white">
-              {filterCount}
-            </span>
-          )}
+          <Plus size={14} />
+          添加记录
         </button>
-        {showFilter && (
-          <div className="absolute top-full left-0 z-50 mt-1">
-            <FilterBuilder
-              conditions={activeView.filters.conditions}
-              conjunction={activeView.filters.conjunction}
-              fields={activeTable.fields}
-              onChange={state.setFilters}
-              onClose={() => setShowFilter(false)}
-            />
-          </div>
-        )}
-      </div>
 
-      {/* Sort */}
-      <div className="relative">
-        <button
-          type="button"
-          className={cn(
-            "flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors cursor-pointer",
-            sortCount > 0
-              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-              : "text-fg-muted hover:bg-fill-tertiary",
-          )}
-          onClick={() => setShowSort((v) => !v)}
-        >
-          <ArrowUpDown size={14} />
-          排序
-          {sortCount > 0 && (
-            <span className="rounded-full bg-blue-600 px-1.5 text-[10px] text-white">
-              {sortCount}
-            </span>
-          )}
-        </button>
-        {showSort && (
-          <div className="absolute top-full left-0 z-50 mt-1">
-            <SortBuilder
-              sorts={activeView.sorts}
-              fields={activeTable.fields}
-              onChange={state.setSorts}
-              onClose={() => setShowSort(false)}
-            />
-          </div>
-        )}
-      </div>
+        <div className="mx-1 h-4 w-px bg-border-subtle" />
 
-      {/* Group */}
-      <div className="relative">
-        <button
-          type="button"
-          className={cn(
-            "flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors cursor-pointer",
-            groupCount > 0
-              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-              : "text-fg-muted hover:bg-fill-tertiary",
+        {/* Field config */}
+        <div className="relative">
+          <button
+            type="button"
+            className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary"
+            onClick={() => setShowFieldConfig((v) => !v)}
+          >
+            <Settings2 size={14} />
+            字段配置
+          </button>
+          <FieldConfigPanel
+            open={showFieldConfig}
+            onClose={() => setShowFieldConfig(false)}
+            onAddField={state.addField}
+          />
+        </div>
+
+        {/* Filter */}
+        <div className="relative">
+          <button
+            type="button"
+            className={cn(
+              "flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs transition-colors",
+              filterCount > 0
+                ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                : "text-fg-muted hover:bg-fill-tertiary",
+            )}
+            onClick={() => setShowFilter((v) => !v)}
+          >
+            <Filter size={14} />
+            筛选
+            {filterCount > 0 && (
+              <span className="rounded-full bg-blue-600 px-1.5 text-[10px] text-white">
+                {filterCount}
+              </span>
+            )}
+          </button>
+          {showFilter && (
+            <div className="absolute top-full left-0 z-50 mt-1">
+              <FilterBuilder
+                conditions={activeView.filters.conditions}
+                conjunction={activeView.filters.conjunction}
+                fields={activeTable.fields}
+                onChange={state.setFilters}
+                onClose={() => setShowFilter(false)}
+              />
+            </div>
           )}
-          onClick={() => setShowGroup((v) => !v)}
-        >
-          <Group size={14} />
-          分组
-          {groupCount > 0 && (
-            <span className="rounded-full bg-blue-600 px-1.5 text-[10px] text-white">
-              {groupCount}
-            </span>
+        </div>
+
+        {/* Sort */}
+        <div className="relative">
+          <button
+            type="button"
+            className={cn(
+              "flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs transition-colors",
+              sortCount > 0
+                ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                : "text-fg-muted hover:bg-fill-tertiary",
+            )}
+            onClick={() => setShowSort((v) => !v)}
+          >
+            <ArrowUpDown size={14} />
+            排序
+            {sortCount > 0 && (
+              <span className="rounded-full bg-blue-600 px-1.5 text-[10px] text-white">
+                {sortCount}
+              </span>
+            )}
+          </button>
+          {showSort && (
+            <div className="absolute top-full left-0 z-50 mt-1">
+              <SortBuilder
+                sorts={activeView.sorts}
+                fields={activeTable.fields}
+                onChange={state.setSorts}
+                onClose={() => setShowSort(false)}
+              />
+            </div>
           )}
-        </button>
-        {showGroup && (
-          <div className="absolute top-full left-0 z-50 mt-1">
-            <GroupBuilder
-              groups={activeView.groups}
-              fields={activeTable.fields}
-              onChange={state.setGroups}
-              onClose={() => setShowGroup(false)}
-            />
-          </div>
-        )}
+        </div>
+
+        {/* Group */}
+        <div className="relative">
+          <button
+            type="button"
+            className={cn(
+              "flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs transition-colors",
+              groupCount > 0
+                ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                : "text-fg-muted hover:bg-fill-tertiary",
+            )}
+            onClick={() => setShowGroup((v) => !v)}
+          >
+            <Group size={14} />
+            分组
+            {groupCount > 0 && (
+              <span className="rounded-full bg-blue-600 px-1.5 text-[10px] text-white">
+                {groupCount}
+              </span>
+            )}
+          </button>
+          {showGroup && (
+            <div className="absolute top-full left-0 z-50 mt-1">
+              <GroupBuilder
+                groups={activeView.groups}
+                fields={activeTable.fields}
+                onChange={state.setGroups}
+                onClose={() => setShowGroup(false)}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex-1" />
 
-      {/* Add field */}
-      <div className="relative">
+      {/* Right group: undo / redo */}
+      <div className="flex items-center gap-0.5">
         <button
           type="button"
-          className="flex items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary cursor-pointer"
-          onClick={() => setShowAddField((v) => !v)}
+          className="cursor-pointer rounded p-1.5 text-fg-muted hover:bg-fill-tertiary"
+          title="撤销"
         >
-          <Plus size={14} />
-          字段
+          <Undo2 size={14} />
         </button>
-        <FieldConfigPanel
-          open={showAddField}
-          onClose={() => setShowAddField(false)}
-          onAddField={state.addField}
-        />
+        <button
+          type="button"
+          className="cursor-pointer rounded p-1.5 text-fg-muted hover:bg-fill-tertiary"
+          title="重做"
+        >
+          <Redo2 size={14} />
+        </button>
       </div>
-
-      {/* View switcher */}
-      {activeTable.views.length > 1 && (
-        <div className="flex items-center gap-0.5 rounded border border-border-subtle px-1">
-          {activeTable.views.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              className={cn(
-                "rounded px-2 py-0.5 text-xs transition-colors cursor-pointer",
-                v.id === activeView.id
-                  ? "bg-fill-secondary text-fg-primary"
-                  : "text-fg-muted hover:bg-fill-tertiary",
-              )}
-              onClick={() => state.setActiveView(v.id)}
-            >
-              {v.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Add view */}
-      <button
-        type="button"
-        className="flex items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary cursor-pointer"
-        onClick={state.addView}
-        title="新增视图"
-      >
-        <Eye size={14} />
-        <Plus size={10} />
-      </button>
     </div>
   );
 }

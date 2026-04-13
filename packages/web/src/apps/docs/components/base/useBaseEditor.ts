@@ -345,9 +345,12 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
   return {
     // Compatibility: GridView checks `activeTable` for null guard
     activeTable: metaQuery.data ? { fields, views } : undefined,
+    fields,
+    views,
     activeView,
     visibleFields,
     processedRecords,
+    records,
     groupedRecords,
     isLoading,
 

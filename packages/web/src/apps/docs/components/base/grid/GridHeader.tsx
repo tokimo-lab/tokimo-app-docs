@@ -1,13 +1,38 @@
-import { ChevronDown, Trash2 } from "lucide-react";
+import { cn } from "@tokiomo/components";
+import {
+  Calendar,
+  CheckSquare,
+  ChevronDown,
+  Hash,
+  Link,
+  List,
+  Plus,
+  Trash2,
+  Type,
+} from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import type { Field } from "../types";
-import { FIELD_TYPE_LABELS } from "../utils";
+import { FieldConfigPanel } from "../FieldConfigPanel";
+import type { Field, FieldType } from "../types";
+
+const CHECKBOX_COL_WIDTH = 40;
+const ADD_COL_WIDTH = 40;
+
+const FIELD_TYPE_ICON: Record<FieldType, React.ReactNode> = {
+  text: <Type size={12} />,
+  number: <Hash size={12} />,
+  select: <ChevronDown size={12} />,
+  multiSelect: <List size={12} />,
+  checkbox: <CheckSquare size={12} />,
+  date: <Calendar size={12} />,
+  url: <Link size={12} />,
+};
 
 interface GridHeaderProps {
   fields: Field[];
   onResizeField: (fieldId: string, width: number) => void;
   onDeleteField: (fieldId: string) => void;
   onUpdateField: (fieldId: string, partial: Partial<Field>) => void;
+  onAddField: (name: string, type: FieldType) => void;
   rowNumberWidth: number;
 }
 
@@ -16,10 +41,25 @@ export function GridHeader({
   onResizeField,
   onDeleteField,
   onUpdateField,
+  onAddField,
   rowNumberWidth,
 }: GridHeaderProps) {
+  const [showAddField, setShowAddField] = useState(false);
+
   return (
-    <div className="sticky top-0 z-10 flex border-b border-border-base bg-surface-secondary">
+    <div className="sticky top-0 z-10 flex h-9 border-b border-border-base bg-surface-secondary">
+      {/* Checkbox column */}
+      <div
+        className="flex shrink-0 items-center justify-center border-r border-border-subtle"
+        style={{ width: CHECKBOX_COL_WIDTH }}
+      >
+        <input
+          type="checkbox"
+          disabled
+          className="h-3.5 w-3.5 rounded border-border-subtle"
+        />
+      </div>
+
       {/* Row number column */}
       <div
         className="flex shrink-0 items-center justify-center border-r border-border-subtle text-xs text-fg-muted"
@@ -27,6 +67,8 @@ export function GridHeader({
       >
         #
       </div>
+
+      {/* Field columns */}
       {fields.map((field) => (
         <HeaderCell
           key={field.id}
@@ -36,8 +78,29 @@ export function GridHeader({
           onUpdate={(p) => onUpdateField(field.id, p)}
         />
       ))}
+
+      {/* Add column button */}
+      <div
+        className="relative flex shrink-0 items-center justify-center border-r border-border-subtle"
+        style={{ width: ADD_COL_WIDTH }}
+      >
+        <button
+          type="button"
+          className="flex h-full w-full cursor-pointer items-center justify-center text-fg-muted hover:bg-fill-tertiary"
+          onClick={() => setShowAddField((v) => !v)}
+          title="新增字段"
+        >
+          <Plus size={14} />
+        </button>
+        <FieldConfigPanel
+          open={showAddField}
+          onClose={() => setShowAddField(false)}
+          onAddField={onAddField}
+        />
+      </div>
+
       {/* Spacer */}
-      <div className="flex-1 border-r border-border-subtle" />
+      <div className="flex-1" />
     </div>
   );
 }
@@ -84,9 +147,14 @@ function HeaderCell({ field, onResize, onDelete, onUpdate }: HeaderCellProps) {
 
   return (
     <div
-      className="group relative flex shrink-0 items-center gap-1 border-r border-border-subtle px-2 text-xs font-medium text-fg-secondary"
+      className="group relative flex shrink-0 items-center gap-1.5 border-r border-border-subtle px-2 text-xs font-medium text-fg-secondary"
       style={{ width: field.width, minWidth: field.width }}
     >
+      {/* Field type icon */}
+      <span className="shrink-0 text-fg-muted">
+        {FIELD_TYPE_ICON[field.type]}
+      </span>
+
       {renaming ? (
         <input
           ref={inputRef}
@@ -103,14 +171,13 @@ function HeaderCell({ field, onResize, onDelete, onUpdate }: HeaderCellProps) {
         <span className="truncate">{field.name}</span>
       )}
 
-      <span className="ml-auto text-[10px] text-fg-muted">
-        {FIELD_TYPE_LABELS[field.type]}
-      </span>
-
       {/* Context menu button */}
       <button
         type="button"
-        className="hidden cursor-pointer rounded p-0.5 text-fg-muted hover:bg-fill-tertiary group-hover:block"
+        className={cn(
+          "ml-auto hidden cursor-pointer rounded p-0.5 text-fg-muted hover:bg-fill-tertiary group-hover:block",
+          menuOpen && "block",
+        )}
         onClick={() => setMenuOpen((v) => !v)}
       >
         <ChevronDown size={12} />
@@ -127,7 +194,7 @@ function HeaderCell({ field, onResize, onDelete, onUpdate }: HeaderCellProps) {
           <div className="absolute top-full right-0 z-50 mt-1 min-w-[140px] rounded border border-border-base bg-surface-base py-1 shadow-lg">
             <button
               type="button"
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary cursor-pointer"
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
               onClick={() => {
                 setRenaming(true);
                 setDraft(field.name);
@@ -139,7 +206,7 @@ function HeaderCell({ field, onResize, onDelete, onUpdate }: HeaderCellProps) {
             </button>
             <button
               type="button"
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-red-600 hover:bg-fill-tertiary cursor-pointer"
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs text-red-600 hover:bg-fill-tertiary"
               onClick={() => {
                 onDelete();
                 setMenuOpen(false);
@@ -161,3 +228,5 @@ function HeaderCell({ field, onResize, onDelete, onUpdate }: HeaderCellProps) {
     </div>
   );
 }
+
+export { ADD_COL_WIDTH, CHECKBOX_COL_WIDTH };

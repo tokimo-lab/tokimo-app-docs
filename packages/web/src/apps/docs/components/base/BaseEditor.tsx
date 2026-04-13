@@ -1,6 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { GridView } from "./grid/GridView";
 import { BaseToolbar } from "./toolbar/BaseToolbar";
+import { ViewTabsBar } from "./toolbar/ViewTabsBar";
 import { useBaseEditor } from "./useBaseEditor";
 
 interface BaseEditorProps {
@@ -20,7 +21,10 @@ export function BaseEditor({ nodeId }: BaseEditorProps) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-surface-base">
-      {/* Toolbar: filter / sort / group / add field / view switcher */}
+      {/* View tabs bar */}
+      <ViewTabsBar state={state} />
+
+      {/* Toolbar: add record, filter, sort, group, field config */}
       <BaseToolbar state={state} />
 
       {/* Grid view */}

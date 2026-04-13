@@ -44,6 +44,9 @@ pub struct UpdateBaseMetaInput {
 // ── Handlers ─────────────────────────────────────────────────────────────────
 
 /// GET /api/apps/docs/base/{nodeId} — get base metadata (fields + views)
+///
+/// If content is null or fields/views are empty, auto-initializes with defaults
+/// (one "文本" text column + one "表格" grid view) and persists to DB.
 pub async fn get_base_meta(
     State(state): State<Arc<AppState>>,
     AuthUser(_auth): AuthUser,
@@ -59,7 +62,20 @@ pub async fn get_base_meta(
         return Err(AppError::BadRequest("node is not a base type".into()));
     }
 
-    let content = node.content.unwrap_or(serde_json::json!({}));
+    let content = node.content.clone().unwrap_or(serde_json::json!({}));
+    let needs_init = content.get("fields").and_then(|v| v.as_array()).is_none_or(Vec::is_empty)
+        || content.get("views").and_then(|v| v.as_array()).is_none_or(Vec::is_empty);
+
+    let content = if needs_init {
+        let default_content = create_default_content();
+        let mut active: doc_nodes::ActiveModel = node.into();
+        active.content = Set(Some(default_content.clone()));
+        active.update(&state.db).await?;
+        default_content
+    } else {
+        content
+    };
+
     let output = extract_meta(&node_id, &content);
     Ok(ok(output))
 }
@@ -123,4 +139,34 @@ fn extract_meta(node_id: &str, content: &serde_json::Value) -> BaseMetaOutput {
             .and_then(|v| v.as_str())
             .map(String::from),
     }
+}
+
+/// Creates default base content with one "文本" text field and one grid view.
+fn create_default_content() -> serde_json::Value {
+    let field_id = uuid::Uuid::new_v4().to_string();
+    let view_id = uuid::Uuid::new_v4().to_string();
+
+    serde_json::json!({
+        "fields": [
+            {
+                "id": field_id,
+                "name": "文本",
+                "type": "text",
+                "width": 200
+            }
+        ],
+        "views": [
+            {
+                "id": view_id,
+                "name": "表格",
+                "type": "grid",
+                "filters": { "conjunction": "and", "conditions": [] },
+                "sorts": [],
+                "groups": [],
+                "hiddenFieldIds": [],
+                "fieldOrder": [field_id]
+            }
+        ],
+        "activeViewId": view_id
+    })
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { BaseRecord, Field } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
 import { GridCell } from "./GridCell";
+import { CHECKBOX_COL_WIDTH } from "./GridHeader";
 
 interface GridRowProps {
   record: BaseRecord;
@@ -26,12 +27,24 @@ export function GridRow({
     // biome-ignore lint/a11y/noStaticElementInteractions: table row
     <div
       className={cn(
-        "flex border-b border-border-subtle transition-colors",
+        "flex h-8 border-b border-border-subtle transition-colors",
         hovering && "bg-fill-tertiary/50",
       )}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
     >
+      {/* Checkbox column */}
+      <div
+        className="flex shrink-0 items-center justify-center border-r border-border-subtle"
+        style={{ width: CHECKBOX_COL_WIDTH }}
+      >
+        <input
+          type="checkbox"
+          disabled
+          className="h-3.5 w-3.5 rounded border-border-subtle"
+        />
+      </div>
+
       {/* Row number */}
       <div
         className="flex shrink-0 items-center justify-center border-r border-border-subtle text-xs text-fg-muted"
@@ -56,7 +69,7 @@ export function GridRow({
         <div
           key={field.id}
           className="shrink-0 border-r border-border-subtle"
-          style={{ width: field.width, minWidth: field.width, height: 33 }}
+          style={{ width: field.width, minWidth: field.width }}
         >
           <GridCell
             recordId={record.id}
