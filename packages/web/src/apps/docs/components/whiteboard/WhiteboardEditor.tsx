@@ -113,6 +113,50 @@ export function WhiteboardEditor({
     return () => container.removeEventListener("click", handler, true);
   }, []);
 
+  // Patch Excalidraw built-in locale strings to match our branding
+  useEffect(() => {
+    const TEXT_PATCHES: Record<string, string> = {
+      "尚未添加任何项目……": "尚未添加任何项目",
+      "Excalidraw 素材库": "公共素材库",
+      浏览素材库: "浏览公共素材库",
+    };
+    const patchTextNodes = (root: Node) => {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      for (;;) {
+        const node = walker.nextNode() as Text | null;
+        if (!node) break;
+        const v = node.nodeValue;
+        if (v && v in TEXT_PATCHES) {
+          node.nodeValue = TEXT_PATCHES[v];
+        }
+      }
+    };
+    const container = document.querySelector(".whiteboard-editor");
+    if (!container) return;
+    // Patch any existing text
+    patchTextNodes(container);
+    // Observe future DOM changes (Excalidraw re-renders locale strings)
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.type === "characterData") {
+          const v = m.target.nodeValue;
+          if (v && v in TEXT_PATCHES) {
+            m.target.nodeValue = TEXT_PATCHES[v];
+          }
+        }
+        for (const added of m.addedNodes) {
+          patchTextNodes(added);
+        }
+      }
+    });
+    observer.observe(container, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    return () => observer.disconnect();
+  }, []);
+
   const handleChange = useCallback(
     (
       elements: readonly ExcalidrawElement[],
