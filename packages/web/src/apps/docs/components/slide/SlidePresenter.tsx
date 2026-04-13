@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AudioElement } from "./elements/AudioElement";
+import { ChartElement } from "./elements/ChartElement";
 import { ImageElement } from "./elements/ImageElement";
+import { LaTeXElement } from "./elements/LaTeXElement";
 import { LineElement } from "./elements/LineElement";
 import { ShapeElement } from "./elements/ShapeElement";
+import { TableElement } from "./elements/TableElement";
 import { TextElement } from "./elements/TextElement";
+import { VideoElement } from "./elements/VideoElement";
 import { createAnimationPlayer } from "./lib/animation-player";
 import { DrawingCanvas } from "./presenter/DrawingCanvas";
 import { LaserPointer } from "./presenter/LaserPointer";
@@ -398,6 +403,36 @@ export function SlidePresenter({
       case "line":
         return wrapper(
           <LineElement element={el} selected={false} onSelect={noop} />,
+        );
+      case "chart":
+        return wrapper(
+          <ChartElement element={el} selected={false} onSelect={noop} />,
+        );
+      case "latex":
+        return wrapper(
+          <LaTeXElement
+            element={el}
+            selected={false}
+            onSelect={noop}
+            onUpdate={noop}
+          />,
+        );
+      case "table":
+        return wrapper(
+          <TableElement
+            element={el}
+            selected={false}
+            onSelect={noop}
+            onUpdate={noop}
+          />,
+        );
+      case "video":
+        return wrapper(
+          <VideoElement element={el} selected={false} onSelect={noop} />,
+        );
+      case "audio":
+        return wrapper(
+          <AudioElement element={el} selected={false} onSelect={noop} />,
         );
       default:
         return null;

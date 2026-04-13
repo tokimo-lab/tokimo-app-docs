@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import type { ChartData } from "../types";
 
 interface ChartEditDialogProps {
@@ -13,6 +14,7 @@ export function ChartEditDialog({
   onChange,
   onClose,
 }: ChartEditDialogProps) {
+  const { t } = useTranslation();
   const [labels, setLabels] = useState(() => data.labels.join(", "));
   const [values, setValues] = useState(
     () => data.datasets[0]?.data.join(", ") ?? "",
@@ -87,11 +89,11 @@ export function ChartEditDialog({
         onKeyDown={handleKeyDown}
       >
         <div className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
-          Edit Chart Data
+          {t("docs.editChartData")}
         </div>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-neutral-500 dark:text-neutral-400">
-            Labels (comma separated)
+            {t("docs.labelsCommaSep")}
           </span>
           <input
             ref={inputRef}
@@ -102,7 +104,7 @@ export function ChartEditDialog({
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-neutral-500 dark:text-neutral-400">
-            Values (comma separated)
+            {t("docs.valuesCommaSep")}
           </span>
           <input
             className="rounded border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-100"
@@ -112,7 +114,7 @@ export function ChartEditDialog({
         </label>
         <div className="flex items-center justify-between">
           <span className="text-xs text-neutral-400">
-            Esc to cancel · changes apply live
+            {t("docs.escCancelLive")}
           </span>
           <div className="flex gap-2">
             <button
@@ -120,14 +122,14 @@ export function ChartEditDialog({
               className="cursor-pointer rounded px-4 py-1.5 text-sm text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700"
               onClick={handleCancel}
             >
-              Cancel
+              {t("docs.cancel")}
             </button>
             <button
               type="button"
               className="cursor-pointer rounded bg-blue-500 px-4 py-1.5 text-sm text-white hover:bg-blue-600"
               onClick={onClose}
             >
-              Done
+              {t("docs.done")}
             </button>
           </div>
         </div>

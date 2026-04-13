@@ -1,10 +1,18 @@
+import katex from "katex";
+import "katex/dist/katex.min.css";
 import type {
+  ChartData,
   Slide,
+  SlideAudioElement,
+  SlideChartElement,
   SlideElement,
   SlideImageElement,
+  SlideLatexElement,
   SlideLineElement,
   SlideShapeElement,
+  SlideTableElement,
   SlideTextElement,
+  SlideVideoElement,
 } from "./types";
 import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from "./types";
 
@@ -57,6 +65,16 @@ function StaticElement({ element }: { element: SlideElement }) {
       return <StaticShape element={element} />;
     case "line":
       return <StaticLine element={element} />;
+    case "chart":
+      return <StaticChart element={element} />;
+    case "latex":
+      return <StaticLatex element={element} />;
+    case "table":
+      return <StaticTable element={element} />;
+    case "video":
+      return <StaticVideo element={element} />;
+    case "audio":
+      return <StaticAudio element={element} />;
     default:
       return <StaticFallback element={element} />;
   }
@@ -291,6 +309,414 @@ function StaticLine({ element }: { element: SlideLineElement }) {
           )}
         </defs>
         {renderLinePath()}
+      </svg>
+    </div>
+  );
+}
+
+function StaticChart({ element }: { element: SlideChartElement }) {
+  const { chartType, data } = element;
+  const w = element.width;
+  const h = element.height;
+  const padding = 40;
+  const colors = [
+    "#5B9BD5",
+    "#ED7D31",
+    "#A5A5A5",
+    "#FFC000",
+    "#4472C4",
+    "#70AD47",
+    "#FF6384",
+    "#36A2EB",
+  ];
+
+  const renderChart = () => {
+    if (chartType === "pie" || chartType === "doughnut") {
+      return renderPieChart(data, w, h, padding, colors, chartType);
+    }
+    if (
+      chartType === "line" ||
+      chartType === "area" ||
+      chartType === "scatter"
+    ) {
+      return renderLineChart(data, w, h, padding, chartType);
+    }
+    return renderBarChart(data, w, h, padding);
+  };
+
+  return (
+    <div
+      className="absolute"
+      style={{
+        left: element.left,
+        top: element.top,
+        width: element.width,
+        height: element.height,
+        transform: element.rotate ? `rotate(${element.rotate}deg)` : undefined,
+        opacity: element.opacity ?? 1,
+        background: "#fafafa",
+        borderRadius: 4,
+      }}
+    >
+      {renderChart()}
+    </div>
+  );
+}
+
+function renderPieChart(
+  data: ChartData,
+  w: number,
+  h: number,
+  padding: number,
+  colors: string[],
+  chartType: "pie" | "doughnut",
+) {
+  const values = data.datasets[0]?.data ?? [1, 1, 1, 1];
+  const total = values.reduce((s, v) => s + v, 0) || 1;
+  const cx = w / 2;
+  const cy = h / 2;
+  const r = Math.min(cx, cy) - padding;
+  const innerR = chartType === "doughnut" ? r * 0.5 : 0;
+  let startAngle = -Math.PI / 2;
+  const paths: React.ReactNode[] = [];
+
+  for (let i = 0; i < values.length; i++) {
+    const angle = (values[i] / total) * Math.PI * 2;
+    const endAngle = startAngle + angle;
+    const largeArc = angle > Math.PI ? 1 : 0;
+    const x1 = cx + r * Math.cos(startAngle);
+    const y1 = cy + r * Math.sin(startAngle);
+    const x2 = cx + r * Math.cos(endAngle);
+    const y2 = cy + r * Math.sin(endAngle);
+    const fill =
+      data.datasets[0]?.color && i === 0
+        ? data.datasets[0].color
+        : colors[i % colors.length];
+
+    if (innerR > 0) {
+      const ix1 = cx + innerR * Math.cos(startAngle);
+      const iy1 = cy + innerR * Math.sin(startAngle);
+      const ix2 = cx + innerR * Math.cos(endAngle);
+      const iy2 = cy + innerR * Math.sin(endAngle);
+      paths.push(
+        <path
+          key={i}
+          d={`M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${innerR} ${innerR} 0 ${largeArc} 0 ${ix1} ${iy1} Z`}
+          fill={fill}
+          opacity={0.85}
+        />,
+      );
+    } else {
+      paths.push(
+        <path
+          key={i}
+          d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`}
+          fill={fill}
+          opacity={0.85}
+        />,
+      );
+    }
+    startAngle = endAngle;
+  }
+  return (
+    <svg width={w} height={h}>
+      {paths}
+    </svg>
+  );
+}
+
+function renderLineChart(
+  data: ChartData,
+  w: number,
+  h: number,
+  padding: number,
+  chartType: "line" | "area" | "scatter",
+) {
+  const values = data.datasets[0]?.data ?? [40, 60, 30, 80];
+  const labels = data.labels;
+  const maxVal = Math.max(...values, 1);
+  const barArea = {
+    x: padding,
+    y: 20,
+    w: w - padding - 20,
+    h: h - padding - 20,
+  };
+  const color = data.datasets[0]?.color ?? "#5B9BD5";
+
+  const points = values.map((v, i) => ({
+    x: barArea.x + (barArea.w / (values.length - 1 || 1)) * i,
+    y: barArea.y + barArea.h - (v / maxVal) * barArea.h,
+  }));
+  const linePath = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
+    .join(" ");
+  const areaPath =
+    chartType === "area"
+      ? `${linePath} L ${points[points.length - 1].x} ${barArea.y + barArea.h} L ${points[0].x} ${barArea.y + barArea.h} Z`
+      : "";
+
+  return (
+    <svg width={w} height={h}>
+      <line
+        x1={barArea.x}
+        y1={barArea.y + barArea.h}
+        x2={barArea.x + barArea.w}
+        y2={barArea.y + barArea.h}
+        stroke="#ccc"
+        strokeWidth={1}
+      />
+      <line
+        x1={barArea.x}
+        y1={barArea.y}
+        x2={barArea.x}
+        y2={barArea.y + barArea.h}
+        stroke="#ccc"
+        strokeWidth={1}
+      />
+      {chartType === "area" && <path d={areaPath} fill={color} opacity={0.2} />}
+      <path d={linePath} fill="none" stroke={color} strokeWidth={2} />
+      {points.map((p, i) => (
+        <circle
+          // biome-ignore lint/suspicious/noArrayIndexKey: computed chart points
+          key={i}
+          cx={p.x}
+          cy={p.y}
+          r={chartType === "scatter" ? 5 : 3}
+          fill={color}
+        />
+      ))}
+      {labels.map((label, i) => (
+        <text
+          key={label}
+          x={points[i]?.x ?? 0}
+          y={barArea.y + barArea.h + 14}
+          textAnchor="middle"
+          fontSize={10}
+          fill="#888"
+        >
+          {label}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+function renderBarChart(
+  data: ChartData,
+  w: number,
+  h: number,
+  padding: number,
+) {
+  const values = data.datasets[0]?.data ?? [40, 60, 30, 80];
+  const labels = data.labels;
+  const maxVal = Math.max(...values, 1);
+  const barArea = {
+    x: padding,
+    y: 20,
+    w: w - padding - 20,
+    h: h - padding - 20,
+  };
+  const color = data.datasets[0]?.color ?? "#5B9BD5";
+  const barWidth = (barArea.w / values.length) * 0.6;
+  const gap = (barArea.w / values.length) * 0.4;
+
+  return (
+    <svg width={w} height={h}>
+      <line
+        x1={barArea.x}
+        y1={barArea.y + barArea.h}
+        x2={barArea.x + barArea.w}
+        y2={barArea.y + barArea.h}
+        stroke="#ccc"
+        strokeWidth={1}
+      />
+      <line
+        x1={barArea.x}
+        y1={barArea.y}
+        x2={barArea.x}
+        y2={barArea.y + barArea.h}
+        stroke="#ccc"
+        strokeWidth={1}
+      />
+      {values.map((v, i) => {
+        const barH = (v / maxVal) * barArea.h;
+        const x = barArea.x + (barWidth + gap) * i + gap / 2;
+        const y = barArea.y + barArea.h - barH;
+        return (
+          <g key={labels[i] ?? i}>
+            <rect
+              x={x}
+              y={y}
+              width={barWidth}
+              height={barH}
+              fill={color}
+              opacity={0.85}
+              rx={2}
+            />
+            {labels[i] && (
+              <text
+                x={x + barWidth / 2}
+                y={barArea.y + barArea.h + 14}
+                textAnchor="middle"
+                fontSize={10}
+                fill="#888"
+              >
+                {labels[i]}
+              </text>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function StaticLatex({ element }: { element: SlideLatexElement }) {
+  let html: string;
+  try {
+    html = katex.renderToString(element.formula, {
+      throwOnError: false,
+      displayMode: true,
+    });
+  } catch {
+    html = '<span style="color:red">Invalid formula</span>';
+  }
+
+  return (
+    <div
+      className="absolute"
+      style={{
+        left: element.left,
+        top: element.top,
+        width: element.width,
+        height: element.height,
+        transform: element.rotate ? `rotate(${element.rotate}deg)` : undefined,
+        opacity: element.opacity ?? 1,
+      }}
+    >
+      <div
+        className="flex h-full w-full items-center justify-center overflow-hidden"
+        style={{
+          fontSize: element.fontSize ?? 24,
+          color: element.color ?? "#333",
+        }}
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: KaTeX HTML output
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
+  );
+}
+
+function StaticTable({ element }: { element: SlideTableElement }) {
+  const theme = element.theme;
+  const totalWidth = element.colWidths.reduce((s, w) => s + w, 0) || 1;
+
+  return (
+    <div
+      className="absolute overflow-hidden"
+      style={{
+        left: element.left,
+        top: element.top,
+        width: element.width,
+        height: element.height,
+        transform: element.rotate ? `rotate(${element.rotate}deg)` : undefined,
+        opacity: element.opacity ?? 1,
+      }}
+    >
+      <table
+        className="h-full w-full border-collapse"
+        style={{ borderColor: theme?.borderColor ?? "#d0d0d0" }}
+      >
+        <tbody>
+          {element.data.map((row, ri) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: table row index
+            <tr key={ri}>
+              {row.map((cell, ci) => {
+                const cellKey = `${ri}-${ci}`;
+                return (
+                  <td
+                    key={cellKey}
+                    style={{
+                      width: `${(element.colWidths[ci] / totalWidth) * 100}%`,
+                      backgroundColor:
+                        ri === 0
+                          ? (theme?.headerBg ?? "#4472C4")
+                          : ri % 2 === 0
+                            ? (theme?.stripedBg ?? "#f0f4fa")
+                            : undefined,
+                      color:
+                        ri === 0
+                          ? (theme?.headerColor ?? "#fff")
+                          : (cell.style?.color ?? undefined),
+                      fontWeight:
+                        ri === 0 || cell.style?.bold ? "bold" : undefined,
+                      textAlign: cell.style?.align ?? "center",
+                      border: `1px solid ${theme?.borderColor ?? "#d0d0d0"}`,
+                      padding: "2px 4px",
+                      fontSize: 10,
+                      overflow: "hidden",
+                    }}
+                    rowSpan={cell.rowSpan}
+                    colSpan={cell.colSpan}
+                  >
+                    {cell.content}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function StaticVideo({ element }: { element: SlideVideoElement }) {
+  return (
+    <div
+      className="absolute flex items-center justify-center"
+      style={{
+        left: element.left,
+        top: element.top,
+        width: element.width,
+        height: element.height,
+        transform: element.rotate ? `rotate(${element.rotate}deg)` : undefined,
+        opacity: element.opacity ?? 1,
+        backgroundColor: "#1a1a2e",
+        borderRadius: 4,
+      }}
+    >
+      <svg width={48} height={48} viewBox="0 0 48 48">
+        <polygon points="18,12 38,24 18,36" fill="white" opacity={0.8} />
+      </svg>
+    </div>
+  );
+}
+
+function StaticAudio({ element }: { element: SlideAudioElement }) {
+  return (
+    <div
+      className="absolute flex items-center justify-center"
+      style={{
+        left: element.left,
+        top: element.top,
+        width: element.width,
+        height: element.height,
+        transform: element.rotate ? `rotate(${element.rotate}deg)` : undefined,
+        opacity: element.opacity ?? 1,
+        backgroundColor: "#2d3436",
+        borderRadius: 4,
+      }}
+    >
+      <svg width={36} height={36} viewBox="0 0 24 24" fill="none">
+        <path d="M11 5L6 9H2v6h4l5 4V5z" fill="white" opacity={0.8} />
+        <path
+          d="M15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14"
+          stroke="white"
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          opacity={0.6}
+        />
       </svg>
     </div>
   );

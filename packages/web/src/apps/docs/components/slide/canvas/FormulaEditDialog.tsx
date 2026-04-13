@@ -1,6 +1,7 @@
 import katex from "katex";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 
 interface FormulaEditDialogProps {
   formula: string;
@@ -13,6 +14,7 @@ export function FormulaEditDialog({
   onChange,
   onClose,
 }: FormulaEditDialogProps) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState(formula);
   const originalRef = useRef(formula);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -44,9 +46,9 @@ export function FormulaEditDialog({
         displayMode: true,
       });
     } catch {
-      return '<span style="color:#e53e3e">Invalid formula</span>';
+      return `<span style="color:#e53e3e">${t("docs.invalidFormula")}</span>`;
     }
-  }, [draft]);
+  }, [draft, t]);
 
   return createPortal(
     // biome-ignore lint/a11y/noStaticElementInteractions: modal backdrop
@@ -62,7 +64,7 @@ export function FormulaEditDialog({
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
-          Edit Formula
+          {t("docs.editFormula")}
         </div>
         <div
           className="flex min-h-[60px] items-center justify-center rounded border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-600 dark:bg-neutral-900"
@@ -82,7 +84,7 @@ export function FormulaEditDialog({
         />
         <div className="flex items-center justify-between">
           <span className="text-xs text-neutral-400">
-            Ctrl+Enter to save · Esc to cancel
+            {t("docs.ctrlEnterSave")}
           </span>
           <div className="flex gap-2">
             <button
@@ -90,14 +92,14 @@ export function FormulaEditDialog({
               className="cursor-pointer rounded px-4 py-1.5 text-sm text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700"
               onClick={handleCancel}
             >
-              Cancel
+              {t("docs.cancel")}
             </button>
             <button
               type="button"
               className="cursor-pointer rounded bg-blue-500 px-4 py-1.5 text-sm text-white hover:bg-blue-600"
               onClick={() => onClose()}
             >
-              Confirm
+              {t("docs.confirm")}
             </button>
           </div>
         </div>

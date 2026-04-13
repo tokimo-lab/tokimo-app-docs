@@ -1,7 +1,6 @@
 import { ChevronDown, Plus } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { SlideRenderer } from "./SlideRenderer";
-import type { Slide } from "./types";
 import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from "./types";
 import { useSlideStore } from "./use-slide-store";
 
