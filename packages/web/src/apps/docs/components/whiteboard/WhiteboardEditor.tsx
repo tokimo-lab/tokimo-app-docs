@@ -113,13 +113,24 @@ export function WhiteboardEditor({
     return () => container.removeEventListener("click", handler, true);
   }, []);
 
-  // Patch Excalidraw built-in locale strings to match our branding
+  // Patch Excalidraw built-in locale strings and hide unwanted menu items
   useEffect(() => {
     const TEXT_PATCHES: Record<string, string> = {
       "尚未添加任何项目……": "尚未添加任何项目",
       "Excalidraw 素材库": "公共素材库",
       浏览素材库: "浏览公共素材库",
     };
+    // Library menu items to hide (keep only "删除" / "Remove")
+    const HIDDEN_MENU_ITEMS = new Set([
+      "保存到...",
+      "发布",
+      "打开",
+      "重置素材库",
+      "Save as…",
+      "Publish",
+      "Open",
+      "Reset library",
+    ]);
     const patchTextNodes = (root: Node) => {
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       for (;;) {
@@ -131,11 +142,22 @@ export function WhiteboardEditor({
         }
       }
     };
+    const hideLibraryMenuItems = (root: Node) => {
+      if (!(root instanceof HTMLElement)) return;
+      const menu =
+        root.closest?.(".dropdown-menu.library-menu") ??
+        root.querySelector?.(".dropdown-menu.library-menu");
+      if (!menu) return;
+      for (const item of menu.querySelectorAll(".dropdown-menu-item")) {
+        const text = item.textContent?.trim() ?? "";
+        if (HIDDEN_MENU_ITEMS.has(text)) {
+          (item as HTMLElement).style.display = "none";
+        }
+      }
+    };
     const container = document.querySelector(".whiteboard-editor");
     if (!container) return;
-    // Patch any existing text
     patchTextNodes(container);
-    // Observe future DOM changes (Excalidraw re-renders locale strings)
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
         if (m.type === "characterData") {
@@ -146,6 +168,7 @@ export function WhiteboardEditor({
         }
         for (const added of m.addedNodes) {
           patchTextNodes(added);
+          hideLibraryMenuItems(added);
         }
       }
     });
@@ -194,7 +217,7 @@ export function WhiteboardEditor({
 
   return (
     <div className="relative h-full w-full whiteboard-editor">
-      {/* Hide Mermaid-to-Excalidraw "Generate" section */}
+      {/* Hide unwanted Excalidraw UI elements */}
       <style>{`
         .whiteboard-editor .App-toolbar__extra-tools-dropdown .dropdown-menu-container > div:not([class]),
         .whiteboard-editor .App-toolbar__extra-tools-dropdown .dropdown-menu-container > button:last-child {
