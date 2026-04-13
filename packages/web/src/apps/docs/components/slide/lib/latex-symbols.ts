@@ -24,7 +24,7 @@ export const SYMBOL_LIST: SymbolCategory[] = [
       { latex: "<" },
       { latex: ">" },
       { latex: "=" },
-      { latex: "\\neq\\ne" },
+      { latex: "\\neq" },
       { latex: "\\leqq" },
       { latex: "\\geqq" },
       { latex: "\\leq" },
@@ -214,76 +214,161 @@ export const SYMBOL_LIST: SymbolCategory[] = [
 ];
 
 export const FORMULA_LIST: PresetFormula[] = [
+  // I. 极限与连续 (Limits & Continuity)
   {
-    label: "docs.formulaGauss",
-    latex: `\\int\\int\\int _ { \\Omega } \\left( \\frac { \\partial {P} } { \\partial {x} } + \\frac { \\partial {Q} } { \\partial {y} } + \\frac { \\partial {R} }{ \\partial {z} } \\right) \\mathrm { d } V = \\oint _ { \\partial \\Omega } ( P \\cos \\alpha + Q \\cos \\beta + R \\cos \\gamma ) \\mathrm{ d} S`,
+    label: "docs.formulaSqueeze",
+    latex: `g(x) \\leq f(x) \\leq h(x),\\; \\lim_{x \\to a} g(x) = \\lim_{x \\to a} h(x) = L \\implies \\lim_{x \\to a} f(x) = L`,
   },
   {
-    label: "docs.formulaFourier",
-    latex: `f(x) = \\frac {a_0} 2 + \\sum_{n = 1}^\\infty {({a_n}\\cos {nx} + {b_n}\\sin {nx})}`,
+    label: "docs.formulaLimitSinx",
+    latex: `\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1`,
   },
   {
-    label: "docs.formulaTaylor",
-    latex: `e ^ { x } = 1 + \\frac { x } { 1 ! } + \\frac { x ^ { 2 } } { 2 ! } + \\frac { x ^ { 3 } } { 3 ! } + ... , \\quad - \\infty < x < \\infty`,
+    label: "docs.formulaLimitE",
+    latex: `\\lim_{n \\to \\infty} \\left(1 + \\frac{1}{n}\\right)^{n} = e`,
   },
   {
-    label: "docs.formulaDefiniteIntegral",
-    latex: `\\lim_ { n \\rightarrow + \\infty } \\sum _ { i = 1 } ^ { n } f \\left[ a + \\frac { i } { n } ( b - a ) \\right] \\frac { b - a } { n } = \\int _ { a } ^ { b } f ( x ) dx`,
+    label: "docs.formulaLHopital",
+    latex: `\\lim_{x \\to a} \\frac{f(x)}{g(x)} = \\lim_{x \\to a} \\frac{f'(x)}{g'(x)}`,
+  },
+
+  // II. 导数与微分 (Derivatives & Differentials)
+  {
+    label: "docs.formulaChainRule",
+    latex: `\\frac{dy}{dx} = \\frac{dy}{du} \\cdot \\frac{du}{dx}`,
   },
   {
-    label: "docs.formulaTrigIdentity1",
-    latex: `\\sin \\alpha \\pm \\sin \\beta = 2 \\sin \\frac { 1 } { 2 } ( \\alpha \\pm \\beta ) \\cos \\frac { 1 } { 2 } ( \\alpha \\mp \\beta )`,
+    label: "docs.formulaProductRule",
+    latex: `(uv)' = u'v + uv'`,
   },
   {
-    label: "docs.formulaTrigIdentity2",
-    latex: `\\cos \\alpha + \\cos \\beta = 2 \\cos \\frac { 1 } { 2 } ( \\alpha + \\beta ) \\cos \\frac { 1 } { 2 } ( \\alpha - \\beta )`,
+    label: "docs.formulaLeibniz",
+    latex: `(uv)^{(n)} = \\sum_{k=0}^{n} \\binom{n}{k} u^{(k)} v^{(n-k)}`,
   },
   {
-    label: "docs.formulaBinomialExpansion",
-    latex: `( 1 + x ) ^ { n } = 1 + \\frac { n x } { 1 ! } + \\frac { n ( n - 1 ) x ^ { 2 } } { 2 ! } + ...`,
+    label: "docs.formulaImplicitDiff",
+    latex: `\\frac{dy}{dx} = -\\frac{F_x}{F_y} = -\\frac{\\partial F / \\partial x}{\\partial F / \\partial y}`,
+  },
+
+  // III. 积分 (Integration)
+  {
+    label: "docs.formulaIntByParts",
+    latex: `\\int u \\, dv = uv - \\int v \\, du`,
   },
   {
-    label: "docs.formulaEuler",
-    latex: `e^{ix} = \\cos {x} + i\\sin {x}`,
+    label: "docs.formulaFTC",
+    latex: `\\int_{a}^{b} f(x) \\, dx = F(b) - F(a), \\quad F'(x) = f(x)`,
   },
   {
-    label: "docs.formulaBernoulli",
-    latex: `\\frac {dy} {dx} + P(x)y = Q(x) y^n ({n} \\not= {0,1})`,
+    label: "docs.formulaWallis",
+    latex: `\\int_{0}^{\\frac{\\pi}{2}} \\sin^{n} x \\, dx = \\int_{0}^{\\frac{\\pi}{2}} \\cos^{n} x \\, dx = \\frac{(n-1)!!}{n!!} \\cdot \\begin{cases} \\frac{\\pi}{2} & n \\text{ even} \\\\ 1 & n \\text{ odd} \\end{cases}`,
   },
   {
-    label: "docs.formulaExactDiff",
-    latex: `du(x,y) = P(x,y)dx + Q(x,y)dy = 0`,
+    label: "docs.formulaGaussianInt",
+    latex: `\\int_{-\\infty}^{+\\infty} e^{-x^2} dx = \\sqrt{\\pi}`,
+  },
+
+  // IV. 级数 (Series)
+  {
+    label: "docs.formulaGeometricSeries",
+    latex: `\\sum_{n=0}^{\\infty} r^{n} = \\frac{1}{1-r}, \\quad |r| < 1`,
   },
   {
-    label: "docs.formulaNonHomogeneous",
-    latex: `y = (\\int Q(x) e^{\\int {P(x)dx}}dx + C)e^{-\\int {P(x)dx}}`,
+    label: "docs.formulaTaylorExp",
+    latex: `e^{x} = \\sum_{n=0}^{\\infty} \\frac{x^{n}}{n!}, \\quad x \\in \\mathbb{R}`,
   },
   {
-    label: "docs.formulaCauchyMVT",
-    latex: `\\frac{{f(b) - f(a)}}{{F(b) - F(a)}} = \\frac{{f'(\\xi )}}{{F'(\\xi )}}`,
+    label: "docs.formulaTaylorSin",
+    latex: `\\sin x = \\sum_{n=0}^{\\infty} \\frac{(-1)^{n}}{(2n+1)!} x^{2n+1}`,
   },
   {
-    label: "docs.formulaLagrangeMVT",
-    latex: `f(b) - f(a) = f'(\\xi )(b - a)`,
+    label: "docs.formulaTaylorCos",
+    latex: `\\cos x = \\sum_{n=0}^{\\infty} \\frac{(-1)^{n}}{(2n)!} x^{2n}`,
   },
   {
-    label: "docs.formulaDerivative",
-    latex: `(\\arcsin x)' = \\frac{1}{{\\sqrt {1 - x^2} }}`,
+    label: "docs.formulaTaylorLn",
+    latex: `\\ln(1+x) = \\sum_{n=1}^{\\infty} \\frac{(-1)^{n+1}}{n} x^{n}, \\quad -1 < x \\leq 1`,
   },
   {
-    label: "docs.formulaTrigIntegral",
-    latex: `\\int {tgxdx = - \\ln \\left| {\\cos x} \\right| + C}`,
+    label: "docs.formulaConvergenceRadius",
+    latex: `R = \\frac{1}{\\displaystyle\\limsup_{n \\to \\infty} \\sqrt[n]{|a_n|}}`,
+  },
+
+  // V. 多元微积分 (Multivariable Calculus)
+  {
+    label: "docs.formulaTotalDiff",
+    latex: `dz = \\frac{\\partial z}{\\partial x} dx + \\frac{\\partial z}{\\partial y} dy`,
   },
   {
-    label: "docs.formulaQuadricSurface",
-    latex: `\\frac{{{x^2}}}{{{a^2}}} + \\frac{{{y^2}}}{{{b^2}}} - \\frac{{{z^2}}}{{{c^2}}} = 1`,
+    label: "docs.formulaGreenThm",
+    latex: `\\oint_{\\partial D} P \\, dx + Q \\, dy = \\iint_{D} \\left( \\frac{\\partial Q}{\\partial x} - \\frac{\\partial P}{\\partial y} \\right) dx \\, dy`,
   },
   {
-    label: "docs.formulaSecondOrderODE",
-    latex: `\\frac {{d^2}y} {dx^2} + P(x) \\frac {dy} {dx} + Q(x)y = f(x)`,
+    label: "docs.formulaStokesThm",
+    latex: `\\oint_{\\partial S} \\mathbf{F} \\cdot d\\mathbf{r} = \\iint_{S} (\\nabla \\times \\mathbf{F}) \\cdot d\\mathbf{S}`,
   },
   {
-    label: "docs.formulaDirectionalDerivative",
-    latex: `\\frac{{\\partial f}}{{\\partial l}} = \\frac{{\\partial f}}{{\\partial x}}\\cos \\phi + \\frac{{\\partial f}}{{\\partial y}}\\sin \\phi`,
+    label: "docs.formulaDivergenceThm",
+    latex: `\\oiint_{\\partial V} \\mathbf{F} \\cdot d\\mathbf{S} = \\iiint_{V} \\nabla \\cdot \\mathbf{F} \\, dV`,
+  },
+
+  // VI. 微分方程 (Differential Equations)
+  {
+    label: "docs.formulaSeparableODE",
+    latex: `\\frac{dy}{dx} = f(x) g(y) \\implies \\int \\frac{dy}{g(y)} = \\int f(x) \\, dx + C`,
+  },
+  {
+    label: "docs.formulaFirstOrderLinear",
+    latex: `y = e^{-\\int P(x)dx} \\left( \\int Q(x) e^{\\int P(x)dx} dx + C \\right)`,
+  },
+  {
+    label: "docs.formulaSecondOrderConst",
+    latex: `y'' + py' + qy = 0 \\implies y = C_1 e^{r_1 x} + C_2 e^{r_2 x}`,
+  },
+
+  // VII. 线性代数 (Linear Algebra)
+  {
+    label: "docs.formulaCramer",
+    latex: `x_j = \\frac{\\det(A_j)}{\\det(A)}, \\quad j = 1, 2, \\ldots, n`,
+  },
+  {
+    label: "docs.formulaEigenvalue",
+    latex: `A \\mathbf{x} = \\lambda \\mathbf{x} \\iff \\det(A - \\lambda I) = 0`,
+  },
+  {
+    label: "docs.formulaDetExpansion",
+    latex: `\\det(A) = \\sum_{j=1}^{n} a_{ij} \\, (-1)^{i+j} M_{ij}`,
+  },
+
+  // VIII. 概率统计 (Probability & Statistics)
+  {
+    label: "docs.formulaBayes",
+    latex: `P(A_i | B) = \\frac{P(B | A_i) P(A_i)}{\\displaystyle\\sum_{j=1}^{n} P(B | A_j) P(A_j)}`,
+  },
+  {
+    label: "docs.formulaNormalDist",
+    latex: `f(x) = \\frac{1}{\\sigma \\sqrt{2\\pi}} \\, e^{-\\frac{(x - \\mu)^2}{2\\sigma^2}}`,
+  },
+  {
+    label: "docs.formulaExpectedValue",
+    latex: `E(X) = \\sum_{i} x_i \\, P(X = x_i)`,
+  },
+
+  // IX. 经典公式 (Classical Formulas)
+  {
+    label: "docs.formulaEulerIdentity",
+    latex: `e^{i\\pi} + 1 = 0`,
+  },
+  {
+    label: "docs.formulaQuadratic",
+    latex: `x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}`,
+  },
+  {
+    label: "docs.formulaCauchySchwarz",
+    latex: `\\left( \\sum_{i=1}^{n} a_i b_i \\right)^{2} \\leq \\left( \\sum_{i=1}^{n} a_i^2 \\right) \\left( \\sum_{i=1}^{n} b_i^2 \\right)`,
+  },
+  {
+    label: "docs.formulaStirling",
+    latex: `n! \\sim \\sqrt{2\\pi n} \\left( \\frac{n}{e} \\right)^{n}`,
   },
 ];

@@ -195,13 +195,13 @@ export function ChartEditDialog({
                 </svg>
               </button>
               {showTypePicker && (
-                <div className="absolute right-0 top-full z-10 mt-1 grid grid-cols-4 gap-1 rounded-lg border border-neutral-200 bg-white p-2 shadow-lg dark:border-neutral-600 dark:bg-neutral-750">
+                <div className="absolute right-0 top-full z-10 mt-1 grid w-[320px] grid-cols-4 gap-1 rounded-lg border border-neutral-200 bg-white p-2 shadow-lg dark:border-neutral-600 dark:bg-neutral-800">
                   {CHART_TYPES.map((ct) => (
                     <button
                       key={ct.type}
                       type="button"
                       className={cn(
-                        "flex cursor-pointer flex-col items-center gap-1 rounded-md px-2 py-2 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20",
+                        "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-md py-2 text-[11px] hover:bg-blue-50 dark:hover:bg-blue-900/20",
                         ct.type === chartType
                           ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
                           : "text-neutral-600 dark:text-neutral-300",
@@ -210,7 +210,7 @@ export function ChartEditDialog({
                     >
                       <svg
                         viewBox="0 0 24 24"
-                        className="h-5 w-5"
+                        className="h-6 w-6"
                         fill="none"
                         stroke="currentColor"
                         strokeWidth={1.5}
