@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   BaseContent,
   BaseTable,
@@ -44,6 +44,17 @@ export function useBaseEditor({ content, onChange }: UseBaseEditorOptions) {
   const [base, setBase] = useState<BaseContent>(initial);
   const baseRef = useRef(base);
   baseRef.current = base;
+
+  // Sync from external content changes (e.g. React Query refetch after navigation)
+  useEffect(() => {
+    if (
+      content &&
+      typeof content === "object" &&
+      "tables" in (content as BaseContent)
+    ) {
+      setBase(content as BaseContent);
+    }
+  }, [content]);
 
   const commit = useCallback(
     (next: BaseContent) => {
