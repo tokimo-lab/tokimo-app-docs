@@ -155,9 +155,45 @@ export function WhiteboardEditor({
         }
       }
     };
+    // Mark library dragger elements as data-draggable so they bypass
+    // the global dragstart preventDefault in Desktop.tsx
+    const markDraggable = (root: Node) => {
+      if (!(root instanceof HTMLElement)) return;
+      for (const dragger of root.querySelectorAll(".library-unit__dragger")) {
+        if (!dragger.hasAttribute("data-draggable")) {
+          dragger.setAttribute("data-draggable", "true");
+        }
+      }
+      if (
+        root.classList?.contains("library-unit__dragger") &&
+        !root.hasAttribute("data-draggable")
+      ) {
+        root.setAttribute("data-draggable", "true");
+      }
+    };
+    // Disable the library ⋮ menu button when no items are checked
+    const updateMenuButton = (root: Node) => {
+      if (!(root instanceof HTMLElement)) return;
+      const sidebar =
+        root.closest?.(".layer-ui__library") ??
+        root.querySelector?.(".layer-ui__library");
+      if (!sidebar) return;
+      const btn = sidebar.querySelector(
+        ".dropdown-menu-button.zen-mode-transition",
+      ) as HTMLButtonElement | null;
+      if (!btn) return;
+      const hasChecked = sidebar.querySelector(
+        ".library-unit__checkbox.is-checked",
+      );
+      btn.disabled = !hasChecked;
+      btn.style.opacity = hasChecked ? "" : "0.35";
+      btn.style.pointerEvents = hasChecked ? "" : "none";
+    };
     const container = document.querySelector(".whiteboard-editor");
     if (!container) return;
     patchTextNodes(container);
+    markDraggable(container);
+    updateMenuButton(container);
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
         if (m.type === "characterData") {
@@ -169,6 +205,11 @@ export function WhiteboardEditor({
         for (const added of m.addedNodes) {
           patchTextNodes(added);
           hideLibraryMenuItems(added);
+          markDraggable(added);
+        }
+        // Re-check ⋮ button state when checkboxes change
+        if (m.type === "attributes" || m.type === "childList") {
+          updateMenuButton(container);
         }
       }
     });
@@ -176,6 +217,8 @@ export function WhiteboardEditor({
       childList: true,
       subtree: true,
       characterData: true,
+      attributes: true,
+      attributeFilter: ["checked", "class"],
     });
     return () => observer.disconnect();
   }, []);
