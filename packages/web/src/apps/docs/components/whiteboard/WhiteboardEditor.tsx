@@ -53,7 +53,7 @@ export function WhiteboardEditor({
   nodeId,
 }: WhiteboardEditorProps) {
   const { theme } = useThemeCore();
-  const { i18n, t } = useTranslation("docs");
+  const { i18n, t } = useTranslation();
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI | null>(null);
   const [showLibraryPanel, setShowLibraryPanel] = useState(false);
@@ -171,7 +171,7 @@ export function WhiteboardEditor({
             onSelect={() => setShowLibraryPanel((v) => !v)}
             icon={<Library className="w-4 h-4" />}
           >
-            {t("whiteboardLibrary")}
+            {t("docs.whiteboardLibrary")}
           </MainMenu.Item>
         </MainMenu>
       </Excalidraw>

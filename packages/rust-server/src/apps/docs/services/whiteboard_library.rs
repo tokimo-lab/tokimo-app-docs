@@ -14,6 +14,7 @@ const CACHE_TTL: Duration = Duration::from_secs(24 * 60 * 60);
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RawLibraryEntry {
+    #[serde(default)]
     pub id: String,
     pub name: String,
     #[serde(default)]
@@ -69,10 +70,22 @@ pub async fn get_catalog(
         .await
         .map_err(|e| crate::error::AppError::Internal(format!("fetch catalog: {e}")))?;
 
-    let entries: Vec<RawLibraryEntry> = resp
+    let mut entries: Vec<RawLibraryEntry> = resp
         .json()
         .await
         .map_err(|e| crate::error::AppError::Internal(format!("parse catalog: {e}")))?;
+
+    // Fill in empty IDs with a hash of the source field for entries missing id
+    entries = entries.into_iter().map(|mut e| {
+        if e.id.is_empty() {
+            use std::collections::hash_map::DefaultHasher;
+            use std::hash::{Hash, Hasher};
+            let mut hasher = DefaultHasher::new();
+            e.source.hash(&mut hasher);
+            e.id = format!("gen_{:x}", hasher.finish());
+        }
+        e
+    }).collect();
 
     let mut guard = catalog_lock().write().await;
     *guard = Some(CatalogCache {
@@ -93,7 +106,7 @@ pub async fn get_library_source_url(
         .iter()
         .find(|e| e.id == id)
         .ok_or_else(|| crate::error::AppError::NotFound(format!("library {id} not found")))?;
-    Ok(format!("{GITHUB_RAW_BASE}/{}", entry.source))
+    Ok(format!("{GITHUB_RAW_BASE}/libraries/{}", entry.source))
 }
 
 /// Find the `preview` path for a library by ID.
@@ -111,7 +124,7 @@ pub async fn get_library_preview_url(
             "library {id} has no preview"
         )));
     }
-    Ok(format!("{GITHUB_RAW_BASE}/{}", entry.preview))
+    Ok(format!("{GITHUB_RAW_BASE}/libraries/{}", entry.preview))
 }
 
 const CACHE_DIR_LIBS: &str = "data/excalidraw-libraries/libs";

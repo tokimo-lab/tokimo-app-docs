@@ -23,7 +23,7 @@ export function WhiteboardLibraryPanel({
   excalidrawAPI,
   onClose,
 }: WhiteboardLibraryPanelProps) {
-  const { t } = useTranslation("docs");
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [addingId, setAddingId] = useState<string | null>(null);
@@ -58,7 +58,18 @@ export function WhiteboardLibraryPanel({
         const res = await fetch(url, { credentials: "include" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        const items = data.libraryItems ?? data.library?.libraryItems ?? [];
+        // New format: { libraryItems: [{id,status,elements,...}] }
+        // Old format: { library: [[element,...], ...] }
+        let items = data.libraryItems;
+        if (!items && Array.isArray(data.library)) {
+          items = data.library.map((elements: unknown[], i: number) => ({
+            id: `${libraryId}_${i}`,
+            status: "published",
+            elements,
+            created: Date.now(),
+          }));
+        }
+        items = items ?? [];
         if (items.length > 0) {
           await excalidrawAPI.updateLibrary({
             libraryItems: items,
@@ -83,7 +94,7 @@ export function WhiteboardLibraryPanel({
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-zinc-200 dark:border-zinc-700">
         <div className="flex items-center gap-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">
           <Library className="w-4 h-4" />
-          {t("whiteboardLibrary")}
+          {t("docs.whiteboardLibrary")}
         </div>
         <button
           type="button"
@@ -102,7 +113,7 @@ export function WhiteboardLibraryPanel({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("whiteboardLibrarySearch")}
+            placeholder={t("docs.whiteboardLibrarySearch")}
             className="w-full pl-8 pr-3 py-1.5 text-sm rounded-md border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none focus:border-blue-400 dark:focus:border-blue-500"
           />
         </div>
@@ -112,27 +123,27 @@ export function WhiteboardLibraryPanel({
       <div className="flex-1 overflow-y-auto px-3 pb-3">
         {isLoading && (
           <div className="flex items-center justify-center py-8 text-sm text-zinc-400">
-            {t("whiteboardLibraryLoading")}
+            {t("docs.whiteboardLibraryLoading")}
           </div>
         )}
 
         {error && (
           <div className="flex flex-col items-center gap-2 py-8 text-sm text-zinc-400">
-            <span>{t("whiteboardLibraryError")}</span>
+            <span>{t("docs.whiteboardLibraryError")}</span>
             <button
               type="button"
               className="flex items-center gap-1 px-3 py-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 cursor-pointer text-xs"
               onClick={() => refetch()}
             >
               <RefreshCw className="w-3 h-3" />
-              {t("whiteboardLibraryRetry")}
+              {t("docs.whiteboardLibraryRetry")}
             </button>
           </div>
         )}
 
         {!isLoading && !error && filtered.length === 0 && (
           <div className="flex items-center justify-center py-8 text-sm text-zinc-400">
-            {t("whiteboardLibraryEmpty")}
+            {t("docs.whiteboardLibraryEmpty")}
           </div>
         )}
 
@@ -166,14 +177,14 @@ export function WhiteboardLibraryPanel({
                       </div>
                       {lib.authors.length > 0 && (
                         <div className="text-xs text-zinc-400 mt-0.5 truncate">
-                          {t("whiteboardLibraryBy", {
+                          {t("docs.whiteboardLibraryBy", {
                             name: lib.authors.map((a) => a.name).join(", "),
                           })}
                         </div>
                       )}
                       {lib.itemCount != null && lib.itemCount > 0 && (
                         <div className="text-xs text-zinc-400 mt-0.5">
-                          {t("whiteboardLibraryItems", {
+                          {t("docs.whiteboardLibraryItems", {
                             count: lib.itemCount,
                           })}
                         </div>
@@ -194,14 +205,14 @@ export function WhiteboardLibraryPanel({
                       {isAdded ? (
                         <>
                           <Check className="w-3 h-3" />
-                          {t("whiteboardLibraryAdded")}
+                          {t("docs.whiteboardLibraryAdded")}
                         </>
                       ) : isAdding ? (
                         <RefreshCw className="w-3 h-3 animate-spin" />
                       ) : (
                         <>
                           <Plus className="w-3 h-3" />
-                          {t("whiteboardLibraryAdd")}
+                          {t("docs.whiteboardLibraryAdd")}
                         </>
                       )}
                     </button>
