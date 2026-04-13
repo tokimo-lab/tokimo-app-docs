@@ -16,6 +16,7 @@ import { en, ja, zh_CN } from "mind-elixir/i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useThemeCore } from "@/system";
+import { useDocViewport } from "../../hooks/use-doc-viewport";
 import { MindBottomToolbar } from "./MindBottomToolbar";
 import { MindOutlineView } from "./MindOutlineView";
 import { MindViewSwitcher } from "./MindViewSwitcher";
@@ -87,6 +88,14 @@ export function MindEditor({
   const { i18n } = useTranslation();
   const langRef = useRef(i18n.language);
   langRef.current = i18n.language;
+
+  // Viewport state persistence
+  const {
+    viewState: savedViewport,
+    isLoading: viewportLoading,
+    saveViewport,
+  } = useDocViewport(nodeId);
+  const viewportRestoredRef = useRef(false);
 
   const debouncedSave = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -195,6 +204,31 @@ export function MindEditor({
     if (!mindRef.current) return;
     mindRef.current.changeTheme(customTheme);
   }, [customTheme]);
+
+  // ── Viewport restore & tracking ───────────────────────────────────────
+  useEffect(() => {
+    if (!mindInstance || viewportLoading || viewportRestoredRef.current) return;
+    viewportRestoredRef.current = true;
+
+    const sv = savedViewport as { scaleVal?: number } | null;
+    if (sv?.scaleVal != null) {
+      // Tier 1: Restore saved zoom
+      mindInstance.scale(sv.scaleVal);
+    } else {
+      // Tier 2: Center all content
+      mindInstance.toCenter();
+    }
+    // Tier 3: Default (mind-elixir default zoom) — no action needed
+  }, [mindInstance, viewportLoading, savedViewport]);
+
+  useEffect(() => {
+    if (!mindInstance) return;
+    const handler = () => {
+      saveViewport({ scaleVal: mindInstance.scaleVal });
+    };
+    mindInstance.bus.addListener("scale", handler);
+    return () => mindInstance.bus?.removeListener("scale", handler);
+  }, [mindInstance, saveViewport]);
 
   // ── Collab ─────────────────────────────────────────────────────────────
   useMindCollab({
