@@ -25,15 +25,17 @@ export function TableElement({
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      e.stopPropagation();
+      if (editingCell) {
+        e.stopPropagation();
+        return;
+      }
       onSelect(element.id, e.shiftKey);
     },
-    [element.id, onSelect],
+    [element.id, onSelect, editingCell],
   );
 
   const handleCellClick = useCallback(
-    (_row: number, _col: number, e: React.MouseEvent) => {
-      e.stopPropagation();
+    (_row: number, _col: number, _e: React.MouseEvent) => {
       onSelect(element.id, false);
     },
     [element.id, onSelect],

@@ -41,6 +41,8 @@ export function SlideToolbar() {
   const deactivateFormatPainter = useSlideStore(
     (s) => s.deactivateFormatPainter,
   );
+  const panelTab = useSlideStore((s) => s.panelTab);
+  const setPanelTab = useSlideStore((s) => s.setPanelTab);
 
   const [textMenuOpen, setTextMenuOpen] = useState(false);
   const [shapeMenuOpen, setShapeMenuOpen] = useState(false);
@@ -495,13 +497,13 @@ export function SlideToolbar() {
             {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay */}
             {/* biome-ignore lint/a11y/useKeyWithClickEvents: no keyboard interaction needed */}
             <div className="fixed inset-0 z-40" onClick={closeAllMenus} />
-            <div className="absolute left-0 top-full z-50 mt-1 rounded-md border border-border-subtle bg-white p-2 shadow-lg dark:bg-neutral-800">
+            <div className="absolute left-0 top-full z-50 mt-1 w-fit rounded-md border border-border-subtle bg-white p-2 shadow-lg dark:bg-neutral-800">
               <div className="mb-1 text-center text-xs text-fg-muted">
                 {tableHover.row > 0
                   ? `${tableHover.row} × ${tableHover.col}`
                   : "选择大小"}
               </div>
-              <div className="grid grid-cols-6 gap-0.5">
+              <div className="grid w-[108px] grid-cols-6 gap-0.5">
                 {Array.from({ length: 36 }, (_, idx) => {
                   const r = Math.floor(idx / 6);
                   const c = idx % 6;
@@ -605,13 +607,23 @@ export function SlideToolbar() {
       </div>
 
       {/* 动画 */}
-      <button type="button" className={itemClass(false)}>
+      <button
+        type="button"
+        className={itemClass(panelTab === "animation")}
+        onClick={() =>
+          setPanelTab(panelTab === "animation" ? null : "animation")
+        }
+      >
         <Sparkles size={18} />
         <span className="text-[11px] leading-tight">动画</span>
       </button>
 
       {/* 评论 */}
-      <button type="button" className={itemClass(false)}>
+      <button
+        type="button"
+        className={itemClass(panelTab === "comment")}
+        onClick={() => setPanelTab(panelTab === "comment" ? null : "comment")}
+      >
         <MessageSquare size={18} />
         <span className="text-[11px] leading-tight">评论</span>
       </button>

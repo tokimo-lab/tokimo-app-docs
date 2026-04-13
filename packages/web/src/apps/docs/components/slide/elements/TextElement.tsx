@@ -86,7 +86,6 @@ export function TextElement({
         e.stopPropagation();
         return;
       }
-      e.stopPropagation();
       onSelect(element.id, e.shiftKey);
     },
     [element.id, onSelect, editing],

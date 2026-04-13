@@ -26,6 +26,7 @@ interface SlideState {
   historyIndex: number;
   formatPainterStyle: Record<string, unknown> | null;
   formatPainterMode: "off" | "single" | "persistent";
+  panelTab: string | null;
 }
 
 // ── Actions (exposed on the hook return + static helpers) ───
@@ -88,6 +89,7 @@ interface SlideActions {
   activateFormatPainter: (mode: "single" | "persistent") => void;
   applyFormatPainter: (targetId: string) => void;
   deactivateFormatPainter: () => void;
+  setPanelTab: (tab: string | null) => void;
 }
 
 export type SlideStore = SlideState & SlideActions;
@@ -104,6 +106,7 @@ let state: SlideState = {
   historyIndex: -1,
   formatPainterStyle: null,
   formatPainterMode: "off" as const,
+  panelTab: null,
 };
 
 const listeners = new Set<Listener>();
@@ -819,6 +822,10 @@ const actions: SlideActions = {
 
   deactivateFormatPainter: () => {
     setState({ formatPainterStyle: null, formatPainterMode: "off" as const });
+  },
+
+  setPanelTab: (tab: string | null) => {
+    setState({ panelTab: tab });
   },
 };
 

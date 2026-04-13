@@ -10,7 +10,6 @@ interface LineElementProps {
 export function LineElement({ element, selected, onSelect }: LineElementProps) {
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      e.stopPropagation();
       onSelect(element.id, e.shiftKey);
     },
     [element.id, onSelect],

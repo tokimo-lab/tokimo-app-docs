@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SLIDE_LAYOUTS } from "../lib/layouts";
 import type { SlideBackground } from "../types";
 import { useSlideStore } from "../use-slide-store";
@@ -103,6 +103,16 @@ function DesignTab() {
 
 export function SlidePanelNoSelection() {
   const [activeTab, setActiveTab] = useState("design");
+  const panelTab = useSlideStore((s) => s.panelTab);
+  const setPanelTab = useSlideStore((s) => s.setPanelTab);
+
+  // Sync from global panelTab when toolbar sets it
+  useEffect(() => {
+    if (panelTab === "animation" || panelTab === "transition") {
+      setActiveTab(panelTab);
+      setPanelTab(null);
+    }
+  }, [panelTab, setPanelTab]);
 
   return (
     <>

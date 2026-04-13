@@ -261,6 +261,9 @@ export function SlideCanvas({ slide, zoom }: SlideCanvasProps) {
 
       e.preventDefault();
 
+      // Select the element (elements no longer stopPropagation, so we handle selection here)
+      handleSelectElement(element.id, e.shiftKey);
+
       // Collect all element IDs that should move together
       let dragIds: string[];
       if (element.groupId) {
@@ -290,7 +293,13 @@ export function SlideCanvas({ slide, zoom }: SlideCanvasProps) {
         pushed: false,
       };
     },
-    [slide.elements, selectedIds, formatPainterMode, applyFormatPainter],
+    [
+      slide.elements,
+      selectedIds,
+      formatPainterMode,
+      applyFormatPainter,
+      handleSelectElement,
+    ],
   );
 
   // Background style
