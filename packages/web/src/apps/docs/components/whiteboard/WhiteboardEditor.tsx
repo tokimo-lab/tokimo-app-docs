@@ -7,7 +7,7 @@
  * - Debounced auto-save to doc_nodes.content
  */
 
-import { Excalidraw } from "@excalidraw/excalidraw";
+import { Excalidraw, MainMenu } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type {
@@ -126,7 +126,14 @@ export function WhiteboardEditor({
   );
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-full w-full whiteboard-editor">
+      {/* Hide Mermaid-to-Excalidraw "Generate" section in toolbar dropdown */}
+      <style>{`
+        .whiteboard-editor .App-toolbar__extra-tools-dropdown .dropdown-menu-container > div:not([class]),
+        .whiteboard-editor .App-toolbar__extra-tools-dropdown .dropdown-menu-container > button:last-child {
+          display: none !important;
+        }
+      `}</style>
       <Excalidraw
         excalidrawAPI={(api: ExcalidrawImperativeAPI) => {
           if (!excalidrawAPI) setExcalidrawAPI(api);
@@ -141,7 +148,16 @@ export function WhiteboardEditor({
             export: false,
           },
         }}
-      />
+      >
+        <MainMenu>
+          <MainMenu.DefaultItems.Export />
+          <MainMenu.DefaultItems.SearchMenu />
+          <MainMenu.DefaultItems.Help />
+          <MainMenu.DefaultItems.ClearCanvas />
+          <MainMenu.Separator />
+          <MainMenu.DefaultItems.ChangeCanvasBackground />
+        </MainMenu>
+      </Excalidraw>
     </div>
   );
 }
