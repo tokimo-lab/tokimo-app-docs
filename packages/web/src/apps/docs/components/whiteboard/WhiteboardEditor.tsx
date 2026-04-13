@@ -19,6 +19,7 @@ import { Library } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useThemeCore } from "@/system";
+import { useDocViewport } from "../../hooks/use-doc-viewport";
 import { useWhiteboardLibraryAdapter } from "./useWhiteboardLibraryAdapter";
 import { WhiteboardLibraryPanel } from "./WhiteboardLibraryPanel";
 
@@ -61,6 +62,14 @@ export function WhiteboardEditor({
   // Persist user library to backend
   useWhiteboardLibraryAdapter(excalidrawAPI);
 
+  // Viewport state persistence
+  const {
+    viewState: savedViewport,
+    isLoading: viewportLoading,
+    saveViewport,
+  } = useDocViewport(nodeId);
+  const viewportRestoredRef = useRef(false);
+
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
@@ -96,6 +105,51 @@ export function WhiteboardEditor({
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
   }, []);
+
+  // 3-tier viewport restore: saved state → fit content → default
+  useEffect(() => {
+    if (!excalidrawAPI || viewportLoading || viewportRestoredRef.current)
+      return;
+    viewportRestoredRef.current = true;
+
+    const sv = savedViewport as {
+      scrollX?: number;
+      scrollY?: number;
+      zoom?: number;
+    } | null;
+
+    if (sv?.scrollX != null && sv?.scrollY != null && sv?.zoom != null) {
+      // Tier 1: Restore saved viewport
+      excalidrawAPI.updateScene({
+        appState: {
+          scrollX: sv.scrollX,
+          scrollY: sv.scrollY,
+          zoom: { value: sv.zoom as AppState["zoom"]["value"] },
+        },
+      });
+    } else {
+      // Tier 2: Fit content to viewport (if there are elements)
+      const elements = excalidrawAPI.getSceneElements();
+      if (elements.length > 0) {
+        excalidrawAPI.scrollToContent(undefined, {
+          fitToViewport: true,
+          viewportZoomFactor: 0.9,
+        });
+      }
+      // Tier 3: Default viewport (Excalidraw's built-in default) — no action needed
+    }
+  }, [excalidrawAPI, viewportLoading, savedViewport]);
+
+  // Track scroll/zoom changes and save viewport state
+  useEffect(() => {
+    if (!excalidrawAPI) return;
+    const unsubscribe = excalidrawAPI.onScrollChange(
+      (scrollX: number, scrollY: number, zoom: { value: number }) => {
+        saveViewport({ scrollX, scrollY, zoom: zoom.value });
+      },
+    );
+    return unsubscribe;
+  }, [excalidrawAPI, saveViewport]);
 
   // Intercept native "Browse libraries" link to open our custom panel
   useEffect(() => {
