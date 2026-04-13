@@ -17,17 +17,23 @@ export function ChartEditDialog({
   const [values, setValues] = useState(
     () => data.datasets[0]?.data.join(", ") ?? "",
   );
+  const originalRef = useRef(data);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
+  const handleCancel = useCallback(() => {
+    onChange(originalRef.current);
+    onClose();
+  }, [onChange, onClose]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") handleCancel();
     },
-    [onClose],
+    [handleCancel],
   );
 
   const emitChange = useCallback(
@@ -71,7 +77,7 @@ export function ChartEditDialog({
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleCancel();
       }}
     >
       {/* biome-ignore lint/a11y/noStaticElementInteractions: dialog container */}
@@ -106,15 +112,24 @@ export function ChartEditDialog({
         </label>
         <div className="flex items-center justify-between">
           <span className="text-xs text-neutral-400">
-            Esc to close · changes apply live
+            Esc to cancel · changes apply live
           </span>
-          <button
-            type="button"
-            className="cursor-pointer rounded bg-blue-500 px-4 py-1.5 text-sm text-white hover:bg-blue-600"
-            onClick={onClose}
-          >
-            Done
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="cursor-pointer rounded px-4 py-1.5 text-sm text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              onClick={handleCancel}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="cursor-pointer rounded bg-blue-500 px-4 py-1.5 text-sm text-white hover:bg-blue-600"
+              onClick={onClose}
+            >
+              Done
+            </button>
+          </div>
         </div>
       </div>
     </div>,

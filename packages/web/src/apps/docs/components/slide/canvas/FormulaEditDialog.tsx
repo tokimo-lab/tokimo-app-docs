@@ -4,31 +4,37 @@ import { createPortal } from "react-dom";
 
 interface FormulaEditDialogProps {
   formula: string;
-  onSave: (formula: string) => void;
-  onCancel: () => void;
+  onChange: (formula: string) => void;
+  onClose: () => void;
 }
 
 export function FormulaEditDialog({
   formula,
-  onSave,
-  onCancel,
+  onChange,
+  onClose,
 }: FormulaEditDialogProps) {
   const [draft, setDraft] = useState(formula);
+  const originalRef = useRef(formula);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     textareaRef.current?.focus();
   }, []);
 
+  const handleCancel = useCallback(() => {
+    onChange(originalRef.current);
+    onClose();
+  }, [onChange, onClose]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Escape") {
-        onCancel();
+        handleCancel();
       } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-        onSave(draft);
+        onClose();
       }
     },
-    [draft, onCancel, onSave],
+    [handleCancel, onClose],
   );
 
   const preview = useMemo(() => {
@@ -47,7 +53,7 @@ export function FormulaEditDialog({
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onCancel();
+        if (e.target === e.currentTarget) handleCancel();
       }}
     >
       {/* biome-ignore lint/a11y/noStaticElementInteractions: dialog container */}
@@ -69,7 +75,7 @@ export function FormulaEditDialog({
           value={draft}
           onChange={(e) => {
             setDraft(e.target.value);
-            onSave(e.target.value);
+            onChange(e.target.value);
           }}
           onKeyDown={handleKeyDown}
           placeholder="E = mc^2"
@@ -82,14 +88,14 @@ export function FormulaEditDialog({
             <button
               type="button"
               className="cursor-pointer rounded px-4 py-1.5 text-sm text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-              onClick={onCancel}
+              onClick={handleCancel}
             >
               Cancel
             </button>
             <button
               type="button"
               className="cursor-pointer rounded bg-blue-500 px-4 py-1.5 text-sm text-white hover:bg-blue-600"
-              onClick={() => onSave(draft)}
+              onClick={() => onClose()}
             >
               Confirm
             </button>

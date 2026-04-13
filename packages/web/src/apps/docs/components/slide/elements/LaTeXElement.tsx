@@ -83,8 +83,8 @@ export function LaTeXElement({
       {editing && (
         <FormulaEditDialog
           formula={element.formula}
-          onSave={handleSave}
-          onCancel={handleClose}
+          onChange={handleSave}
+          onClose={handleClose}
         />
       )}
     </div>
