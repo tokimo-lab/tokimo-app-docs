@@ -30,6 +30,7 @@ export function SlideEditor({
   const setPresentation = useSlideStore((s) => s.setPresentation);
   const [presenting, setPresenting] = useState(false);
   const [zoom, setZoom] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const isReplayingRef = useRef(false);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -113,7 +114,10 @@ export function SlideEditor({
 
       {/* Main area */}
       <div className="flex min-h-0 flex-1">
-        <SlideThumbnailPanel />
+        <SlideThumbnailPanel
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+        />
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
           {currentSlide ? (
             <SlideCanvas slide={currentSlide} zoom={zoom} />

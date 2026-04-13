@@ -1,20 +1,45 @@
-import { Plus } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { ChevronDown, ChevronsLeft, ChevronsRight, Plus } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { SLIDE_LAYOUTS } from "./lib/layouts";
 import { SlideRenderer } from "./SlideRenderer";
 import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from "./types";
 import { useSlideStore } from "./use-slide-store";
 
-const THUMB_WIDTH = 156;
+const THUMB_WIDTH = 120;
 const THUMB_SCALE = THUMB_WIDTH / VIEWPORT_WIDTH;
 const THUMB_HEIGHT = Math.round(VIEWPORT_HEIGHT * THUMB_SCALE);
 
-export function SlideThumbnailPanel() {
+// Map layout id -> i18n key
+const LAYOUT_I18N_KEYS: Record<string, string> = {
+  blank: "docs.slideLayoutBlank",
+  title: "docs.slideLayoutTitle",
+  "title-list": "docs.slideLayoutTitleList",
+  "cover-title": "docs.slideLayoutCoverTitle",
+  "title-image": "docs.slideLayoutTitleImage",
+  "title-two-col": "docs.slideLayoutTitleTwoCol",
+  "title-three-col": "docs.slideLayoutTitleThreeCol",
+  "title-four-col": "docs.slideLayoutTitleFourCol",
+  "photo-wall": "docs.slideLayoutPhotoWall",
+  "title-body": "docs.slideLayoutTitleBody",
+};
+
+interface SlideThumbnailPanelProps {
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+}
+
+export function SlideThumbnailPanel({
+  collapsed,
+  onToggleCollapse,
+}: SlideThumbnailPanelProps) {
   const { t } = useTranslation();
   const slides = useSlideStore((s) => s.presentation.slides);
   const currentIndex = useSlideStore((s) => s.currentSlideIndex);
   const setCurrentIndex = useSlideStore((s) => s.setCurrentSlideIndex);
   const addSlide = useSlideStore((s) => s.addSlide);
+  const addSlideWithLayout = useSlideStore((s) => s.addSlideWithLayout);
   const deleteSlide = useSlideStore((s) => s.deleteSlide);
   const duplicateSlide = useSlideStore((s) => s.duplicateSlide);
   const reorderSlide = useSlideStore((s) => s.reorderSlide);
@@ -24,6 +49,9 @@ export function SlideThumbnailPanel() {
     y: number;
     index: number;
   } | null>(null);
+  const [layoutDropdownOpen, setLayoutDropdownOpen] = useState(false);
+  const dropdownBtnRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const dragIndexRef = useRef<number | null>(null);
 
   const handleContextMenu = useCallback(
@@ -58,28 +86,114 @@ export function SlideThumbnailPanel() {
     e.dataTransfer.dropEffect = "move";
   }, []);
 
-  return (
-    <div className="flex w-[210px] flex-shrink-0 flex-col border-r border-border-subtle bg-fill-secondary dark:bg-neutral-900">
-      {/* New slide button — Feishu style */}
-      <div className="px-3 pt-3 pb-1">
+  const handleInsertLayout = useCallback(
+    (
+      elements: readonly ReturnType<
+        (typeof SLIDE_LAYOUTS)[0]["elements"]["at"]
+      >[],
+    ) => {
+      addSlideWithLayout(currentIndex, [...elements] as Parameters<
+        typeof addSlideWithLayout
+      >[1]);
+      setLayoutDropdownOpen(false);
+    },
+    [addSlideWithLayout, currentIndex],
+  );
+
+  // Close layout dropdown on outside click
+  useEffect(() => {
+    if (!layoutDropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        dropdownBtnRef.current &&
+        !dropdownBtnRef.current.contains(e.target as Node)
+      ) {
+        setLayoutDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [layoutDropdownOpen]);
+
+  // Collapsed state: show a narrow expand button
+  if (collapsed) {
+    return (
+      <div className="flex flex-shrink-0 flex-col items-center border-r border-border-subtle bg-white pt-4 dark:bg-neutral-900">
         <button
           type="button"
-          className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-blue-400 bg-blue-50/50 px-3 py-2 text-xs font-medium text-blue-600 transition-colors hover:border-blue-500 hover:bg-blue-50 dark:border-blue-500/50 dark:bg-blue-900/10 dark:text-blue-400 dark:hover:border-blue-400 dark:hover:bg-blue-900/20"
-          onClick={() => addSlide(currentIndex)}
+          className="cursor-pointer rounded p-1 hover:bg-gray-100 dark:hover:bg-neutral-700"
+          onClick={onToggleCollapse}
+          title={t("docs.slideExpandSidebar")}
         >
-          <Plus size={14} strokeWidth={2.5} />
-          {t("docs.slideNewSlide")}
+          <ChevronsRight
+            size={16}
+            className="text-gray-500 dark:text-neutral-400"
+          />
+        </button>
+      </div>
+    );
+  }
+
+  // Dropdown position
+  const dropdownPos = dropdownBtnRef.current?.getBoundingClientRect();
+
+  return (
+    <div className="flex w-[196px] flex-shrink-0 flex-col bg-white dark:bg-neutral-900">
+      {/* Top bar: split button + collapse */}
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "16px 6px 0 32px" }}
+      >
+        {/* Split button group */}
+        <div className="flex h-8">
+          {/* Main "新建幻灯片" button */}
+          <button
+            type="button"
+            className="flex h-8 w-[102px] cursor-pointer items-center justify-center gap-1 rounded-l-[6px] border border-[rgb(208,211,214)] bg-white text-sm text-[rgb(31,35,41)] transition-colors hover:bg-gray-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
+            onClick={() => addSlide(currentIndex)}
+          >
+            <Plus size={12} />
+            <span>{t("docs.slideNewSlide")}</span>
+          </button>
+          {/* Dropdown chevron button */}
+          <button
+            ref={dropdownBtnRef}
+            type="button"
+            className="flex h-8 w-[27px] cursor-pointer items-center justify-center rounded-r-[6px] border border-l-0 border-[rgb(208,211,214)] bg-white transition-colors hover:bg-gray-50 dark:border-neutral-600 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+            onClick={() => setLayoutDropdownOpen((prev) => !prev)}
+          >
+            <ChevronDown
+              size={12}
+              className="text-[rgb(31,35,41)] dark:text-neutral-200"
+            />
+          </button>
+        </div>
+
+        {/* Collapse button */}
+        <button
+          type="button"
+          className="flex h-6 w-6 cursor-pointer items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-neutral-700"
+          onClick={onToggleCollapse}
+          title={t("docs.slideCollapseSidebar")}
+        >
+          <ChevronsLeft
+            size={16}
+            className="text-gray-500 dark:text-neutral-400"
+          />
         </button>
       </div>
 
       {/* Thumbnail list */}
-      <div className="flex-1 overflow-y-auto px-1 py-2">
+      <div className="flex-1 overflow-y-auto py-2">
         {slides.map((slide, i) => (
-          // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard navigation not needed for thumbnail items
-          // biome-ignore lint/a11y/noStaticElementInteractions: thumbnail items need drag and context menu interaction
+          // biome-ignore lint/a11y/useKeyWithClickEvents: thumbnail items use mouse interaction
+          // biome-ignore lint/a11y/noStaticElementInteractions: thumbnail items need drag and context menu
           <div
             key={slide.id}
-            className="group mb-1.5 flex cursor-pointer items-start gap-1 px-1"
+            className="flex cursor-pointer items-start"
+            style={{ padding: "8px 18px 8px 32px" }}
             onClick={() => setCurrentIndex(i)}
             onContextMenu={(e) => handleContextMenu(e, i)}
             draggable
@@ -87,42 +201,67 @@ export function SlideThumbnailPanel() {
             onDrop={(e) => handleDrop(e, i)}
             onDragOver={handleDragOver}
           >
-            {/* Slide number — outside the border */}
+            {/* Slide number */}
             <span
-              className={`mt-1 w-5 shrink-0 text-right text-[11px] leading-none ${
+              className={`mt-1 w-[26px] shrink-0 text-center text-xs font-medium ${
                 i === currentIndex
-                  ? "font-medium text-blue-600 dark:text-blue-400"
-                  : "text-fg-muted"
+                  ? "text-[rgb(20,86,240)] dark:text-blue-400"
+                  : "text-[rgb(100,106,115)] dark:text-neutral-400"
               }`}
             >
               {i + 1}
             </span>
-            {/* Thumbnail with selection border */}
+            {/* Selection border wrapper */}
             <div
-              className={`overflow-hidden rounded-sm border-2 transition-colors ${
+              className={`rounded-[10px] border-2 p-[3px] transition-colors ${
                 i === currentIndex
-                  ? "border-blue-500 dark:border-blue-400"
-                  : "border-transparent group-hover:border-neutral-300 dark:group-hover:border-neutral-600"
+                  ? "border-[rgb(20,86,240)] dark:border-blue-400"
+                  : "border-transparent hover:border-black/15 dark:hover:border-neutral-500"
               }`}
             >
-              <SlideRenderer
-                slide={slide}
-                width={THUMB_WIDTH}
-                height={THUMB_HEIGHT}
-              />
+              {/* Thumbnail inner */}
+              <div className="overflow-hidden rounded-[6px] border border-black/15 dark:border-neutral-600">
+                <SlideRenderer
+                  slide={slide}
+                  width={THUMB_WIDTH}
+                  height={THUMB_HEIGHT}
+                />
+              </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Layout template dropdown (portal) */}
+      {layoutDropdownOpen &&
+        dropdownPos &&
+        createPortal(
+          <>
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop to close dropdown */}
+            {/* biome-ignore lint/a11y/useKeyWithClickEvents: no keyboard needed for backdrop */}
+            <div
+              className="fixed inset-0 z-[200]"
+              onClick={() => setLayoutDropdownOpen(false)}
+            />
+            <LayoutDropdown
+              ref={dropdownRef}
+              top={dropdownPos.bottom + 4}
+              left={dropdownPos.left}
+              onSelect={handleInsertLayout}
+              t={t}
+            />
+          </>,
+          document.body,
+        )}
 
       {/* Context menu */}
       {contextMenu && (
         <>
           {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay to close context menu */}
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: no keyboard interaction needed for backdrop */}
-          <div className="fixed inset-0 z-50" onClick={closeMenu} />
+          <div className="fixed inset-0 z-[200]" onClick={closeMenu} />
           <div
-            className="fixed z-50 min-w-[140px] rounded-md border border-border-subtle bg-white py-1 shadow-lg dark:bg-neutral-800"
+            className="fixed z-[200] min-w-[140px] rounded-md border border-border-subtle bg-white py-1 shadow-lg dark:bg-neutral-800"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
             <button
@@ -161,3 +300,63 @@ export function SlideThumbnailPanel() {
     </div>
   );
 }
+
+// ── Layout Dropdown ─────────────────────────────────────────
+
+const LAYOUT_THUMB_W = 64;
+const LAYOUT_THUMB_SCALE = LAYOUT_THUMB_W / VIEWPORT_WIDTH;
+const LAYOUT_THUMB_H = Math.round(VIEWPORT_HEIGHT * LAYOUT_THUMB_SCALE);
+
+import { forwardRef } from "react";
+import type { SlideElement } from "./types";
+
+interface LayoutDropdownProps {
+  top: number;
+  left: number;
+  onSelect: (elements: SlideElement[]) => void;
+  t: (key: string) => string;
+}
+
+const LayoutDropdown = forwardRef<HTMLDivElement, LayoutDropdownProps>(
+  function LayoutDropdown({ top, left, onSelect, t }, ref) {
+    return (
+      <div
+        ref={ref}
+        className="fixed z-[200] w-[280px] rounded-lg border border-border-subtle bg-white p-3 shadow-xl dark:bg-neutral-800"
+        style={{ top, left }}
+      >
+        {/* Header */}
+        <div className="mb-2 text-xs font-medium text-[rgb(31,35,41)] dark:text-neutral-200">
+          {t("docs.slideSelectLayout")}
+        </div>
+        {/* Section label */}
+        <div className="mb-2 text-[11px] text-[rgb(100,106,115)] dark:text-neutral-400">
+          {t("docs.slideDefaultTemplate")}
+        </div>
+        {/* Grid */}
+        <div className="grid grid-cols-3 gap-2">
+          {SLIDE_LAYOUTS.map((layout) => (
+            // biome-ignore lint/a11y/useKeyWithClickEvents: layout grid item
+            // biome-ignore lint/a11y/noStaticElementInteractions: layout grid item
+            <div
+              key={layout.id}
+              className="group cursor-pointer"
+              onClick={() => onSelect(layout.elements)}
+            >
+              <div className="overflow-hidden rounded border border-black/10 transition-colors group-hover:border-[rgb(20,86,240)] dark:border-neutral-600 dark:group-hover:border-blue-400">
+                <SlideRenderer
+                  slide={{ id: layout.id, elements: layout.elements }}
+                  width={LAYOUT_THUMB_W}
+                  height={LAYOUT_THUMB_H}
+                />
+              </div>
+              <div className="mt-1 truncate text-center text-[10px] text-[rgb(100,106,115)] dark:text-neutral-400">
+                {t(LAYOUT_I18N_KEYS[layout.id] ?? layout.name)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  },
+);

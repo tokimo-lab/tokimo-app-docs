@@ -34,6 +34,7 @@ interface SlideActions {
   setPresentation: (p: SlidePresentation) => void;
   setCurrentSlideIndex: (i: number) => void;
   addSlide: (index?: number) => void;
+  addSlideWithLayout: (index: number, elements: SlideElement[]) => void;
   deleteSlide: (index: number) => void;
   duplicateSlide: (index: number) => void;
   reorderSlide: (from: number, to: number) => void;
@@ -157,6 +158,19 @@ const actions: SlideActions = {
     const slides = [...state.presentation.slides];
     const insertAt = index !== undefined ? index + 1 : slides.length;
     slides.splice(insertAt, 0, createBlankSlide());
+    setState({
+      presentation: { ...state.presentation, slides },
+      currentSlideIndex: insertAt,
+      selectedElementIds: [],
+    });
+  },
+
+  addSlideWithLayout: (index: number, elements: SlideElement[]) => {
+    pushHistory();
+    const slides = [...state.presentation.slides];
+    const insertAt = index + 1;
+    const newSlide: Slide = { id: generateId(), elements };
+    slides.splice(insertAt, 0, newSlide);
     setState({
       presentation: { ...state.presentation, slides },
       currentSlideIndex: insertAt,
