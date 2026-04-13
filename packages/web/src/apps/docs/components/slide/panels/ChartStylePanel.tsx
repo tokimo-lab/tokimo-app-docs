@@ -19,16 +19,16 @@ const labelClass = "mb-3 text-xs font-medium text-fg-muted";
 const CHART_TYPES: {
   type: SlideChartElement["chartType"];
   icon: typeof BarChart3;
-  label: string;
+  i18nKey: string;
 }[] = [
-  { type: "column", icon: BarChart3, label: "柱状图" },
-  { type: "bar", icon: BarChartHorizontal, label: "条形图" },
-  { type: "line", icon: LineChart, label: "折线图" },
-  { type: "area", icon: AreaChart, label: "面积图" },
-  { type: "scatter", icon: ScatterChart, label: "散点图" },
-  { type: "pie", icon: PieChart, label: "饼图" },
-  { type: "doughnut", icon: CircleDot, label: "环形图" },
-  { type: "radar", icon: Radar, label: "雷达图" },
+  { type: "column", icon: BarChart3, i18nKey: "docs.chartBar" },
+  { type: "bar", icon: BarChartHorizontal, i18nKey: "docs.chartColumn" },
+  { type: "line", icon: LineChart, i18nKey: "docs.chartLine" },
+  { type: "area", icon: AreaChart, i18nKey: "docs.chartArea" },
+  { type: "scatter", icon: ScatterChart, i18nKey: "docs.chartScatter" },
+  { type: "pie", icon: PieChart, i18nKey: "docs.chartPie" },
+  { type: "doughnut", icon: CircleDot, i18nKey: "docs.chartDoughnut" },
+  { type: "radar", icon: Radar, i18nKey: "docs.chartRadar" },
 ];
 
 export function ChartStylePanel({ element }: { element: SlideChartElement }) {
@@ -55,22 +55,25 @@ export function ChartStylePanel({ element }: { element: SlideChartElement }) {
       <div className={sectionClass}>
         <h3 className={labelClass}>{t("docs.chartTypeLabel")}</h3>
         <div className="grid grid-cols-4 gap-1">
-          {CHART_TYPES.map(({ type, icon: Icon, label }) => (
-            <button
-              key={type}
-              type="button"
-              title={label}
-              className={cn(
-                "flex cursor-pointer flex-col items-center gap-1 rounded p-2 text-xs hover:bg-black/5 dark:hover:bg-white/5",
-                element.chartType === type &&
-                  "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
-              )}
-              onClick={() => update({ chartType: type })}
-            >
-              <Icon size={18} />
-              <span className="truncate text-[10px]">{label}</span>
-            </button>
-          ))}
+          {CHART_TYPES.map(({ type, icon: Icon, i18nKey }) => {
+            const label = t(i18nKey);
+            return (
+              <button
+                key={type}
+                type="button"
+                title={label}
+                className={cn(
+                  "flex cursor-pointer flex-col items-center gap-1 rounded p-2 text-xs hover:bg-black/5 dark:hover:bg-white/5",
+                  element.chartType === type &&
+                    "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
+                )}
+                onClick={() => update({ chartType: type })}
+              >
+                <Icon size={18} />
+                <span className="truncate text-[10px]">{label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

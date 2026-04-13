@@ -105,7 +105,7 @@ export function FormulaEditDialog({
     >
       {/* biome-ignore lint/a11y/noStaticElementInteractions: dialog container */}
       <div
-        className="flex w-[760px] flex-col rounded-lg bg-white shadow-2xl dark:bg-neutral-800"
+        className="flex max-h-[85vh] w-[760px] flex-col rounded-lg bg-white shadow-2xl dark:bg-neutral-800"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -114,7 +114,7 @@ export function FormulaEditDialog({
         </div>
 
         {/* Body: left editor + right panel */}
-        <div className="flex min-h-[380px]">
+        <div className="flex min-h-0 flex-1">
           {/* Left column */}
           <div className="flex w-[55%] flex-col gap-3 border-r border-neutral-200 p-4 dark:border-neutral-600">
             <textarea

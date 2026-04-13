@@ -157,11 +157,11 @@ export function ChartEditDialog({
     >
       {/* biome-ignore lint/a11y/noStaticElementInteractions: dialog container */}
       <div
-        className="flex w-[720px] flex-col rounded-lg bg-white shadow-2xl dark:bg-neutral-800"
+        className="flex max-h-[85vh] w-[720px] flex-col rounded-lg bg-white shadow-2xl dark:bg-neutral-800"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-3 dark:border-neutral-600">
+        <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-5 py-3 dark:border-neutral-600">
           <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
             {t("docs.editChartData")}
           </span>
@@ -229,12 +229,12 @@ export function ChartEditDialog({
         </div>
 
         {/* Grid */}
-        <div className="max-h-[420px] px-5 py-3">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
           <SpreadsheetGrid grid={grid} onGridChange={handleGridChange} />
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-neutral-200 px-5 py-3 dark:border-neutral-600">
+        <div className="flex shrink-0 items-center justify-between border-t border-neutral-200 px-5 py-3 dark:border-neutral-600">
           <button
             type="button"
             className="cursor-pointer rounded px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
