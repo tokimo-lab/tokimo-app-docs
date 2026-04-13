@@ -15,7 +15,6 @@ import type {
   BinaryFiles,
   ExcalidrawImperativeAPI,
 } from "@excalidraw/excalidraw/types";
-import { Library } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useThemeCore } from "@/system";
@@ -54,7 +53,7 @@ export function WhiteboardEditor({
   nodeId,
 }: WhiteboardEditorProps) {
   const { theme } = useThemeCore();
-  const { i18n, t } = useTranslation();
+  const { i18n } = useTranslation();
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI | null>(null);
   const [showLibraryPanel, setShowLibraryPanel] = useState(false);
@@ -323,6 +322,10 @@ export function WhiteboardEditor({
         .whiteboard-editor .library-menu-browse-button {
           cursor: pointer;
         }
+        /* Hide external link buttons inside Help dialog */
+        .HelpDialog__header {
+          display: none !important;
+        }
       `}</style>
       <Excalidraw
         excalidrawAPI={(api: ExcalidrawImperativeAPI) => {
@@ -340,19 +343,11 @@ export function WhiteboardEditor({
         }}
       >
         <MainMenu>
-          <MainMenu.DefaultItems.Export />
           <MainMenu.DefaultItems.SearchMenu />
           <MainMenu.DefaultItems.Help />
           <MainMenu.DefaultItems.ClearCanvas />
           <MainMenu.Separator />
           <MainMenu.DefaultItems.ChangeCanvasBackground />
-          <MainMenu.Separator />
-          <MainMenu.Item
-            onSelect={() => setShowLibraryPanel((v) => !v)}
-            icon={<Library className="w-4 h-4" />}
-          >
-            {t("docs.whiteboardLibrary")}
-          </MainMenu.Item>
         </MainMenu>
       </Excalidraw>
 
