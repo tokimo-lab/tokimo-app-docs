@@ -1,10 +1,11 @@
 import { Spin } from "@tokiomo/components";
 import type { Value } from "platejs";
 import type { MutableRefObject } from "react";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DocTagInput } from "@/apps/docs/components/DocTagInput";
 import { DocEditor, type DocEditorHandle } from "@/apps/docs/components/editor";
+import { useDocViewport } from "@/apps/docs/hooks/use-doc-viewport";
 import { untitledI18nKey } from "@/apps/docs/lib/doc-node";
 import type { DocNodeOutput } from "@/generated/rust-api";
 import { useAuth } from "@/system/auth/useAuth";
@@ -39,6 +40,15 @@ export function DocEditorArea({
   const { t } = useTranslation();
   const { user } = useAuth();
   const [title, setTitle] = useState(doc.title);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Viewport scroll persistence
+  const {
+    viewState: savedViewport,
+    isLoading: viewportLoading,
+    saveViewport,
+  } = useDocViewport(readOnly ? undefined : doc.id);
+  const viewportRestoredRef = useRef(false);
 
   // Sync title when doc changes
   const [prevId, setPrevId] = useState(doc.id);
@@ -49,6 +59,28 @@ export function DocEditorArea({
     setTitle(doc.title);
   }
 
+  // ── Restore scroll position after content renders ──────────────────
+  useEffect(() => {
+    if (viewportLoading || viewportRestoredRef.current || isLoading) return;
+    viewportRestoredRef.current = true;
+
+    const sv = savedViewport as { scrollTop?: number } | null;
+    if (!sv?.scrollTop || !scrollRef.current) return;
+
+    // Delay slightly to let Plate render content
+    requestAnimationFrame(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = sv.scrollTop as number;
+      }
+    });
+  }, [viewportLoading, savedViewport, isLoading]);
+
+  // ── Track scroll changes ───────────────────────────────────────────
+  const handleScroll = useCallback(() => {
+    if (!scrollRef.current) return;
+    saveViewport({ scrollTop: scrollRef.current.scrollTop });
+  }, [saveViewport]);
+
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -58,7 +90,11 @@ export function DocEditorArea({
   }
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
+    <div
+      ref={scrollRef}
+      className="flex h-full flex-col overflow-y-auto"
+      onScroll={handleScroll}
+    >
       {/* Title input */}
       <div className="mx-auto w-full max-w-3xl px-6 pt-12 pb-2">
         <input
