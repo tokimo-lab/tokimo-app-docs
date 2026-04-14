@@ -22,6 +22,17 @@ export function generateId(prefix = "id"): string {
   return `${prefix}_${Date.now().toString(36)}_${counter.toString(36)}`;
 }
 
+// ── View type default names ──────────────────────────────────────────────────
+
+export const VIEW_TYPE_DEFAULT_NAMES: Record<ViewType, string> = {
+  grid: "表格",
+  kanban: "看板",
+  calendar: "日历",
+  gantt: "甘特",
+  gallery: "画册",
+  form: "表单",
+};
+
 // ── Factory functions ───────────────────────────────────────────────────────
 
 export function createField(

@@ -27,6 +27,7 @@ import {
   getVisibleFields,
   groupRecordsForKanban,
   nextSelectColor,
+  VIEW_TYPE_DEFAULT_NAMES,
 } from "./utils";
 
 interface UseBaseEditorOptions {
@@ -202,7 +203,7 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
   );
 
   const addView = useCallback(() => {
-    const name = `View ${viewsRef.current.length + 1}`;
+    const name = VIEW_TYPE_DEFAULT_NAMES.grid;
     const view = createView(name, fieldsRef.current);
     commitMeta({
       views: [...viewsRef.current, view],
@@ -616,7 +617,7 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
 
   const addViewWithType = useCallback(
     (type: ViewType) => {
-      const name = `View ${viewsRef.current.length + 1}`;
+      const name = VIEW_TYPE_DEFAULT_NAMES[type];
       const view = createViewWithType(name, type, fieldsRef.current);
       commitMeta({
         views: [...viewsRef.current, view],
