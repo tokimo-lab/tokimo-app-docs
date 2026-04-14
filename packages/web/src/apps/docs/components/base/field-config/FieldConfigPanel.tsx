@@ -131,13 +131,18 @@ export function FieldConfigPanel({
 
   const panelContent = (
     <>
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
-      <div
-        className={triggerRef ? "fixed inset-0" : "fixed inset-0 z-40"}
-        style={triggerRef ? { zIndex: 9998 } : undefined}
-        onClick={onClose}
-      />
+      {/* Backdrop only needed for portal mode (outside toolbar DOM) */}
+      {triggerRef && (
+        <>
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
+          <div
+            className="fixed inset-0"
+            style={{ zIndex: 9998 }}
+            onClick={onClose}
+          />
+        </>
+      )}
       <div
         className="flex"
         style={
@@ -147,8 +152,15 @@ export function FieldConfigPanel({
                 top: pos.top,
                 left: pos.left,
                 zIndex: 9999,
+                animation: "toolbar-popup-in 150ms ease-out",
               }
-            : { position: "absolute", top: "100%", left: 0, marginTop: 4 }
+            : {
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                marginTop: 4,
+                animation: "toolbar-popup-in 150ms ease-out",
+              }
         }
       >
         {/* Left: field list (always visible) */}

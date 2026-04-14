@@ -88,7 +88,10 @@ export function ViewTabsBar({ state }: ViewTabsBarProps) {
               className="fixed inset-0 z-40"
               onClick={() => setShowNewViewMenu(false)}
             />
-            <div className="absolute top-full left-0 z-50 mt-1 min-w-[150px] rounded border border-border-base bg-surface-base py-1 shadow-lg">
+            <div
+              className="absolute top-full left-0 z-50 mt-1 min-w-[150px] rounded border border-border-base bg-surface-base py-1 shadow-lg"
+              style={{ animation: "toolbar-popup-in 150ms ease-out" }}
+            >
               {VIEW_TYPE_ORDER.map((vt) => (
                 <button
                   key={vt}
@@ -231,7 +234,11 @@ function ViewTab({
             />
             <div
               className="fixed z-[10000] min-w-[120px] rounded border border-border-base bg-surface-base py-1 shadow-lg"
-              style={{ top: menuPos.top, left: menuPos.left }}
+              style={{
+                top: menuPos.top,
+                left: menuPos.left,
+                animation: "toolbar-popup-in 150ms ease-out",
+              }}
             >
               <button
                 type="button"

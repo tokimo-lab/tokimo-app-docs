@@ -15,16 +15,21 @@ interface DragInfo {
   isDragging: boolean;
 }
 
+interface DropTarget {
+  index: number;
+  side: "left" | "right";
+}
+
 export function GalleryView({ state }: GalleryViewProps) {
   const { processedRecords, activeView, fields } = state;
   const config = activeView?.galleryConfig;
   const cardSize = config?.cardSize ?? "medium";
 
   const [dragState, setDragState] = useState<DragInfo | null>(null);
-  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
   const ghostRef = useRef<HTMLDivElement | null>(null);
-  const dropIndexRef = useRef<number | null>(null);
-  dropIndexRef.current = dropIndex;
+  const dropTargetRef = useRef<DropTarget | null>(null);
+  dropTargetRef.current = dropTarget;
 
   // Auto-initialize galleryConfig for views created before gallery support
   useEffect(() => {
@@ -73,30 +78,39 @@ export function GalleryView({ state }: GalleryViewProps) {
 
       // Find drop target via elementsFromPoint (works through pointer-events: none layers)
       const elements = document.elementsFromPoint(e.clientX, e.clientY);
-      let targetIdx: number | null = null;
+      let target: DropTarget | null = null;
       for (const el of elements) {
         const rid = (el as HTMLElement).dataset?.galleryRecordId;
         if (rid && rid !== dragState.recordId) {
           const idx = processedRecords.findIndex((r) => r.id === rid);
           if (idx >= 0) {
-            targetIdx = idx;
+            const rect = (el as HTMLElement).getBoundingClientRect();
+            const midX = rect.left + rect.width / 2;
+            target = {
+              index: idx,
+              side: e.clientX < midX ? "left" : "right",
+            };
             break;
           }
         }
       }
-      setDropIndex(targetIdx);
+      setDropTarget(target);
     };
 
     const handleUp = () => {
-      const currentDropIndex = dropIndexRef.current;
-      if (dragState.isDragging && currentDropIndex !== null) {
+      const dt = dropTargetRef.current;
+      if (dragState.isDragging && dt !== null) {
         const fromIdx = processedRecords.findIndex(
           (r) => r.id === dragState.recordId,
         );
-        if (fromIdx >= 0 && fromIdx !== currentDropIndex) {
+        // Calculate actual insert index based on side
+        let toIdx = dt.side === "right" ? dt.index + 1 : dt.index;
+        // Adjust for removal of dragged item
+        if (fromIdx < toIdx) toIdx--;
+        if (fromIdx >= 0 && fromIdx !== toIdx) {
           const items = [...processedRecords];
           const [moved] = items.splice(fromIdx, 1);
-          items.splice(currentDropIndex, 0, moved);
+          items.splice(toIdx, 0, moved);
 
           for (let i = 0; i < items.length; i++) {
             if (items[i].sortOrder !== i) {
@@ -106,7 +120,7 @@ export function GalleryView({ state }: GalleryViewProps) {
         }
       }
       setDragState(null);
-      setDropIndex(null);
+      setDropTarget(null);
     };
 
     document.addEventListener("pointermove", handleMove);
@@ -137,24 +151,37 @@ export function GalleryView({ state }: GalleryViewProps) {
               : "grid-cols-[repeat(auto-fill,minmax(240px,1fr))]",
         )}
       >
-        {processedRecords.map((record, idx) => (
-          <div
-            key={record.id}
-            data-gallery-record-id={record.id}
-            className={cn(
-              "cursor-grab rounded-lg transition-opacity",
-              dragState?.isDragging &&
-                dragState.recordId === record.id &&
-                "opacity-30",
-              dropIndex === idx &&
-                dragState?.recordId !== record.id &&
-                "ring-2 ring-blue-400 rounded-lg",
-            )}
-            onPointerDown={(e) => handlePointerDown(record.id, e)}
-          >
-            <GalleryCard record={record} state={state} />
-          </div>
-        ))}
+        {processedRecords.map((record, idx) => {
+          const isDropLeft =
+            dropTarget?.index === idx &&
+            dropTarget.side === "left" &&
+            dragState?.recordId !== record.id;
+          const isDropRight =
+            dropTarget?.index === idx &&
+            dropTarget.side === "right" &&
+            dragState?.recordId !== record.id;
+          return (
+            <div
+              key={record.id}
+              data-gallery-record-id={record.id}
+              className={cn(
+                "relative cursor-grab rounded-lg transition-opacity",
+                dragState?.isDragging &&
+                  dragState.recordId === record.id &&
+                  "opacity-30",
+              )}
+              onPointerDown={(e) => handlePointerDown(record.id, e)}
+            >
+              {isDropLeft && (
+                <div className="absolute top-0 -left-[3px] z-10 h-full w-[3px] rounded-full bg-blue-500" />
+              )}
+              {isDropRight && (
+                <div className="absolute top-0 -right-[3px] z-10 h-full w-[3px] rounded-full bg-blue-500" />
+              )}
+              <GalleryCard record={record} state={state} />
+            </div>
+          );
+        })}
       </div>
       {processedRecords.length === 0 && (
         <div className="flex h-40 items-center justify-center text-sm text-fg-muted">
