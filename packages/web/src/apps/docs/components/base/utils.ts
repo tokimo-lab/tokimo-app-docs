@@ -125,6 +125,23 @@ export function createViewWithType(
       },
     };
   }
+  if (type === "gantt") {
+    const dateField = fields.find((f) => f.type === "date");
+    const titleField = fields.find((f) => f.type === "text") ?? fields[0];
+    return {
+      ...base,
+      type,
+      ganttConfig: {
+        startDateFieldId: dateField?.id ?? "",
+        endDateFieldId: dateField?.id ?? "",
+        titleFieldId: titleField?.id ?? "",
+        colorMode: "custom" as const,
+        customColor: "#3b82f6",
+        workdaysOnly: false,
+        timeScale: "month" as const,
+      },
+    };
+  }
   return { ...base, type };
 }
 
@@ -654,3 +671,43 @@ export const WEEKDAY_LABELS = [
   "周六",
   "周日",
 ];
+
+// ── Gantt utilities ─────────────────────────────────────────────────────────
+
+export const GANTT_COLORS = [
+  "#3b82f6",
+  "#1e40af",
+  "#10b981",
+  "#06b6d4",
+  "#eab308",
+  "#f97316",
+  "#ec4899",
+  "#6b7280",
+] as const;
+
+export function getMonthDays(year: number, month: number): Date[] {
+  const days: Date[] = [];
+  const count = new Date(year, month + 1, 0).getDate();
+  for (let d = 1; d <= count; d++) {
+    days.push(new Date(year, month, d));
+  }
+  return days;
+}
+
+export function isWeekend(date: Date): boolean {
+  const day = date.getDay();
+  return day === 0 || day === 6;
+}
+
+export function daysBetween(start: string, end: string): number {
+  const s = new Date(start);
+  const e = new Date(end);
+  return Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000) + 1);
+}
+
+export function toDateStr(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}

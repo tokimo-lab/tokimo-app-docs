@@ -9,6 +9,7 @@ import type {
   Field,
   FieldType,
   FilterCondition,
+  GanttConfig,
   GroupRule,
   RecordData,
   RowHeight,
@@ -675,6 +676,47 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     [nodeId, createRecordMut],
   );
 
+  // ── Gantt operations ─────────────────────────────────────────────────
+
+  const setGanttConfig = useCallback(
+    (partial: Partial<GanttConfig>) => {
+      const viewId = activeViewIdRef.current;
+      const view = viewsRef.current.find((v) => v.id === viewId);
+      if (!view) return;
+      const current = view.ganttConfig ?? {
+        startDateFieldId: "",
+        endDateFieldId: "",
+        titleFieldId: "",
+        colorMode: "custom" as const,
+        customColor: "#3b82f6",
+        workdaysOnly: false,
+        timeScale: "month" as const,
+      };
+      updateView(viewId, {
+        ganttConfig: { ...current, ...partial },
+      });
+    },
+    [updateView],
+  );
+
+  const updateRecordDates = useCallback(
+    (recordId: string, startDate: string, endDate: string) => {
+      const view = viewsRef.current.find(
+        (v) => v.id === activeViewIdRef.current,
+      );
+      const cfg = view?.ganttConfig;
+      if (!cfg) return;
+      const rec = records.find((r) => r.id === recordId);
+      const newData = {
+        ...(rec?.data ?? {}),
+        [cfg.startDateFieldId]: startDate,
+        [cfg.endDateFieldId]: endDate,
+      };
+      updateRecordMut.mutate({ recordId, data: newData });
+    },
+    [records, updateRecordMut],
+  );
+
   return {
     // Compatibility: GridView checks `activeTable` for null guard
     activeTable: metaQuery.data ? { fields, views } : undefined,
@@ -736,6 +778,9 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     setCalendarDateField,
     setCalendarViewMode,
     addRecordOnDate,
+    // Gantt
+    setGanttConfig,
+    updateRecordDates,
   };
 }
 

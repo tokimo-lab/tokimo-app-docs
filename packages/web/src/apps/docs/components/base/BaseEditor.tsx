@@ -1,6 +1,8 @@
 import { Loader2 } from "lucide-react";
 import { CalendarToolbar } from "./calendar/CalendarToolbar";
 import { CalendarView } from "./calendar/CalendarView";
+import { GanttToolbar } from "./gantt/GanttToolbar";
+import { GanttView } from "./gantt/GanttView";
 import { GridView } from "./grid/GridView";
 import { KanbanToolbar } from "./kanban/KanbanToolbar";
 import { KanbanView } from "./kanban/KanbanView";
@@ -32,6 +34,8 @@ export function BaseEditor({ nodeId }: BaseEditorProps) {
         <KanbanToolbar state={state} />
       ) : viewType === "calendar" ? (
         <CalendarToolbar state={state} />
+      ) : viewType === "gantt" ? (
+        <GanttToolbar state={state} />
       ) : (
         <BaseToolbar state={state} />
       )}
@@ -40,6 +44,8 @@ export function BaseEditor({ nodeId }: BaseEditorProps) {
           <KanbanView state={state} />
         ) : viewType === "calendar" ? (
           <CalendarView state={state} />
+        ) : viewType === "gantt" ? (
+          <GanttView state={state} />
         ) : (
           <GridView state={state} />
         )}

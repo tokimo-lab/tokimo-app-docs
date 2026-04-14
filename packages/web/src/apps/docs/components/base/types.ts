@@ -111,6 +111,19 @@ export interface CalendarConfig {
   viewMode: CalendarViewMode;
 }
 
+export type GanttTimeScale = "week" | "month" | "quarter" | "year";
+export type GanttColorMode = "custom" | "field";
+
+export interface GanttConfig {
+  startDateFieldId: string;
+  endDateFieldId: string;
+  titleFieldId: string;
+  colorMode: GanttColorMode;
+  customColor: string;
+  workdaysOnly: boolean;
+  timeScale: GanttTimeScale;
+}
+
 export interface BaseView {
   id: string;
   name: string;
@@ -124,6 +137,7 @@ export interface BaseView {
   frozenFieldCount: number;
   kanbanConfig?: KanbanConfig;
   calendarConfig?: CalendarConfig;
+  ganttConfig?: GanttConfig;
 }
 
 // ── Content (single-table metadata) ─────────────────────────────────────────
