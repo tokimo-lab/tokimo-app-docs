@@ -1,3 +1,4 @@
+import { cn } from "@tokiomo/components";
 import { useCallback, useMemo } from "react";
 import type { Field, SelectOption } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
@@ -6,16 +7,23 @@ interface KanbanCardProps {
   record: { id: string; data: Record<string, unknown> };
   state: BaseEditorState;
   groupId?: string;
-  onDragStart?: (recordId: string, sourceGroupId: string) => void;
-  onDragEnd?: () => void;
+  isDragging?: boolean;
+  onPointerDragStart?: (
+    recordId: string,
+    sourceGroupId: string,
+    title: string,
+    cardRect: DOMRect,
+    startX: number,
+    startY: number,
+  ) => void;
 }
 
 export function KanbanCard({
   record,
   state,
   groupId,
-  onDragStart,
-  onDragEnd,
+  isDragging,
+  onPointerDragStart,
 }: KanbanCardProps) {
   const { activeView, fields } = state;
   const config = activeView?.kanbanConfig;
@@ -40,22 +48,31 @@ export function KanbanCard({
   const isCompact = config?.cardDisplayMode === "compact";
   const showNames = config?.showFieldNames ?? false;
 
-  const handleDragStart = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", record.id);
-      onDragStart?.(record.id, groupId ?? "");
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const rect = e.currentTarget.getBoundingClientRect();
+      onPointerDragStart?.(
+        record.id,
+        groupId ?? "",
+        title,
+        rect,
+        e.clientX,
+        e.clientY,
+      );
     },
-    [record.id, groupId, onDragStart],
+    [record.id, groupId, title, onPointerDragStart],
   );
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: draggable card
     <div
-      draggable
-      onDragStart={handleDragStart}
-      onDragEnd={onDragEnd}
-      className="cursor-pointer rounded-lg border border-border-subtle bg-surface-base p-3 transition-shadow hover:shadow-sm active:opacity-70"
+      onPointerDown={handlePointerDown}
+      className={cn(
+        "cursor-grab rounded-lg border border-border-subtle bg-surface-base p-3 transition-shadow hover:shadow-sm select-none",
+        isDragging && "opacity-40 cursor-grabbing",
+      )}
     >
       <div className="truncate text-sm font-medium">
         {title || <span className="text-fg-muted">未命名记录</span>}

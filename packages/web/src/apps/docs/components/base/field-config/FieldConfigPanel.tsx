@@ -1,0 +1,177 @@
+import { cn } from "@tokiomo/components";
+import {
+  Calendar,
+  CheckSquare,
+  Clock,
+  DollarSign,
+  GitBranch,
+  Hash,
+  Link,
+  List,
+  ListChecks,
+  ListOrdered,
+  Mail,
+  Paperclip,
+  Percent,
+  Phone,
+  Star,
+  Type,
+  User,
+  UserCheck,
+  UserPen,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import type { Field, FieldType } from "../types";
+import { FieldEditorPanel } from "./FieldEditorPanel";
+import { FieldListPanel } from "./FieldListPanel";
+
+// ── Shared constants ────────────────────────────────────────────────────────
+
+export const FIELD_TYPES: FieldType[] = [
+  "text",
+  "multiSelect",
+  "select",
+  "member",
+  "date",
+  "attachment",
+  "number",
+  "checkbox",
+  "url",
+  "workflow",
+  "autoNumber",
+  "phone",
+  "email",
+  "progress",
+  "currency",
+  "rating",
+  "createdBy",
+  "modifiedBy",
+  "createdTime",
+  "modifiedTime",
+];
+
+export const FIELD_TYPE_ICON: Record<FieldType, React.ReactNode> = {
+  text: <Type size={14} />,
+  number: <Hash size={14} />,
+  select: <List size={14} />,
+  multiSelect: <ListChecks size={14} />,
+  checkbox: <CheckSquare size={14} />,
+  date: <Calendar size={14} />,
+  url: <Link size={14} />,
+  phone: <Phone size={14} />,
+  email: <Mail size={14} />,
+  currency: <DollarSign size={14} />,
+  progress: <Percent size={14} />,
+  rating: <Star size={14} />,
+  workflow: <GitBranch size={14} />,
+  attachment: <Paperclip size={14} />,
+  member: <User size={14} />,
+  autoNumber: <ListOrdered size={14} />,
+  createdBy: <UserCheck size={14} />,
+  modifiedBy: <UserPen size={14} />,
+  createdTime: <Clock size={14} />,
+  modifiedTime: <Clock size={14} />,
+};
+
+// ── Props ───────────────────────────────────────────────────────────────────
+
+interface FieldConfigPanelProps {
+  open: boolean;
+  onClose: () => void;
+  fields: Field[];
+  onAddField: (name: string, type: FieldType) => string;
+  onUpdateField: (fieldId: string, partial: Partial<Field>) => void;
+  onDeleteField: (fieldId: string) => void;
+  hiddenFieldIds: string[];
+  onToggleFieldVisibility: (fieldId: string) => void;
+  triggerRef?: React.RefObject<HTMLElement | null>;
+}
+
+// ── Component ───────────────────────────────────────────────────────────────
+
+export function FieldConfigPanel({
+  open,
+  onClose,
+  fields,
+  onAddField,
+  onUpdateField,
+  onDeleteField,
+  hiddenFieldIds,
+  onToggleFieldVisibility,
+  triggerRef,
+}: FieldConfigPanelProps) {
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  // Position near trigger
+  useEffect(() => {
+    if (!open || !triggerRef?.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const panelWidth = 300;
+    let left = rect.right - panelWidth;
+    if (left < 8) left = 8;
+    setPos({ top: rect.bottom + 4, left });
+  }, [open, triggerRef]);
+
+  // Reset editing state when panel closes
+  useEffect(() => {
+    if (!open) setEditingFieldId(null);
+  }, [open]);
+
+  if (!open) return null;
+
+  const editingField = editingFieldId
+    ? (fields.find((f) => f.id === editingFieldId) ?? null)
+    : null;
+
+  const handleAddNew = () => {
+    const newId = onAddField("新字段", "text");
+    setEditingFieldId(newId);
+  };
+
+  const panelContent = (
+    <>
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
+      <div
+        className={triggerRef ? "fixed inset-0" : "fixed inset-0 z-40"}
+        style={triggerRef ? { zIndex: 9998 } : undefined}
+        onClick={onClose}
+      />
+      <div
+        className={cn(
+          "w-[300px] rounded-lg border border-border-base bg-surface-base shadow-lg",
+          triggerRef ? "fixed" : "absolute top-full left-0 z-50 mt-1",
+        )}
+        style={
+          triggerRef
+            ? { top: pos.top, left: pos.left, zIndex: 9999 }
+            : undefined
+        }
+      >
+        {editingField ? (
+          <FieldEditorPanel
+            field={editingField}
+            onUpdate={(partial) => onUpdateField(editingField.id, partial)}
+            onBack={() => setEditingFieldId(null)}
+          />
+        ) : (
+          <FieldListPanel
+            fields={fields}
+            hiddenFieldIds={hiddenFieldIds}
+            onToggleFieldVisibility={onToggleFieldVisibility}
+            onEditField={(id) => setEditingFieldId(id)}
+            onDeleteField={onDeleteField}
+            onAddNew={handleAddNew}
+          />
+        )}
+      </div>
+    </>
+  );
+
+  if (triggerRef) {
+    return createPortal(panelContent, document.body);
+  }
+  return panelContent;
+}

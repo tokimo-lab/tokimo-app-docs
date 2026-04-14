@@ -30,7 +30,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import { FieldConfigPanel } from "../FieldConfigPanel";
+import { FieldConfigPanel } from "../field-config";
 import type { Field, FieldType } from "../types";
 
 const CHECKBOX_COL_WIDTH = 40;
@@ -64,7 +64,7 @@ interface GridHeaderProps {
   onResizeField: (fieldId: string, width: number) => void;
   onDeleteField: (fieldId: string) => void;
   onUpdateField: (fieldId: string, partial: Partial<Field>) => void;
-  onAddField: (name: string, type: FieldType) => void;
+  onAddField: (name: string, type: FieldType) => string;
   onDuplicateField: (fieldId: string) => void;
   onInsertFieldAfter: (
     afterFieldId: string,
@@ -75,6 +75,8 @@ interface GridHeaderProps {
   onFilterField: (fieldId: string) => void;
   onGroupField: (fieldId: string) => void;
   onFreezeUpTo: (fieldId: string) => void;
+  hiddenFieldIds: string[];
+  onToggleFieldVisibility: (fieldId: string) => void;
   rowNumberWidth: number;
   rowHeightPx?: number;
 }
@@ -91,6 +93,8 @@ export function GridHeader({
   onFilterField,
   onGroupField,
   onFreezeUpTo,
+  hiddenFieldIds,
+  onToggleFieldVisibility,
   rowNumberWidth,
   rowHeightPx,
 }: GridHeaderProps) {
@@ -158,7 +162,12 @@ export function GridHeader({
         <FieldConfigPanel
           open={showAddField}
           onClose={() => setShowAddField(false)}
+          fields={fields}
           onAddField={onAddField}
+          onUpdateField={(fid, p) => onUpdateField(fid, p)}
+          onDeleteField={onDeleteField}
+          hiddenFieldIds={hiddenFieldIds}
+          onToggleFieldVisibility={onToggleFieldVisibility}
           triggerRef={addFieldBtnRef}
         />
       </div>

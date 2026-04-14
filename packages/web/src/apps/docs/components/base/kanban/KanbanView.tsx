@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { CellValue } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
 import { KANBAN_CAN_ADD_GROUP_TYPES, KANBAN_GROUPABLE_TYPES } from "../utils";
@@ -9,12 +10,35 @@ interface KanbanViewProps {
   state: BaseEditorState;
 }
 
+interface DragState {
+  recordId: string;
+  sourceGroupId: string;
+  title: string;
+  ghostWidth: number;
+  currentX: number;
+  currentY: number;
+}
+
 /** Resolves the field value to write when dropping into a target group. */
 function resolveGroupValue(groupId: string): CellValue {
   if (groupId === "__uncategorized") return null;
   if (groupId === "__true") return true;
   if (groupId === "__false") return false;
   return groupId;
+}
+
+/** Finds the kanban column group-id under the cursor via `elementsFromPoint`. */
+function findGroupIdAtPoint(x: number, y: number): string | null {
+  const elements = document.elementsFromPoint(x, y);
+  for (const el of elements) {
+    if (el instanceof HTMLElement) {
+      const groupId = el.dataset.groupId;
+      if (groupId) return groupId;
+      const closest = el.closest<HTMLElement>("[data-group-id]");
+      if (closest) return closest.dataset.groupId ?? null;
+    }
+  }
+  return null;
 }
 
 export function KanbanView({ state }: KanbanViewProps) {
@@ -34,57 +58,79 @@ export function KanbanView({ state }: KanbanViewProps) {
     ? KANBAN_CAN_ADD_GROUP_TYPES.includes(groupField.type)
     : false;
 
-  // ── Drag-and-drop state ──────────────────────────────────────────────
+  // ── Pointer-based drag state ─────────────────────────────────────────
+  const [dragState, setDragState] = useState<DragState | null>(null);
   const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null);
-  const dragRecordIdRef = useRef<string | null>(null);
-  const dragSourceGroupRef = useRef<string | null>(null);
+  const dragStateRef = useRef<DragState | null>(null);
 
-  const handleDragStart = useCallback(
-    (recordId: string, sourceGroupId: string) => {
-      dragRecordIdRef.current = recordId;
-      dragSourceGroupRef.current = sourceGroupId;
+  const handlePointerDragStart = useCallback(
+    (
+      recordId: string,
+      sourceGroupId: string,
+      title: string,
+      cardRect: DOMRect,
+      startX: number,
+      startY: number,
+    ) => {
+      const initial: DragState = {
+        recordId,
+        sourceGroupId,
+        title,
+        ghostWidth: cardRect.width,
+        currentX: startX,
+        currentY: startY,
+      };
+      dragStateRef.current = initial;
+      setDragState(initial);
     },
     [],
   );
 
-  const handleDragOver = useCallback(
-    (e: React.DragEvent<HTMLDivElement>, groupId: string) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
+  // Global pointermove / pointerup listeners while dragging
+  const isDragging = dragState !== null;
+  const groupFieldRef = useRef(groupField);
+  groupFieldRef.current = groupField;
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const onPointerMove = (e: PointerEvent) => {
+      const next: DragState = {
+        ...dragStateRef.current!,
+        currentX: e.clientX,
+        currentY: e.clientY,
+      };
+      dragStateRef.current = next;
+      setDragState(next);
+
+      const groupId = findGroupIdAtPoint(e.clientX, e.clientY);
       setDragOverGroupId(groupId);
-    },
-    [],
-  );
+    };
 
-  const handleDragLeave = useCallback(
-    (e: React.DragEvent<HTMLDivElement>, groupId: string) => {
-      // Only clear if actually leaving the column (not entering a child)
-      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-        setDragOverGroupId((prev) => (prev === groupId ? null : prev));
+    const onPointerUp = (e: PointerEvent) => {
+      const ds = dragStateRef.current;
+      const gf = groupFieldRef.current;
+      const targetGroupId = findGroupIdAtPoint(e.clientX, e.clientY);
+
+      if (ds && targetGroupId && gf && targetGroupId !== ds.sourceGroupId) {
+        const newValue = resolveGroupValue(targetGroupId);
+        stateRef.current.updateCell(ds.recordId, gf.id, newValue);
       }
-    },
-    [],
-  );
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>, targetGroupId: string) => {
-      e.preventDefault();
+      dragStateRef.current = null;
+      setDragState(null);
       setDragOverGroupId(null);
-      const recordId = dragRecordIdRef.current;
-      const sourceGroupId = dragSourceGroupRef.current;
-      if (!recordId || !groupField || sourceGroupId === targetGroupId) return;
+    };
 
-      const newValue = resolveGroupValue(targetGroupId);
-      state.updateCell(recordId, groupField.id, newValue);
-    },
-    [groupField, state],
-  );
-
-  const handleDragEnd = useCallback(() => {
-    dragRecordIdRef.current = null;
-    dragSourceGroupRef.current = null;
-    setDragOverGroupId(null);
-  }, []);
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", onPointerUp);
+    return () => {
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp);
+    };
+  }, [isDragging]);
 
   if (!hasGroupableFields) {
     return (
@@ -105,25 +151,43 @@ export function KanbanView({ state }: KanbanViewProps) {
   }
 
   return (
-    <div className="flex h-full gap-3 overflow-x-auto p-4">
-      {kanbanGroups.map((group) => (
-        <KanbanColumn
-          key={group.id}
-          group={group}
-          state={state}
-          isDragOver={dragOverGroupId === group.id}
-          onCardDragStart={handleDragStart}
-          onColumnDragOver={handleDragOver}
-          onColumnDragLeave={handleDragLeave}
-          onColumnDrop={handleDrop}
-          onCardDragEnd={handleDragEnd}
-        />
-      ))}
-      {canAddGroup && (
-        <NewGroupInput
-          onAdd={(label, color) => state.addKanbanGroup(label, color)}
-        />
-      )}
-    </div>
+    <>
+      <div className="flex h-full gap-3 overflow-x-auto p-4">
+        {kanbanGroups.map((group) => (
+          <KanbanColumn
+            key={group.id}
+            group={group}
+            state={state}
+            isDragOver={dragOverGroupId === group.id}
+            draggingRecordId={dragState?.recordId ?? null}
+            onPointerDragStart={handlePointerDragStart}
+          />
+        ))}
+        {canAddGroup && (
+          <NewGroupInput
+            onAdd={(label, color) => state.addKanbanGroup(label, color)}
+          />
+        )}
+      </div>
+
+      {/* Drag ghost portal */}
+      {dragState &&
+        createPortal(
+          <div
+            className="pointer-events-none fixed rounded-lg border border-border-subtle bg-surface-base px-3 py-2 text-sm font-medium shadow-lg opacity-80"
+            style={{
+              zIndex: 99999,
+              left: dragState.currentX - dragState.ghostWidth / 2,
+              top: dragState.currentY - 16,
+              width: dragState.ghostWidth,
+            }}
+          >
+            <span className="block truncate">
+              {dragState.title || "未命名记录"}
+            </span>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }

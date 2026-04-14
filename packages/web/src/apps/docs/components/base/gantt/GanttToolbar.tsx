@@ -9,7 +9,7 @@ import {
   Settings2,
 } from "lucide-react";
 import { useState } from "react";
-import { FieldConfigPanel } from "../FieldConfigPanel";
+import { FieldConfigPanel } from "../field-config";
 import { FilterBuilder } from "../toolbar/FilterBuilder";
 import { GroupBuilder } from "../toolbar/GroupBuilder";
 import { SortBuilder } from "../toolbar/SortBuilder";
@@ -63,7 +63,19 @@ export function GanttToolbar({ state }: GanttToolbarProps) {
           <FieldConfigPanel
             open={showFieldConfig}
             onClose={() => setShowFieldConfig(false)}
+            fields={state.fields}
             onAddField={state.addField}
+            onUpdateField={state.updateField}
+            onDeleteField={state.deleteField}
+            hiddenFieldIds={activeView.hiddenFieldIds}
+            onToggleFieldVisibility={(fieldId) => {
+              const hidden = activeView.hiddenFieldIds;
+              state.updateView(activeView.id, {
+                hiddenFieldIds: hidden.includes(fieldId)
+                  ? hidden.filter((id) => id !== fieldId)
+                  : [...hidden, fieldId],
+              });
+            }}
           />
         </div>
 

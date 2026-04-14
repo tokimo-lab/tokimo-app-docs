@@ -56,6 +56,16 @@ export function GridView({ state }: GridViewProps) {
           onFilterField={state.addFilterForField}
           onGroupField={state.addGroupForField}
           onFreezeUpTo={handleFreezeUpTo}
+          hiddenFieldIds={activeView?.hiddenFieldIds ?? []}
+          onToggleFieldVisibility={(fieldId) => {
+            if (!activeView) return;
+            const hidden = activeView.hiddenFieldIds;
+            state.updateView(activeView.id, {
+              hiddenFieldIds: hidden.includes(fieldId)
+                ? hidden.filter((id) => id !== fieldId)
+                : [...hidden, fieldId],
+            });
+          }}
           rowNumberWidth={ROW_NUMBER_WIDTH}
           rowHeightPx={rowHeightPx}
         />

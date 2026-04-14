@@ -9,28 +9,23 @@ interface KanbanColumnProps {
   group: KanbanGroup;
   state: BaseEditorState;
   isDragOver?: boolean;
-  onCardDragStart?: (recordId: string, sourceGroupId: string) => void;
-  onColumnDragOver?: (
-    e: React.DragEvent<HTMLDivElement>,
-    groupId: string,
+  draggingRecordId?: string | null;
+  onPointerDragStart?: (
+    recordId: string,
+    sourceGroupId: string,
+    title: string,
+    cardRect: DOMRect,
+    startX: number,
+    startY: number,
   ) => void;
-  onColumnDragLeave?: (
-    e: React.DragEvent<HTMLDivElement>,
-    groupId: string,
-  ) => void;
-  onColumnDrop?: (e: React.DragEvent<HTMLDivElement>, groupId: string) => void;
-  onCardDragEnd?: () => void;
 }
 
 export function KanbanColumn({
   group,
   state,
   isDragOver,
-  onCardDragStart,
-  onColumnDragOver,
-  onColumnDragLeave,
-  onColumnDrop,
-  onCardDragEnd,
+  draggingRecordId,
+  onPointerDragStart,
 }: KanbanColumnProps) {
   const [showMenu, setShowMenu] = useState(false);
   const isUncategorized =
@@ -47,15 +42,12 @@ export function KanbanColumn({
   }, [group.id, state]);
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: drop target
     <div
+      data-group-id={group.id}
       className={cn(
         "flex h-full w-[280px] shrink-0 flex-col rounded-lg bg-fill-quaternary dark:bg-surface-secondary transition-colors",
         isDragOver && "ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-950/30",
       )}
-      onDragOver={(e) => onColumnDragOver?.(e, group.id)}
-      onDragLeave={(e) => onColumnDragLeave?.(e, group.id)}
-      onDrop={(e) => onColumnDrop?.(e, group.id)}
     >
       {/* Column header */}
       <div className="flex items-center gap-2 px-3 py-2.5">
@@ -129,8 +121,8 @@ export function KanbanColumn({
             record={record}
             state={state}
             groupId={group.id}
-            onDragStart={onCardDragStart}
-            onDragEnd={onCardDragEnd}
+            isDragging={draggingRecordId === record.id}
+            onPointerDragStart={onPointerDragStart}
           />
         ))}
       </div>
