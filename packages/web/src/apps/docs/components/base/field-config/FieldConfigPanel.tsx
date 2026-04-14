@@ -103,6 +103,7 @@ export function FieldConfigPanel({
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const anchorRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   // Position near trigger (or anchor placeholder)
   useEffect(() => {
@@ -112,6 +113,17 @@ export function FieldConfigPanel({
     const rect = el.getBoundingClientRect();
     setPos({ top: rect.bottom + 4, left: rect.left });
   }, [open, triggerRef]);
+
+  // Close on click outside panel (without blocking toolbar buttons)
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (panelRef.current?.contains(e.target as Node)) return;
+      onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open, onClose]);
 
   // Reset editing state when panel closes
   useEffect(() => {
@@ -135,50 +147,41 @@ export function FieldConfigPanel({
   };
 
   const panelContent = (
-    <>
-      {/* Dimming overlay — always render when open, click outside to close */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
-      <div
-        className="fixed inset-0 bg-black/10 dark:bg-black/30"
-        style={{ zIndex: 9998 }}
-        onClick={onClose}
-      />
-      <div
-        className="flex"
-        style={{
-          position: "fixed",
-          top: pos.top,
-          left: pos.left,
-          zIndex: 9999,
-          animation: "toolbar-popup-in 150ms ease-out",
-        }}
-      >
-        {/* Left: field list (always visible) */}
-        <div className="w-[280px] rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-          <FieldListPanel
-            fields={fields}
-            hiddenFieldIds={hiddenFieldIds}
-            onToggleFieldVisibility={onToggleFieldVisibility}
-            onEditField={(id) => setEditingFieldId(id)}
-            onDeleteField={onDeleteField}
-            onAddNew={handleAddNew}
-            activeFieldId={editingFieldId}
+    <div
+      ref={panelRef}
+      className="flex"
+      style={{
+        position: "fixed",
+        top: pos.top,
+        left: pos.left,
+        zIndex: 9999,
+        animation: "toolbar-popup-in 150ms ease-out",
+      }}
+    >
+      {/* Left: field list (always visible) */}
+      <div className="w-[280px] rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+        <FieldListPanel
+          fields={fields}
+          hiddenFieldIds={hiddenFieldIds}
+          onToggleFieldVisibility={onToggleFieldVisibility}
+          onEditField={(id) => setEditingFieldId(id)}
+          onDeleteField={onDeleteField}
+          onAddNew={handleAddNew}
+          activeFieldId={editingFieldId}
+        />
+      </div>
+
+      {/* Right: field editor (slides out when editing) */}
+      {editingField && (
+        <div className="ml-1 w-[280px] rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+          <FieldEditorPanel
+            field={editingField}
+            onUpdate={(partial) => onUpdateField(editingField.id, partial)}
+            onBack={() => setEditingFieldId(null)}
           />
         </div>
-
-        {/* Right: field editor (slides out when editing) */}
-        {editingField && (
-          <div className="ml-1 w-[280px] rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-            <FieldEditorPanel
-              field={editingField}
-              onUpdate={(partial) => onUpdateField(editingField.id, partial)}
-              onBack={() => setEditingFieldId(null)}
-            />
-          </div>
-        )}
-      </div>
-    </>
+      )}
+    </div>
   );
 
   return (
