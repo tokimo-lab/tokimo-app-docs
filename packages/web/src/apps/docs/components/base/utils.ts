@@ -142,6 +142,20 @@ export function createViewWithType(
       },
     };
   }
+  if (type === "gallery") {
+    const titleField = fields.find((f) => f.type === "text") ?? fields[0];
+    const attachField = fields.find((f) => f.type === "attachment");
+    return {
+      ...base,
+      type,
+      galleryConfig: {
+        coverFieldId: attachField?.id ?? "",
+        titleFieldId: titleField?.id ?? "",
+        cardVisibleFieldIds: fields.map((f) => f.id),
+        cardSize: "medium" as const,
+      },
+    };
+  }
   return { ...base, type };
 }
 

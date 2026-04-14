@@ -9,6 +9,7 @@ import type {
   Field,
   FieldType,
   FilterCondition,
+  GalleryConfig,
   GanttConfig,
   GroupRule,
   RecordData,
@@ -717,6 +718,42 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     [records, updateRecordMut],
   );
 
+  // ── Gallery operations ──────────────────────────────────────────────
+
+  const setGalleryConfig = useCallback(
+    (partial: Partial<GalleryConfig>) => {
+      const viewId = activeViewIdRef.current;
+      const view = viewsRef.current.find((v) => v.id === viewId);
+      if (!view) return;
+      const current = view.galleryConfig ?? {
+        coverFieldId: "",
+        titleFieldId: "",
+        cardVisibleFieldIds: fieldsRef.current.map((f) => f.id),
+        cardSize: "medium" as const,
+      };
+      updateView(viewId, {
+        galleryConfig: { ...current, ...partial },
+      });
+    },
+    [updateView],
+  );
+
+  const toggleGalleryCardField = useCallback(
+    (fieldId: string) => {
+      const viewId = activeViewIdRef.current;
+      const view = viewsRef.current.find((v) => v.id === viewId);
+      if (!view?.galleryConfig) return;
+      const visible = view.galleryConfig.cardVisibleFieldIds;
+      const next = visible.includes(fieldId)
+        ? visible.filter((id) => id !== fieldId)
+        : [...visible, fieldId];
+      updateView(viewId, {
+        galleryConfig: { ...view.galleryConfig, cardVisibleFieldIds: next },
+      });
+    },
+    [updateView],
+  );
+
   return {
     // Compatibility: GridView checks `activeTable` for null guard
     activeTable: metaQuery.data ? { fields, views } : undefined,
@@ -781,6 +818,9 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     // Gantt
     setGanttConfig,
     updateRecordDates,
+    // Gallery
+    setGalleryConfig,
+    toggleGalleryCardField,
   };
 }
 

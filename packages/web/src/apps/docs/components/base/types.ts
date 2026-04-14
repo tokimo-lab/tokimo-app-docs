@@ -124,6 +124,15 @@ export interface GanttConfig {
   timeScale: GanttTimeScale;
 }
 
+export type GalleryCardSize = "small" | "medium" | "large";
+
+export interface GalleryConfig {
+  coverFieldId: string;
+  titleFieldId: string;
+  cardVisibleFieldIds: string[];
+  cardSize: GalleryCardSize;
+}
+
 export interface BaseView {
   id: string;
   name: string;
@@ -138,6 +147,7 @@ export interface BaseView {
   kanbanConfig?: KanbanConfig;
   calendarConfig?: CalendarConfig;
   ganttConfig?: GanttConfig;
+  galleryConfig?: GalleryConfig;
 }
 
 // ── Content (single-table metadata) ─────────────────────────────────────────
