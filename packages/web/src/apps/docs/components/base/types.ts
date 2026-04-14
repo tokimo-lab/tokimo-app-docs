@@ -156,7 +156,7 @@ export interface ColorRule {
   fieldId: string;
   operator: FilterOperator;
   value: CellValue;
-  colorId: string;
+  color: string;
 }
 
 export interface BaseView {

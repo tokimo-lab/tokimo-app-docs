@@ -54,7 +54,7 @@ export function GroupBuilder({
           {groups.map((group) => (
             <div key={group.id} className="flex items-center gap-1">
               <select
-                className="min-w-0 flex-1 rounded border border-border-base bg-surface-secondary px-1.5 py-1 text-xs outline-none"
+                className="min-w-0 flex-1 rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-1.5 py-1 text-xs text-fg-primary outline-none"
                 value={group.fieldId}
                 onChange={(e) =>
                   updateGroup(group.id, { fieldId: e.target.value })
@@ -67,7 +67,7 @@ export function GroupBuilder({
                 ))}
               </select>
               <select
-                className="rounded border border-border-base bg-surface-secondary px-1.5 py-1 text-xs outline-none"
+                className="rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-1.5 py-1 text-xs text-fg-primary outline-none"
                 value={group.direction}
                 onChange={(e) =>
                   updateGroup(group.id, {

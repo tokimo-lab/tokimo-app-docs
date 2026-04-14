@@ -70,7 +70,7 @@ export function KanbanCard({
     <div
       onPointerDown={handlePointerDown}
       className={cn(
-        "cursor-grab rounded-lg border border-border-subtle bg-surface-base p-3 transition-shadow hover:shadow-sm select-none",
+        "cursor-grab rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.06] p-3 transition-shadow hover:shadow-sm select-none",
         isDragging && "opacity-40 cursor-grabbing",
       )}
     >

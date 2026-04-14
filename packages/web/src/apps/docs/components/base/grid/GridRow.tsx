@@ -2,7 +2,6 @@ import { cn } from "@tokiomo/components";
 import { Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { BaseRecord, ColorRule, Field } from "../types";
-import { ROW_COLORS } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
 import { GridCell } from "./GridCell";
 import { CHECKBOX_COL_WIDTH } from "./GridHeader";
@@ -36,8 +35,7 @@ function evaluateColorRules(
         break;
     }
     if (match) {
-      const color = ROW_COLORS.find((c) => c.id === rule.colorId);
-      return color?.bg;
+      return rule.color;
     }
   }
   return undefined;

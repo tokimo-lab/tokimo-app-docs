@@ -1,6 +1,5 @@
-import { cn } from "@tokiomo/components";
+import { ColorPicker } from "@tokiomo/components";
 import { Plus, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import type { ColorRule, Field, FilterOperator } from "../types";
 import { ROW_COLORS as COLORS } from "../types";
 
@@ -16,6 +15,8 @@ const OPERATOR_OPTIONS: { key: FilterOperator; label: string }[] = [
 function generateId() {
   return `cr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
+
+const COLOR_PRESETS = COLORS.map((c) => c.bg);
 
 interface ColorBuilderProps {
   rules: ColorRule[];
@@ -40,7 +41,7 @@ export function ColorBuilder({
         fieldId: firstField.id,
         operator: "isNotEmpty",
         value: null,
-        colorId: COLORS[rules.length % COLORS.length].id,
+        color: COLORS[rules.length % COLORS.length].bg,
       },
     ]);
   };
@@ -57,48 +58,46 @@ export function ColorBuilder({
     op !== "isEmpty" && op !== "isNotEmpty";
 
   return (
-    <>
-      <div className="min-w-[340px] rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl p-3 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-medium text-fg-secondary">填色</span>
-          <button
-            type="button"
-            className="cursor-pointer text-xs text-fg-muted hover:text-fg-secondary"
-            onClick={onClose}
-          >
-            ✕
-          </button>
-        </div>
-
-        {rules.length === 0 && (
-          <div className="mb-2 text-xs text-fg-muted">
-            添加规则，为符合条件的记录着色
-          </div>
-        )}
-
-        <div className="flex flex-col gap-2">
-          {rules.map((rule) => (
-            <ColorRuleRow
-              key={rule.id}
-              rule={rule}
-              fields={fields}
-              needsValue={needsValue(rule.operator)}
-              onUpdate={(patch) => updateRule(rule.id, patch)}
-              onRemove={() => removeRule(rule.id)}
-            />
-          ))}
-        </div>
-
+    <div className="min-w-[340px] rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl p-3 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs font-medium text-fg-secondary">填色</span>
         <button
           type="button"
-          className="mt-2 flex cursor-pointer items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
-          onClick={addRule}
+          className="cursor-pointer text-xs text-fg-muted hover:text-fg-secondary"
+          onClick={onClose}
         >
-          <Plus size={12} />
-          添加着色规则
+          ✕
         </button>
       </div>
-    </>
+
+      {rules.length === 0 && (
+        <div className="mb-2 text-xs text-fg-muted">
+          添加规则，为符合条件的记录着色
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {rules.map((rule) => (
+          <ColorRuleRow
+            key={rule.id}
+            rule={rule}
+            fields={fields}
+            needsValue={needsValue(rule.operator)}
+            onUpdate={(patch) => updateRule(rule.id, patch)}
+            onRemove={() => removeRule(rule.id)}
+          />
+        ))}
+      </div>
+
+      <button
+        type="button"
+        className="mt-2 flex cursor-pointer items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+        onClick={addRule}
+      >
+        <Plus size={12} />
+        添加着色规则
+      </button>
+    </div>
   );
 }
 
@@ -124,14 +123,18 @@ function ColorRuleRow({
   return (
     <div className="flex items-center gap-1.5">
       {/* Color picker */}
-      <ColorDot
-        colorId={rule.colorId}
-        onChange={(colorId) => onUpdate({ colorId })}
+      <ColorPicker
+        value={rule.color}
+        onChange={(hex) => onUpdate({ color: hex })}
+        size="small"
+        placement="bottom-start"
+        showInput={true}
+        presets={COLOR_PRESETS}
       />
 
       {/* Field select */}
       <select
-        className="h-7 max-w-[90px] rounded border border-border-base bg-surface-secondary px-1.5 text-xs outline-none"
+        className="h-7 max-w-[90px] rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-1.5 text-xs text-fg-primary outline-none"
         value={rule.fieldId}
         onChange={(e) => onUpdate({ fieldId: e.target.value, value: null })}
       >
@@ -144,7 +147,7 @@ function ColorRuleRow({
 
       {/* Operator */}
       <select
-        className="h-7 max-w-[80px] rounded border border-border-base bg-surface-secondary px-1.5 text-xs outline-none"
+        className="h-7 max-w-[80px] rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-1.5 text-xs text-fg-primary outline-none"
         value={rule.operator}
         onChange={(e) =>
           onUpdate({ operator: e.target.value as FilterOperator })
@@ -161,7 +164,7 @@ function ColorRuleRow({
       {needsValue &&
         (isSelectField ? (
           <select
-            className="h-7 max-w-[100px] rounded border border-border-base bg-surface-secondary px-1.5 text-xs outline-none"
+            className="h-7 max-w-[100px] rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-1.5 text-xs text-fg-primary outline-none"
             value={(rule.value as string) ?? ""}
             onChange={(e) => onUpdate({ value: e.target.value })}
           >
@@ -174,7 +177,7 @@ function ColorRuleRow({
           </select>
         ) : (
           <input
-            className="h-7 max-w-[100px] rounded border border-border-base bg-surface-secondary px-1.5 text-xs outline-none"
+            className="h-7 max-w-[100px] rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-1.5 text-xs text-fg-primary outline-none"
             placeholder="值"
             value={(rule.value as string) ?? ""}
             onChange={(e) => onUpdate({ value: e.target.value })}
@@ -189,63 +192,6 @@ function ColorRuleRow({
       >
         <Trash2 size={12} />
       </button>
-    </div>
-  );
-}
-
-interface ColorDotProps {
-  colorId: string;
-  onChange: (colorId: string) => void;
-}
-
-function ColorDot({ colorId, onChange }: ColorDotProps) {
-  const current = COLORS.find((c) => c.id === colorId) ?? COLORS[0];
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handle = (e: PointerEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
-    };
-    document.addEventListener("pointerdown", handle);
-    return () => document.removeEventListener("pointerdown", handle);
-  }, [open]);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-border-subtle"
-        style={{ backgroundColor: current.bg }}
-        onClick={() => setOpen((v) => !v)}
-        title="选择颜色"
-      />
-      {open && (
-        <>
-          <div className="absolute top-full left-0 z-[60] mt-1 grid grid-cols-4 gap-1 rounded border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl p-2 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            {COLORS.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                className={cn(
-                  "h-5 w-5 cursor-pointer rounded-full border",
-                  colorId === c.id
-                    ? "border-blue-500 ring-1 ring-blue-500"
-                    : "border-border-subtle",
-                )}
-                style={{ backgroundColor: c.bg }}
-                onClick={() => {
-                  onChange(c.id);
-                  setOpen(false);
-                }}
-                title={c.label}
-              />
-            ))}
-          </div>
-        </>
-      )}
     </div>
   );
 }

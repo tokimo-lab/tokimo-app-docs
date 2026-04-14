@@ -76,7 +76,7 @@ export function FilterBuilder({
           <div className="mb-2 flex items-center gap-2">
             <span className="text-xs text-fg-muted">满足</span>
             <select
-              className="rounded border border-border-base bg-surface-secondary px-1.5 py-0.5 text-xs outline-none"
+              className="rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-1.5 py-0.5 text-xs text-fg-primary outline-none"
               value={conjunction}
               onChange={(e) =>
                 onChange(conditions, e.target.value as "and" | "or")
@@ -92,7 +92,7 @@ export function FilterBuilder({
           {conditions.map((cond) => (
             <div key={cond.id} className="flex items-center gap-1">
               <select
-                className="min-w-0 flex-1 rounded border border-border-base bg-surface-secondary px-1.5 py-1 text-xs outline-none"
+                className="min-w-0 flex-1 rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-1.5 py-1 text-xs text-fg-primary outline-none"
                 value={cond.fieldId}
                 onChange={(e) =>
                   updateCondition(cond.id, { fieldId: e.target.value })
@@ -105,7 +105,7 @@ export function FilterBuilder({
                 ))}
               </select>
               <select
-                className="rounded border border-border-base bg-surface-secondary px-1.5 py-1 text-xs outline-none"
+                className="rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-1.5 py-1 text-xs text-fg-primary outline-none"
                 value={cond.operator}
                 onChange={(e) =>
                   updateCondition(cond.id, {
@@ -122,7 +122,7 @@ export function FilterBuilder({
               {cond.operator !== "isEmpty" &&
                 cond.operator !== "isNotEmpty" && (
                   <input
-                    className="w-20 rounded border border-border-base bg-surface-secondary px-1.5 py-1 text-xs outline-none"
+                    className="w-20 rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-1.5 py-1 text-xs text-fg-primary outline-none"
                     value={String(cond.value ?? "")}
                     onChange={(e) =>
                       updateCondition(cond.id, { value: e.target.value })
