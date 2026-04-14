@@ -54,12 +54,12 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
   useEffect(() => {
     if (!activePanel) return;
     const handler = (e: PointerEvent) => {
-      if (
-        toolbarRef.current &&
-        !toolbarRef.current.contains(e.target as Node)
-      ) {
-        setActivePanel(null);
-      }
+      const target = e.target as Node;
+      // Check if click is inside the toolbar
+      if (toolbarRef.current?.contains(target)) return;
+      // Check if click is inside a portaled toolbar panel
+      if ((target as HTMLElement).closest?.("[data-toolbar-panel]")) return;
+      setActivePanel(null);
     };
     document.addEventListener("pointerdown", handler);
     return () => document.removeEventListener("pointerdown", handler);

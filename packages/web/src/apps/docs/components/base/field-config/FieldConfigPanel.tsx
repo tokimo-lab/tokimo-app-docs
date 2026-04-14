@@ -114,17 +114,6 @@ export function FieldConfigPanel({
     setPos({ top: rect.bottom + 4, left: rect.left });
   }, [open, triggerRef]);
 
-  // Close on click outside panel (without blocking toolbar buttons)
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (panelRef.current?.contains(e.target as Node)) return;
-      onClose();
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open, onClose]);
-
   // Reset editing state when panel closes
   useEffect(() => {
     if (!open) setEditingFieldId(null);
@@ -149,6 +138,7 @@ export function FieldConfigPanel({
   const panelContent = (
     <div
       ref={panelRef}
+      data-toolbar-panel
       className="flex"
       style={{
         position: "fixed",
