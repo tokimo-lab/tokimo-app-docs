@@ -83,6 +83,7 @@ export function createView(name: string, fields: Field[]): BaseView {
     hiddenFieldIds: [],
     fieldOrder: fields.map((f) => f.id),
     rowHeight: "medium",
+    colorRules: [],
     frozenFieldCount: 0,
   };
 }

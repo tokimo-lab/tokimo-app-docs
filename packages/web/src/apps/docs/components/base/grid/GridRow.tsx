@@ -1,10 +1,47 @@
 import { cn } from "@tokiomo/components";
 import { Trash2 } from "lucide-react";
-import { useState } from "react";
-import type { BaseRecord, Field } from "../types";
+import { useMemo, useState } from "react";
+import type { BaseRecord, ColorRule, Field } from "../types";
+import { ROW_COLORS } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
 import { GridCell } from "./GridCell";
 import { CHECKBOX_COL_WIDTH } from "./GridHeader";
+
+function evaluateColorRules(
+  rules: ColorRule[],
+  record: BaseRecord,
+): string | undefined {
+  for (const rule of rules) {
+    const val = record.data[rule.fieldId];
+    const strVal = val == null ? "" : String(val);
+    let match = false;
+    switch (rule.operator) {
+      case "eq":
+        match = strVal === String(rule.value ?? "");
+        break;
+      case "neq":
+        match = strVal !== String(rule.value ?? "");
+        break;
+      case "contains":
+        match = strVal.includes(String(rule.value ?? ""));
+        break;
+      case "notContains":
+        match = !strVal.includes(String(rule.value ?? ""));
+        break;
+      case "isEmpty":
+        match = strVal === "";
+        break;
+      case "isNotEmpty":
+        match = strVal !== "";
+        break;
+    }
+    if (match) {
+      const color = ROW_COLORS.find((c) => c.id === rule.colorId);
+      return color?.bg;
+    }
+  }
+  return undefined;
+}
 
 interface GridRowProps {
   record: BaseRecord;
@@ -13,6 +50,7 @@ interface GridRowProps {
   state: BaseEditorState;
   rowNumberWidth: number;
   rowHeightPx: number;
+  colorRules?: ColorRule[];
 }
 
 export function GridRow({
@@ -22,8 +60,13 @@ export function GridRow({
   state,
   rowNumberWidth,
   rowHeightPx,
+  colorRules,
 }: GridRowProps) {
   const [hovering, setHovering] = useState(false);
+  const rowBg = useMemo(
+    () => evaluateColorRules(colorRules ?? [], record),
+    [colorRules, record],
+  );
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: table row
@@ -32,7 +75,7 @@ export function GridRow({
         "flex border-b border-border-subtle transition-colors",
         hovering && "bg-fill-tertiary/50",
       )}
-      style={{ height: rowHeightPx }}
+      style={{ height: rowHeightPx, backgroundColor: rowBg }}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
     >

@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { RowHeight } from "../types";
+import type { ColorRule, RowHeight } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
 import type { RecordGroup } from "../utils";
 import { ADD_COL_WIDTH, CHECKBOX_COL_WIDTH, GridHeader } from "./GridHeader";
@@ -68,6 +68,7 @@ export function GridView({ state }: GridViewProps) {
                   group={group}
                   state={state}
                   rowHeightPx={rowHeightPx}
+                  colorRules={activeView?.colorRules}
                 />
               ))
             : (groupedRecords[0]?.records ?? []).map((rec, idx) => (
@@ -79,6 +80,7 @@ export function GridView({ state }: GridViewProps) {
                   state={state}
                   rowNumberWidth={ROW_NUMBER_WIDTH}
                   rowHeightPx={rowHeightPx}
+                  colorRules={activeView?.colorRules}
                 />
               ))}
 
@@ -113,10 +115,12 @@ function GroupSection({
   group,
   state,
   rowHeightPx,
+  colorRules,
 }: {
   group: RecordGroup;
   state: BaseEditorState;
   rowHeightPx: number;
+  colorRules?: ColorRule[];
 }) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -141,6 +145,7 @@ function GroupSection({
             state={state}
             rowNumberWidth={ROW_NUMBER_WIDTH}
             rowHeightPx={rowHeightPx}
+            colorRules={colorRules}
           />
         ))}
     </div>

@@ -6,6 +6,7 @@ import type {
   BaseView,
   CalendarViewMode,
   CellValue,
+  ColorRule,
   Field,
   FieldType,
   FilterCondition,
@@ -244,7 +245,7 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
 
   // ── Field helpers ─────────────────────────────────────────────────────
   const addField = useCallback(
-    (name: string, type: FieldType) => {
+    (name: string, type: FieldType): string => {
       const field = createField(name, type);
       commitMeta({
         fields: [...fieldsRef.current, field],
@@ -253,6 +254,7 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
           fieldOrder: [...v.fieldOrder, field.id],
         })),
       });
+      return field.id;
     },
     [commitMeta],
   );
@@ -611,6 +613,14 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     [updateView],
   );
 
+  const setColorRules = useCallback(
+    (rules: ColorRule[]) => {
+      const viewId = activeViewIdRef.current;
+      updateView(viewId, { colorRules: rules });
+    },
+    [updateView],
+  );
+
   const setFrozenFieldCount = useCallback(
     (count: number) => {
       const viewId = activeViewIdRef.current;
@@ -875,6 +885,7 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
 
     // View settings
     setRowHeight,
+    setColorRules,
     setFrozenFieldCount,
 
     // Select options

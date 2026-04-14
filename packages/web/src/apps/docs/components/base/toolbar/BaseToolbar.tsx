@@ -15,6 +15,7 @@ import { useState } from "react";
 import { FieldConfigPanel } from "../FieldConfigPanel";
 import type { RowHeight } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
+import { ColorBuilder } from "./ColorBuilder";
 import { FilterBuilder } from "./FilterBuilder";
 import { GroupBuilder } from "./GroupBuilder";
 import { SortBuilder } from "./SortBuilder";
@@ -37,6 +38,7 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
   const [showGroup, setShowGroup] = useState(false);
   const [showFieldConfig, setShowFieldConfig] = useState(false);
   const [showRowHeight, setShowRowHeight] = useState(false);
+  const [showColor, setShowColor] = useState(false);
 
   if (!activeView || !activeTable) return null;
 
@@ -222,14 +224,31 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
           )}
         </div>
 
-        {/* Fill color — placeholder */}
-        <button
-          type="button"
-          className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary"
-        >
-          <Paintbrush size={14} />
-          填色
-        </button>
+        {/* Fill color */}
+        <div className="relative">
+          <button
+            type="button"
+            className={cn(
+              "flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary",
+              (activeView.colorRules?.length ?? 0) > 0 &&
+                "text-blue-600 dark:text-blue-400",
+            )}
+            onClick={() => setShowColor((v) => !v)}
+          >
+            <Paintbrush size={14} />
+            填色
+          </button>
+          {showColor && (
+            <div className="absolute top-full left-0 z-50 mt-1">
+              <ColorBuilder
+                rules={activeView.colorRules ?? []}
+                fields={activeTable.fields}
+                onChange={state.setColorRules}
+                onClose={() => setShowColor(false)}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex-1" />

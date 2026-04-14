@@ -1,6 +1,6 @@
 import { cn } from "@tokiomo/components";
 import { Plus } from "lucide-react";
-import { forwardRef } from "react";
+import { forwardRef, useCallback } from "react";
 import type { Field } from "../types";
 import { isWeekend, toDateStr } from "../utils";
 import { GanttTaskBar } from "./GanttTaskBar";
@@ -162,6 +162,7 @@ export const GanttTimeline = forwardRef<HTMLDivElement, GanttTimelineProps>(
                   barColor={barColor}
                   rowHeight={rowHeight}
                   colWidth={colWidth}
+                  days={days}
                   onSetDates={onSetDates}
                 />
               );
@@ -183,6 +184,7 @@ interface GanttRowLaneProps {
   barColor: string;
   rowHeight: number;
   colWidth: number;
+  days: Date[];
   onSetDates: (recordId: string, start: string, end: string) => void;
 }
 
@@ -196,6 +198,7 @@ function GanttRowLane({
   barColor,
   rowHeight,
   colWidth,
+  days,
   onSetDates,
 }: GanttRowLaneProps) {
   const handleAddDates = () => {
@@ -204,6 +207,21 @@ function GanttRowLane({
     end.setDate(end.getDate() + 3);
     onSetDates(recordId, toDateStr(today), toDateStr(end));
   };
+
+  const handleClickEmpty = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      // Don't handle if clicked the inner span
+      if ((e.target as HTMLElement).closest("span")) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      const localX = e.clientX - rect.left;
+      const dayIndex = Math.floor(localX / colWidth);
+      if (dayIndex >= 0 && dayIndex < days.length) {
+        const dateStr = toDateStr(days[dayIndex]);
+        onSetDates(recordId, dateStr, dateStr);
+      }
+    },
+    [colWidth, days, recordId, onSetDates],
+  );
 
   return (
     <div
@@ -219,19 +237,25 @@ function GanttRowLane({
           barColor={barColor}
           rowHeight={rowHeight}
           colWidth={colWidth}
+          recordId={recordId}
+          onSetDates={onSetDates}
         />
       ) : (
-        <div className="absolute inset-0 hidden items-center justify-center group-hover/lane:flex">
-          <button
-            type="button"
-            className="flex cursor-pointer items-center gap-1 rounded border border-dashed border-border-subtle px-2 py-0.5 text-[11px] text-fg-muted hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400"
-            onClick={handleAddDates}
-            title="设置时间"
-          >
-            <Plus size={12} />
-            设置时间
-          </button>
-        </div>
+        <button
+          type="button"
+          className="absolute inset-0 cursor-pointer"
+          onClick={handleClickEmpty}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") handleAddDates();
+          }}
+        >
+          <div className="absolute inset-0 hidden items-center justify-center group-hover/lane:flex">
+            <span className="flex items-center gap-1 rounded border border-dashed border-border-subtle px-2 py-0.5 text-[11px] text-fg-muted hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400">
+              <Plus size={12} />
+              设置时间
+            </span>
+          </div>
+        </button>
       )}
     </div>
   );

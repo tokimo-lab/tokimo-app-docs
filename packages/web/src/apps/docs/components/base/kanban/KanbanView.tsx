@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import type { CellValue } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
 import { KANBAN_CAN_ADD_GROUP_TYPES, KANBAN_GROUPABLE_TYPES } from "../utils";
 import { KanbanColumn } from "./KanbanColumn";
@@ -6,6 +7,14 @@ import { NewGroupInput } from "./NewGroupInput";
 
 interface KanbanViewProps {
   state: BaseEditorState;
+}
+
+/** Resolves the field value to write when dropping into a target group. */
+function resolveGroupValue(groupId: string): CellValue {
+  if (groupId === "__uncategorized") return null;
+  if (groupId === "__true") return true;
+  if (groupId === "__false") return false;
+  return groupId;
 }
 
 export function KanbanView({ state }: KanbanViewProps) {
@@ -24,6 +33,58 @@ export function KanbanView({ state }: KanbanViewProps) {
   const canAddGroup = groupField
     ? KANBAN_CAN_ADD_GROUP_TYPES.includes(groupField.type)
     : false;
+
+  // ── Drag-and-drop state ──────────────────────────────────────────────
+  const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null);
+  const dragRecordIdRef = useRef<string | null>(null);
+  const dragSourceGroupRef = useRef<string | null>(null);
+
+  const handleDragStart = useCallback(
+    (recordId: string, sourceGroupId: string) => {
+      dragRecordIdRef.current = recordId;
+      dragSourceGroupRef.current = sourceGroupId;
+    },
+    [],
+  );
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent<HTMLDivElement>, groupId: string) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      setDragOverGroupId(groupId);
+    },
+    [],
+  );
+
+  const handleDragLeave = useCallback(
+    (e: React.DragEvent<HTMLDivElement>, groupId: string) => {
+      // Only clear if actually leaving the column (not entering a child)
+      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+        setDragOverGroupId((prev) => (prev === groupId ? null : prev));
+      }
+    },
+    [],
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>, targetGroupId: string) => {
+      e.preventDefault();
+      setDragOverGroupId(null);
+      const recordId = dragRecordIdRef.current;
+      const sourceGroupId = dragSourceGroupRef.current;
+      if (!recordId || !groupField || sourceGroupId === targetGroupId) return;
+
+      const newValue = resolveGroupValue(targetGroupId);
+      state.updateCell(recordId, groupField.id, newValue);
+    },
+    [groupField, state],
+  );
+
+  const handleDragEnd = useCallback(() => {
+    dragRecordIdRef.current = null;
+    dragSourceGroupRef.current = null;
+    setDragOverGroupId(null);
+  }, []);
 
   if (!hasGroupableFields) {
     return (
@@ -46,7 +107,17 @@ export function KanbanView({ state }: KanbanViewProps) {
   return (
     <div className="flex h-full gap-3 overflow-x-auto p-4">
       {kanbanGroups.map((group) => (
-        <KanbanColumn key={group.id} group={group} state={state} />
+        <KanbanColumn
+          key={group.id}
+          group={group}
+          state={state}
+          isDragOver={dragOverGroupId === group.id}
+          onCardDragStart={handleDragStart}
+          onColumnDragOver={handleDragOver}
+          onColumnDragLeave={handleDragLeave}
+          onColumnDrop={handleDrop}
+          onCardDragEnd={handleDragEnd}
+        />
       ))}
       {canAddGroup && (
         <NewGroupInput

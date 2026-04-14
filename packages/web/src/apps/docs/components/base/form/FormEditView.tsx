@@ -1,13 +1,40 @@
 import { cn } from "@tokiomo/components";
-import { GripVertical, Minus, Plus } from "lucide-react";
-import { useMemo } from "react";
-import type { Field } from "../types";
+import {
+  Calendar,
+  CheckSquare,
+  GripVertical,
+  Hash,
+  Link,
+  List,
+  ListChecks,
+  Mail,
+  Minus,
+  Phone,
+  Plus,
+  Star,
+  Type,
+} from "lucide-react";
+import { useCallback, useMemo } from "react";
+import type { Field, FieldType } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
 import { FIELD_TYPE_LABELS } from "../utils";
 
 interface FormEditViewProps {
   state: BaseEditorState;
 }
+
+const ADD_FIELD_TYPES: { type: FieldType; icon: React.ReactNode }[] = [
+  { type: "text", icon: <Type size={16} /> },
+  { type: "number", icon: <Hash size={16} /> },
+  { type: "select", icon: <List size={16} /> },
+  { type: "multiSelect", icon: <ListChecks size={16} /> },
+  { type: "date", icon: <Calendar size={16} /> },
+  { type: "checkbox", icon: <CheckSquare size={16} /> },
+  { type: "rating", icon: <Star size={16} /> },
+  { type: "url", icon: <Link size={16} /> },
+  { type: "email", icon: <Mail size={16} /> },
+  { type: "phone", icon: <Phone size={16} /> },
+];
 
 export function FormEditView({ state }: FormEditViewProps) {
   const { activeView, fields } = state;
@@ -41,6 +68,18 @@ export function FormEditView({ state }: FormEditViewProps) {
   const requiredSet = useMemo(
     () => new Set(config?.requiredFieldIds ?? []),
     [config?.requiredFieldIds],
+  );
+
+  const handleAddField = useCallback(
+    (type: FieldType) => {
+      const label = FIELD_TYPE_LABELS[type];
+      const fieldId = state.addField(label, type);
+      // Automatically make the new field visible in the form
+      state.setFormConfig({
+        visibleFieldIds: [...(config?.visibleFieldIds ?? []), fieldId],
+      });
+    },
+    [state, config?.visibleFieldIds],
   );
 
   if (!config) return null;
@@ -106,6 +145,26 @@ export function FormEditView({ state }: FormEditViewProps) {
             所有字段已添加
           </div>
         )}
+
+        {/* Add new field section */}
+        <div className="mt-4 border-t border-border-subtle pt-3">
+          <span className="mb-2 block text-xs font-medium text-fg-secondary">
+            新增题目
+          </span>
+          <div className="grid grid-cols-2 gap-1.5">
+            {ADD_FIELD_TYPES.map(({ type, icon }) => (
+              <button
+                key={type}
+                type="button"
+                className="flex cursor-pointer items-center gap-1.5 rounded px-2 py-1.5 text-xs text-fg-default hover:bg-fill-tertiary"
+                onClick={() => handleAddField(type)}
+              >
+                <span className="text-fg-muted">{icon}</span>
+                {FIELD_TYPE_LABELS[type]}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Right: Form preview */}

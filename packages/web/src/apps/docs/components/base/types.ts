@@ -140,6 +140,25 @@ export interface FormConfig {
   requiredFieldIds: string[];
 }
 
+export const ROW_COLORS = [
+  { id: "blue", label: "蓝色", bg: "#dbeafe", dark: "#1e3a5f" },
+  { id: "green", label: "绿色", bg: "#dcfce7", dark: "#14532d" },
+  { id: "yellow", label: "黄色", bg: "#fef9c3", dark: "#713f12" },
+  { id: "orange", label: "橙色", bg: "#ffedd5", dark: "#7c2d12" },
+  { id: "red", label: "红色", bg: "#fee2e2", dark: "#7f1d1d" },
+  { id: "purple", label: "紫色", bg: "#ede9fe", dark: "#4c1d95" },
+  { id: "pink", label: "粉色", bg: "#fce7f3", dark: "#831843" },
+  { id: "gray", label: "灰色", bg: "#f3f4f6", dark: "#374151" },
+] as const;
+
+export interface ColorRule {
+  id: string;
+  fieldId: string;
+  operator: FilterOperator;
+  value: CellValue;
+  colorId: string;
+}
+
 export interface BaseView {
   id: string;
   name: string;
@@ -150,6 +169,7 @@ export interface BaseView {
   hiddenFieldIds: string[];
   fieldOrder: string[];
   rowHeight: RowHeight;
+  colorRules: ColorRule[];
   frozenFieldCount: number;
   kanbanConfig?: KanbanConfig;
   calendarConfig?: CalendarConfig;
