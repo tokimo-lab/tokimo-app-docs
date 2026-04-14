@@ -3,7 +3,6 @@ import {
   AlignJustify,
   ArrowUpDown,
   ChevronDown,
-  Eye,
   Filter,
   Group,
   Paintbrush,
@@ -79,15 +78,6 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
             onAddField={state.addField}
           />
         </div>
-
-        {/* View config — placeholder */}
-        <button
-          type="button"
-          className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary"
-        >
-          <Eye size={14} />
-          视图配置
-        </button>
 
         {/* Filter */}
         <div className="relative">

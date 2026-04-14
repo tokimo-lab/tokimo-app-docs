@@ -113,7 +113,7 @@ export function FormFillView({ state }: FormFillViewProps) {
       </div>
 
       {/* Form card */}
-      <div className="mx-auto -mt-12 mb-8 max-w-xl rounded-lg bg-surface-base p-6 shadow-lg">
+      <div className="relative z-10 mx-auto -mt-12 mb-8 max-w-xl rounded-lg bg-surface-base p-6 shadow-lg">
         <h1 className="mb-1 text-2xl font-bold">{config.title || "表单"}</h1>
         {config.description && (
           <p className="mb-6 text-sm text-fg-muted">{config.description}</p>

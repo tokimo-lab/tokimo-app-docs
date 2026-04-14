@@ -207,7 +207,7 @@ function ViewTab({
           type="button"
           className={cn(
             "cursor-pointer rounded p-0.5 text-fg-muted hover:bg-fill-tertiary",
-            isActive || menuOpen ? "block" : "hidden group-hover:block",
+            isActive || menuOpen ? "block" : "hidden",
           )}
           onClick={(e) => {
             e.stopPropagation();

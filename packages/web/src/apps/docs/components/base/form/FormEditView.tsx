@@ -143,7 +143,7 @@ export function FormEditView({ state }: FormEditViewProps) {
         </div>
 
         {/* Form card */}
-        <div className="mx-auto -mt-12 mb-8 max-w-xl rounded-lg bg-surface-base p-6 shadow-lg">
+        <div className="relative z-10 mx-auto -mt-12 mb-8 max-w-xl rounded-lg bg-surface-base p-6 shadow-lg">
           {/* Editable title */}
           <input
             type="text"

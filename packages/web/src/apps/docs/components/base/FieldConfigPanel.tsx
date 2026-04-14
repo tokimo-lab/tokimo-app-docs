@@ -22,7 +22,8 @@ import {
   UserCheck,
   UserPen,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { FieldType } from "./types";
 import { FIELD_TYPE_LABELS } from "./utils";
 
@@ -30,6 +31,8 @@ interface FieldConfigPanelProps {
   open: boolean;
   onClose: () => void;
   onAddField: (name: string, type: FieldType) => void;
+  /** ref to the trigger button — panel positions relative to it */
+  triggerRef?: React.RefObject<HTMLElement | null>;
 }
 
 const FIELD_TYPES: FieldType[] = [
@@ -82,10 +85,24 @@ export function FieldConfigPanel({
   open,
   onClose,
   onAddField,
+  triggerRef,
 }: FieldConfigPanelProps) {
   const [name, setName] = useState("");
   const [type, setType] = useState<FieldType>("text");
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open || !triggerRef?.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const panelWidth = 256;
+    // Align panel's right edge with button's right edge
+    let left = rect.right - panelWidth;
+    // Ensure panel doesn't go off-screen left
+    if (left < 8) left = 8;
+    setPos({ top: rect.bottom + 4, left });
+  }, [open, triggerRef]);
 
   if (!open) return null;
 
@@ -103,12 +120,27 @@ export function FieldConfigPanel({
     onClose();
   };
 
-  return (
+  const panelContent = (
     <>
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
-      <div className="fixed inset-0 z-40" onClick={handleClose} />
-      <div className="absolute top-full right-0 z-50 mt-1 w-64 rounded-lg border border-border-base bg-surface-base shadow-lg">
+      <div
+        className={triggerRef ? "fixed inset-0" : "fixed inset-0 z-40"}
+        style={triggerRef ? { zIndex: 9998 } : undefined}
+        onClick={handleClose}
+      />
+      <div
+        ref={panelRef}
+        className={cn(
+          "w-64 rounded-lg border border-border-base bg-surface-base shadow-lg",
+          triggerRef ? "fixed" : "absolute top-full left-0 z-50 mt-1",
+        )}
+        style={
+          triggerRef
+            ? { top: pos.top, left: pos.left, zIndex: 9999 }
+            : undefined
+        }
+      >
         {showTypePicker ? (
           <div className="p-3">
             <button
@@ -196,4 +228,10 @@ export function FieldConfigPanel({
       </div>
     </>
   );
+
+  // Use portal when triggerRef is provided (escapes overflow-hidden containers)
+  if (triggerRef) {
+    return createPortal(panelContent, document.body);
+  }
+  return panelContent;
 }

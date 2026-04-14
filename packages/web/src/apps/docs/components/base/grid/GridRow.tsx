@@ -71,7 +71,7 @@ export function GridRow({
       {fields.map((field) => (
         <div
           key={field.id}
-          className="shrink-0 border-r border-border-subtle"
+          className="shrink-0 border-r border-border-subtle text-xs"
           style={{ width: field.width, minWidth: field.width }}
         >
           <GridCell

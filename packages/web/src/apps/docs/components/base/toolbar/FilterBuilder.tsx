@@ -59,93 +59,99 @@ export function FilterBuilder({
   );
 
   return (
-    <div className="w-80 rounded-lg border border-border-base bg-surface-base p-3 shadow-lg">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-medium text-fg-secondary">筛选</span>
+    <>
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="relative z-50 w-80 rounded-lg border border-border-base bg-surface-base p-3 shadow-lg">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-xs font-medium text-fg-secondary">筛选</span>
+          <button
+            type="button"
+            className="cursor-pointer text-fg-muted hover:text-fg-primary"
+            onClick={onClose}
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {conditions.length > 1 && (
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-xs text-fg-muted">满足</span>
+            <select
+              className="rounded border border-border-base bg-surface-secondary px-1.5 py-0.5 text-xs outline-none"
+              value={conjunction}
+              onChange={(e) =>
+                onChange(conditions, e.target.value as "and" | "or")
+              }
+            >
+              <option value="and">所有条件</option>
+              <option value="or">任一条件</option>
+            </select>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          {conditions.map((cond) => (
+            <div key={cond.id} className="flex items-center gap-1">
+              <select
+                className="min-w-0 flex-1 rounded border border-border-base bg-surface-secondary px-1.5 py-1 text-xs outline-none"
+                value={cond.fieldId}
+                onChange={(e) =>
+                  updateCondition(cond.id, { fieldId: e.target.value })
+                }
+              >
+                {fields.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="rounded border border-border-base bg-surface-secondary px-1.5 py-1 text-xs outline-none"
+                value={cond.operator}
+                onChange={(e) =>
+                  updateCondition(cond.id, {
+                    operator: e.target.value as FilterOperator,
+                  })
+                }
+              >
+                {OPERATORS.map((op) => (
+                  <option key={op.value} value={op.value}>
+                    {op.label}
+                  </option>
+                ))}
+              </select>
+              {cond.operator !== "isEmpty" &&
+                cond.operator !== "isNotEmpty" && (
+                  <input
+                    className="w-20 rounded border border-border-base bg-surface-secondary px-1.5 py-1 text-xs outline-none"
+                    value={String(cond.value ?? "")}
+                    onChange={(e) =>
+                      updateCondition(cond.id, { value: e.target.value })
+                    }
+                  />
+                )}
+              <button
+                type="button"
+                className="cursor-pointer text-fg-muted hover:text-red-500"
+                onClick={() => removeCondition(cond.id)}
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+
         <button
           type="button"
-          className="cursor-pointer text-fg-muted hover:text-fg-primary"
-          onClick={onClose}
+          className="mt-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 cursor-pointer"
+          onClick={addCondition}
         >
-          <X size={14} />
+          <Plus size={12} />
+          添加条件
         </button>
       </div>
-
-      {conditions.length > 1 && (
-        <div className="mb-2 flex items-center gap-2">
-          <span className="text-xs text-fg-muted">满足</span>
-          <select
-            className="rounded border border-border-base bg-surface-secondary px-1.5 py-0.5 text-xs outline-none"
-            value={conjunction}
-            onChange={(e) =>
-              onChange(conditions, e.target.value as "and" | "or")
-            }
-          >
-            <option value="and">所有条件</option>
-            <option value="or">任一条件</option>
-          </select>
-        </div>
-      )}
-
-      <div className="space-y-1.5">
-        {conditions.map((cond) => (
-          <div key={cond.id} className="flex items-center gap-1">
-            <select
-              className="min-w-0 flex-1 rounded border border-border-base bg-surface-secondary px-1.5 py-1 text-xs outline-none"
-              value={cond.fieldId}
-              onChange={(e) =>
-                updateCondition(cond.id, { fieldId: e.target.value })
-              }
-            >
-              {fields.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-            <select
-              className="rounded border border-border-base bg-surface-secondary px-1.5 py-1 text-xs outline-none"
-              value={cond.operator}
-              onChange={(e) =>
-                updateCondition(cond.id, {
-                  operator: e.target.value as FilterOperator,
-                })
-              }
-            >
-              {OPERATORS.map((op) => (
-                <option key={op.value} value={op.value}>
-                  {op.label}
-                </option>
-              ))}
-            </select>
-            {cond.operator !== "isEmpty" && cond.operator !== "isNotEmpty" && (
-              <input
-                className="w-20 rounded border border-border-base bg-surface-secondary px-1.5 py-1 text-xs outline-none"
-                value={String(cond.value ?? "")}
-                onChange={(e) =>
-                  updateCondition(cond.id, { value: e.target.value })
-                }
-              />
-            )}
-            <button
-              type="button"
-              className="cursor-pointer text-fg-muted hover:text-red-500"
-              onClick={() => removeCondition(cond.id)}
-            >
-              <Trash2 size={12} />
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <button
-        type="button"
-        className="mt-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 cursor-pointer"
-        onClick={addCondition}
-      >
-        <Plus size={12} />
-        添加条件
-      </button>
-    </div>
+    </>
   );
 }

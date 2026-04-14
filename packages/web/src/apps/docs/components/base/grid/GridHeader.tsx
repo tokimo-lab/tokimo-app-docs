@@ -95,6 +95,7 @@ export function GridHeader({
   rowHeightPx,
 }: GridHeaderProps) {
   const [showAddField, setShowAddField] = useState(false);
+  const addFieldBtnRef = useRef<HTMLButtonElement>(null);
   const headerHeight = Math.max(36, rowHeightPx ?? 36);
 
   return (
@@ -146,6 +147,7 @@ export function GridHeader({
         style={{ width: ADD_COL_WIDTH }}
       >
         <button
+          ref={addFieldBtnRef}
           type="button"
           className="flex h-full w-full cursor-pointer items-center justify-center text-fg-muted hover:bg-fill-tertiary"
           onClick={() => setShowAddField((v) => !v)}
@@ -157,6 +159,7 @@ export function GridHeader({
           open={showAddField}
           onClose={() => setShowAddField(false)}
           onAddField={onAddField}
+          triggerRef={addFieldBtnRef}
         />
       </div>
 
