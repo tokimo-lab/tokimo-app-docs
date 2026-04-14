@@ -22,10 +22,10 @@ export function GroupBySelector({
 
   return (
     <>
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
-      <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="relative z-50 w-52 rounded-lg border border-border-base bg-surface-base py-1 shadow-lg">
+      <div
+        className="relative z-50 w-52 rounded-lg border border-border-base bg-surface-base py-1 shadow-lg"
+        style={{ animation: "toolbar-popup-in 150ms ease-out" }}
+      >
         <div className="px-3 py-1.5 text-xs font-medium text-fg-muted">
           选择分组依据
         </div>

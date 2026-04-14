@@ -1,6 +1,6 @@
 import { cn } from "@tokiomo/components";
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ColorRule, Field, FilterOperator } from "../types";
 import { ROW_COLORS as COLORS } from "../types";
 
@@ -201,9 +201,20 @@ interface ColorDotProps {
 function ColorDot({ colorId, onChange }: ColorDotProps) {
   const current = COLORS.find((c) => c.id === colorId) ?? COLORS[0];
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handle = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("pointerdown", handle);
+    return () => document.removeEventListener("pointerdown", handle);
+  }, [open]);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={ref}>
       <button
         type="button"
         className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-border-subtle"
@@ -213,9 +224,6 @@ function ColorDot({ colorId, onChange }: ColorDotProps) {
       />
       {open && (
         <>
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
-          <div className="fixed inset-0 z-50" onClick={() => setOpen(false)} />
           <div className="absolute top-full left-0 z-[60] mt-1 grid grid-cols-4 gap-1 rounded border border-border-base bg-surface-base p-2 shadow-lg">
             {COLORS.map((c) => (
               <button

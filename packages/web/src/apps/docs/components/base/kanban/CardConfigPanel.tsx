@@ -24,10 +24,10 @@ export function CardConfigPanel({ state, onClose }: CardConfigPanelProps) {
 
   return (
     <>
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
-      <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="relative z-50 w-72 rounded-lg border border-border-base bg-surface-base shadow-lg">
+      <div
+        className="relative z-50 w-72 rounded-lg border border-border-base bg-surface-base shadow-lg"
+        style={{ animation: "toolbar-popup-in 150ms ease-out" }}
+      >
         <div className="p-3">
           <div className="mb-3 text-xs font-medium text-fg-secondary">
             卡片配置
