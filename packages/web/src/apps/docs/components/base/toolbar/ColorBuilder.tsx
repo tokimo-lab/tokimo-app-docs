@@ -58,7 +58,7 @@ export function ColorBuilder({
     op !== "isEmpty" && op !== "isNotEmpty";
 
   return (
-    <div className="min-w-[340px] rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl p-3 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+    <div className="min-w-[340px] p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-medium text-fg-secondary">填色</span>
         <button

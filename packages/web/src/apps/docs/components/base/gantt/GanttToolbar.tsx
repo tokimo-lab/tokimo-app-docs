@@ -1,12 +1,5 @@
 import { cn } from "@tokiomo/components";
-import {
-  ArrowUpDown,
-  Filter,
-  GanttChart,
-  Group,
-  Plus,
-  Settings2,
-} from "lucide-react";
+import { ArrowUpDown, Filter, GanttChart, Group, Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FieldConfigPanel } from "../field-config";
 import { FilterBuilder } from "../toolbar/FilterBuilder";
@@ -69,33 +62,23 @@ export function GanttToolbar({ state }: GanttToolbarProps) {
         <div className="mx-1 h-4 w-px bg-border-subtle" />
 
         {/* Field config */}
-        <div className="relative">
-          <button
-            type="button"
-            className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary"
-            onClick={() => togglePanel("fieldConfig")}
-          >
-            <Settings2 size={14} />
-            字段配置
-          </button>
-          <FieldConfigPanel
-            open={activePanel === "fieldConfig"}
-            onClose={closePanel}
-            fields={state.fields}
-            onAddField={state.addField}
-            onUpdateField={state.updateField}
-            onDeleteField={state.deleteField}
-            hiddenFieldIds={activeView.hiddenFieldIds}
-            onToggleFieldVisibility={(fieldId) => {
-              const hidden = activeView.hiddenFieldIds;
-              state.updateView(activeView.id, {
-                hiddenFieldIds: hidden.includes(fieldId)
-                  ? hidden.filter((id) => id !== fieldId)
-                  : [...hidden, fieldId],
-              });
-            }}
-          />
-        </div>
+        <FieldConfigPanel
+          open={activePanel === "fieldConfig"}
+          onOpenChange={(open) => setActivePanel(open ? "fieldConfig" : null)}
+          fields={state.fields}
+          onAddField={state.addField}
+          onUpdateField={state.updateField}
+          onDeleteField={state.deleteField}
+          hiddenFieldIds={activeView.hiddenFieldIds}
+          onToggleFieldVisibility={(fieldId) => {
+            const hidden = activeView.hiddenFieldIds;
+            state.updateView(activeView.id, {
+              hiddenFieldIds: hidden.includes(fieldId)
+                ? hidden.filter((id) => id !== fieldId)
+                : [...hidden, fieldId],
+            });
+          }}
+        />
 
         {/* Gantt config */}
         <div className="relative">

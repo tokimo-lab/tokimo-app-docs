@@ -1,4 +1,17 @@
 import {
+  autoUpdate,
+  FloatingPortal,
+  flip,
+  offset,
+  shift,
+  useDismiss,
+  useFloating,
+  useInteractions,
+  useRole,
+  useTransitionStyles,
+} from "@floating-ui/react";
+import { FloatingVibrancy } from "@tokiomo/components";
+import {
   Calendar,
   CheckSquare,
   Clock,
@@ -13,14 +26,14 @@ import {
   Paperclip,
   Percent,
   Phone,
+  Settings2,
   Star,
   Type,
   User,
   UserCheck,
   UserPen,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import type { Field, FieldType } from "../types";
 import { FieldEditorPanel } from "./FieldEditorPanel";
 import { FieldListPanel } from "./FieldListPanel";
@@ -77,54 +90,54 @@ export const FIELD_TYPE_ICON: Record<FieldType, React.ReactNode> = {
 
 interface FieldConfigPanelProps {
   open: boolean;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
   fields: Field[];
   onAddField: (name: string, type: FieldType) => string;
   onUpdateField: (fieldId: string, partial: Partial<Field>) => void;
   onDeleteField: (fieldId: string) => void;
   hiddenFieldIds: string[];
   onToggleFieldVisibility: (fieldId: string) => void;
-  triggerRef?: React.RefObject<HTMLElement | null>;
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
 
 export function FieldConfigPanel({
   open,
-  onClose,
+  onOpenChange,
   fields,
   onAddField,
   onUpdateField,
   onDeleteField,
   hiddenFieldIds,
   onToggleFieldVisibility,
-  triggerRef,
 }: FieldConfigPanelProps) {
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-  const anchorRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
 
-  // Position near trigger (or anchor placeholder)
-  useEffect(() => {
-    if (!open) return;
-    const el = triggerRef?.current ?? anchorRef.current?.parentElement;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setPos({ top: rect.bottom + 4, left: rect.left });
-  }, [open, triggerRef]);
+  const { refs, floatingStyles, context } = useFloating({
+    open,
+    onOpenChange,
+    placement: "bottom-start",
+    middleware: [offset(4), flip(), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+  });
+
+  const dismiss = useDismiss(context);
+  const role = useRole(context);
+
+  const { getReferenceProps, getFloatingProps } = useInteractions([
+    dismiss,
+    role,
+  ]);
+
+  const { isMounted, styles: transitionStyles } = useTransitionStyles(context, {
+    duration: { open: 200, close: 150 },
+    initial: { opacity: 0, transform: "scale(0.95) translateY(-4px)" },
+    open: { opacity: 1, transform: "scale(1) translateY(0)" },
+    close: { opacity: 0, transform: "scale(0.95) translateY(-4px)" },
+  });
 
   // Reset editing state when panel closes
-  useEffect(() => {
-    if (!open) setEditingFieldId(null);
-  }, [open]);
-
-  // Invisible anchor for position calculation when no triggerRef
-  const anchor = !triggerRef ? (
-    <div ref={anchorRef} className="absolute top-0 left-0 w-0 h-0" />
-  ) : null;
-
-  if (!open) return anchor;
+  if (!open && editingFieldId) setEditingFieldId(null);
 
   const editingField = editingFieldId
     ? (fields.find((f) => f.id === editingFieldId) ?? null)
@@ -135,49 +148,84 @@ export function FieldConfigPanel({
     setEditingFieldId(newId);
   };
 
-  const panelContent = (
-    <div
-      ref={panelRef}
-      data-toolbar-panel
-      className="flex"
-      style={{
-        position: "fixed",
-        top: pos.top,
-        left: pos.left,
-        zIndex: 9999,
-        animation: "toolbar-popup-in 150ms ease-out",
-      }}
+  const trigger = (
+    <button
+      type="button"
+      ref={refs.setReference}
+      className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary"
+      onClick={() => onOpenChange(!open)}
+      {...getReferenceProps()}
     >
-      {/* Left: field list (always visible) */}
-      <div className="w-[280px] rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-        <FieldListPanel
-          fields={fields}
-          hiddenFieldIds={hiddenFieldIds}
-          onToggleFieldVisibility={onToggleFieldVisibility}
-          onEditField={(id) => setEditingFieldId(id)}
-          onDeleteField={onDeleteField}
-          onAddNew={handleAddNew}
-          activeFieldId={editingFieldId}
-        />
-      </div>
-
-      {/* Right: field editor (slides out when editing) */}
-      {editingField && (
-        <div className="ml-1 w-[280px] rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-          <FieldEditorPanel
-            field={editingField}
-            onUpdate={(partial) => onUpdateField(editingField.id, partial)}
-            onBack={() => setEditingFieldId(null)}
-          />
-        </div>
-      )}
-    </div>
+      <Settings2 size={14} />
+      字段配置
+    </button>
   );
 
   return (
     <>
-      {anchor}
-      {createPortal(panelContent, document.body)}
+      {trigger}
+      {isMounted && (
+        <FloatingPortal>
+          <div
+            ref={refs.setFloating}
+            style={floatingStyles}
+            className="z-[9999]"
+            {...getFloatingProps()}
+          >
+            <div style={transitionStyles} className="flex">
+              {/* Left: field list */}
+              <div
+                className="w-[280px] overflow-hidden rounded-lg border border-black/[0.06] dark:border-white/[0.08] shadow-lg"
+                style={{
+                  backdropFilter: "blur(var(--window-blur, 24px))",
+                  WebkitBackdropFilter: "blur(var(--window-blur, 24px))",
+                  borderRadius: "var(--window-radius, 10px)",
+                }}
+              >
+                <div className="relative bg-[rgba(255,255,255,calc(var(--window-opacity,85)/100))] dark:bg-[rgba(15,15,25,calc(var(--window-opacity,85)/100))]">
+                  <FloatingVibrancy />
+                  <div className="relative">
+                    <FieldListPanel
+                      fields={fields}
+                      hiddenFieldIds={hiddenFieldIds}
+                      onToggleFieldVisibility={onToggleFieldVisibility}
+                      onEditField={(id) => setEditingFieldId(id)}
+                      onDeleteField={onDeleteField}
+                      onAddNew={handleAddNew}
+                      activeFieldId={editingFieldId}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: field editor (slides out when editing) */}
+              {editingField && (
+                <div
+                  className="ml-1 w-[280px] overflow-hidden rounded-lg border border-black/[0.06] dark:border-white/[0.08] shadow-lg"
+                  style={{
+                    backdropFilter: "blur(var(--window-blur, 24px))",
+                    WebkitBackdropFilter: "blur(var(--window-blur, 24px))",
+                    borderRadius: "var(--window-radius, 10px)",
+                  }}
+                >
+                  <div className="relative bg-[rgba(255,255,255,calc(var(--window-opacity,85)/100))] dark:bg-[rgba(15,15,25,calc(var(--window-opacity,85)/100))]">
+                    <FloatingVibrancy />
+                    <div className="relative">
+                      <FieldEditorPanel
+                        field={editingField}
+                        onUpdate={(partial) =>
+                          onUpdateField(editingField.id, partial)
+                        }
+                        onBack={() => setEditingFieldId(null)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </FloatingPortal>
+      )}
     </>
   );
 }

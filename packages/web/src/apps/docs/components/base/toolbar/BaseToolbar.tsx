@@ -1,4 +1,5 @@
-import { cn } from "@tokiomo/components";
+import type { DropdownMenuItem } from "@tokiomo/components";
+import { cn, Dropdown } from "@tokiomo/components";
 import {
   AlignJustify,
   ArrowUpDown,
@@ -10,7 +11,7 @@ import {
   Settings2,
   Undo2,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { FieldConfigPanel } from "../field-config";
 import type { RowHeight } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
@@ -42,28 +43,13 @@ interface BaseToolbarProps {
 export function BaseToolbar({ state }: BaseToolbarProps) {
   const { activeView, activeTable } = state;
   const [activePanel, setActivePanel] = useState<PanelType>(null);
-  const toolbarRef = useRef<HTMLDivElement>(null);
 
-  const togglePanel = useCallback((panel: PanelType) => {
-    setActivePanel((prev) => (prev === panel ? null : panel));
-  }, []);
-
+  const openPanel = useCallback(
+    (panel: PanelType) => (open: boolean) =>
+      setActivePanel(open ? panel : null),
+    [],
+  );
   const closePanel = useCallback(() => setActivePanel(null), []);
-
-  // Close popup when clicking outside the toolbar
-  useEffect(() => {
-    if (!activePanel) return;
-    const handler = (e: PointerEvent) => {
-      const target = e.target as Node;
-      // Check if click is inside the toolbar
-      if (toolbarRef.current?.contains(target)) return;
-      // Check if click is inside a portaled toolbar panel
-      if ((target as HTMLElement).closest?.("[data-toolbar-panel]")) return;
-      setActivePanel(null);
-    };
-    document.addEventListener("pointerdown", handler);
-    return () => document.removeEventListener("pointerdown", handler);
-  }, [activePanel]);
 
   if (!activeView || !activeTable) return null;
 
@@ -72,11 +58,21 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
   const groupCount = activeView.groups.length;
   const currentRowHeight = activeView.rowHeight ?? "medium";
 
+  const rowHeightItems: DropdownMenuItem[] = ROW_HEIGHT_OPTIONS.map((opt) => ({
+    key: opt.key,
+    label: (
+      <span className="flex w-full items-center text-xs">
+        {opt.label}
+        {currentRowHeight === opt.key && (
+          <span className="ml-auto text-blue-600 dark:text-blue-400">✓</span>
+        )}
+      </span>
+    ),
+    onClick: () => state.setRowHeight(opt.key),
+  }));
+
   return (
-    <div
-      ref={toolbarRef}
-      className="flex items-center gap-1 border-b border-border-subtle px-3 py-1"
-    >
+    <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
       {/* Left group */}
       <div className="flex items-center gap-1">
         {/* Add record */}
@@ -92,36 +88,40 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
         <div className="mx-1 h-4 w-px bg-border-subtle" />
 
         {/* Field config */}
-        <div className="relative">
-          <button
-            type="button"
-            className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary"
-            onClick={() => togglePanel("fieldConfig")}
-          >
-            <Settings2 size={14} />
-            字段配置
-          </button>
-          <FieldConfigPanel
-            open={activePanel === "fieldConfig"}
-            onClose={closePanel}
-            fields={state.fields}
-            onAddField={state.addField}
-            onUpdateField={state.updateField}
-            onDeleteField={state.deleteField}
-            hiddenFieldIds={activeView.hiddenFieldIds}
-            onToggleFieldVisibility={(fieldId) => {
-              const hidden = activeView.hiddenFieldIds;
-              state.updateView(activeView.id, {
-                hiddenFieldIds: hidden.includes(fieldId)
-                  ? hidden.filter((id) => id !== fieldId)
-                  : [...hidden, fieldId],
-              });
-            }}
-          />
-        </div>
+        <FieldConfigPanel
+          open={activePanel === "fieldConfig"}
+          onOpenChange={openPanel("fieldConfig")}
+          fields={state.fields}
+          onAddField={state.addField}
+          onUpdateField={state.updateField}
+          onDeleteField={state.deleteField}
+          hiddenFieldIds={activeView.hiddenFieldIds}
+          onToggleFieldVisibility={(fieldId) => {
+            const hidden = activeView.hiddenFieldIds;
+            state.updateView(activeView.id, {
+              hiddenFieldIds: hidden.includes(fieldId)
+                ? hidden.filter((id) => id !== fieldId)
+                : [...hidden, fieldId],
+            });
+          }}
+        />
 
         {/* Filter */}
-        <div className="relative">
+        <Dropdown
+          trigger={["click"]}
+          open={activePanel === "filter"}
+          onOpenChange={openPanel("filter")}
+          placement="bottomLeft"
+          dropdownRender={() => (
+            <FilterBuilder
+              conditions={activeView.filters.conditions}
+              conjunction={activeView.filters.conjunction}
+              fields={activeTable.fields}
+              onChange={state.setFilters}
+              onClose={closePanel}
+            />
+          )}
+        >
           <button
             type="button"
             className={cn(
@@ -130,7 +130,6 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
                 ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                 : "text-fg-muted hover:bg-fill-tertiary",
             )}
-            onClick={() => togglePanel("filter")}
           >
             <Filter size={14} />
             筛选
@@ -140,21 +139,23 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
               </span>
             )}
           </button>
-          {activePanel === "filter" && (
-            <ToolbarPopup onClose={closePanel}>
-              <FilterBuilder
-                conditions={activeView.filters.conditions}
-                conjunction={activeView.filters.conjunction}
-                fields={activeTable.fields}
-                onChange={state.setFilters}
-                onClose={closePanel}
-              />
-            </ToolbarPopup>
-          )}
-        </div>
+        </Dropdown>
 
         {/* Group */}
-        <div className="relative">
+        <Dropdown
+          trigger={["click"]}
+          open={activePanel === "group"}
+          onOpenChange={openPanel("group")}
+          placement="bottomLeft"
+          dropdownRender={() => (
+            <GroupBuilder
+              groups={activeView.groups}
+              fields={activeTable.fields}
+              onChange={state.setGroups}
+              onClose={closePanel}
+            />
+          )}
+        >
           <button
             type="button"
             className={cn(
@@ -163,7 +164,6 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
                 ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                 : "text-fg-muted hover:bg-fill-tertiary",
             )}
-            onClick={() => togglePanel("group")}
           >
             <Group size={14} />
             分组
@@ -173,20 +173,23 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
               </span>
             )}
           </button>
-          {activePanel === "group" && (
-            <ToolbarPopup onClose={closePanel}>
-              <GroupBuilder
-                groups={activeView.groups}
-                fields={activeTable.fields}
-                onChange={state.setGroups}
-                onClose={closePanel}
-              />
-            </ToolbarPopup>
-          )}
-        </div>
+        </Dropdown>
 
         {/* Sort */}
-        <div className="relative">
+        <Dropdown
+          trigger={["click"]}
+          open={activePanel === "sort"}
+          onOpenChange={openPanel("sort")}
+          placement="bottomLeft"
+          dropdownRender={() => (
+            <SortBuilder
+              sorts={activeView.sorts}
+              fields={activeTable.fields}
+              onChange={state.setSorts}
+              onClose={closePanel}
+            />
+          )}
+        >
           <button
             type="button"
             className={cn(
@@ -195,7 +198,6 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
                 ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                 : "text-fg-muted hover:bg-fill-tertiary",
             )}
-            onClick={() => togglePanel("sort")}
           >
             <ArrowUpDown size={14} />
             排序
@@ -205,60 +207,40 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
               </span>
             )}
           </button>
-          {activePanel === "sort" && (
-            <ToolbarPopup onClose={closePanel}>
-              <SortBuilder
-                sorts={activeView.sorts}
-                fields={activeTable.fields}
-                onChange={state.setSorts}
-                onClose={closePanel}
-              />
-            </ToolbarPopup>
-          )}
-        </div>
+        </Dropdown>
 
         {/* Row height */}
-        <div className="relative">
+        <Dropdown
+          trigger={["click"]}
+          open={activePanel === "rowHeight"}
+          onOpenChange={openPanel("rowHeight")}
+          placement="bottomLeft"
+          menu={{ items: rowHeightItems }}
+        >
           <button
             type="button"
             className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary"
-            onClick={() => togglePanel("rowHeight")}
           >
             <AlignJustify size={14} />
             行高
           </button>
-          {activePanel === "rowHeight" && (
-            <ToolbarPopup onClose={closePanel}>
-              <div className="min-w-[100px] rounded border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl py-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-                {ROW_HEIGHT_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    className={cn(
-                      "flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary",
-                      currentRowHeight === opt.key &&
-                        "text-blue-600 dark:text-blue-400",
-                    )}
-                    onClick={() => {
-                      state.setRowHeight(opt.key);
-                      closePanel();
-                    }}
-                  >
-                    {opt.label}
-                    {currentRowHeight === opt.key && (
-                      <span className="ml-auto text-blue-600 dark:text-blue-400">
-                        ✓
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </ToolbarPopup>
-          )}
-        </div>
+        </Dropdown>
 
         {/* Fill color */}
-        <div className="relative">
+        <Dropdown
+          trigger={["click"]}
+          open={activePanel === "color"}
+          onOpenChange={openPanel("color")}
+          placement="bottomLeft"
+          dropdownRender={() => (
+            <ColorBuilder
+              rules={activeView.colorRules ?? []}
+              fields={activeTable.fields}
+              onChange={state.setColorRules}
+              onClose={closePanel}
+            />
+          )}
+        >
           <button
             type="button"
             className={cn(
@@ -266,22 +248,11 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
               (activeView.colorRules?.length ?? 0) > 0 &&
                 "text-blue-600 dark:text-blue-400",
             )}
-            onClick={() => togglePanel("color")}
           >
             <Paintbrush size={14} />
             填色
           </button>
-          {activePanel === "color" && (
-            <ToolbarPopup onClose={closePanel}>
-              <ColorBuilder
-                rules={activeView.colorRules ?? []}
-                fields={activeTable.fields}
-                onChange={state.setColorRules}
-                onClose={closePanel}
-              />
-            </ToolbarPopup>
-          )}
-        </div>
+        </Dropdown>
       </div>
 
       <div className="flex-1" />
@@ -303,26 +274,6 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
           <Redo2 size={14} />
         </button>
       </div>
-    </div>
-  );
-}
-
-// ── Popup wrapper with backdrop + animation ─────────────────────────────────
-
-function ToolbarPopup({
-  children,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="absolute top-full left-0 z-50 mt-1"
-      style={{
-        animation: "toolbar-popup-in 150ms ease-out",
-      }}
-    >
-      {children}
     </div>
   );
 }
