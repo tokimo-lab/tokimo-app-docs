@@ -156,6 +156,19 @@ export function createViewWithType(
       },
     };
   }
+  if (type === "form") {
+    const titleField = fields.find((f) => f.type === "text");
+    return {
+      ...base,
+      type,
+      formConfig: {
+        title: "表单",
+        description: "",
+        visibleFieldIds: fields.map((f) => f.id),
+        requiredFieldIds: titleField ? [titleField.id] : [],
+      },
+    };
+  }
   return { ...base, type };
 }
 

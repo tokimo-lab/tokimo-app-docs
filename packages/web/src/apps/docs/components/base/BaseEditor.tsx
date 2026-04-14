@@ -1,6 +1,8 @@
 import { Loader2 } from "lucide-react";
 import { CalendarToolbar } from "./calendar/CalendarToolbar";
 import { CalendarView } from "./calendar/CalendarView";
+import { FormToolbar } from "./form/FormToolbar";
+import { FormView } from "./form/FormView";
 import { GalleryToolbar } from "./gallery/GalleryToolbar";
 import { GalleryView } from "./gallery/GalleryView";
 import { GanttToolbar } from "./gantt/GanttToolbar";
@@ -40,6 +42,8 @@ export function BaseEditor({ nodeId }: BaseEditorProps) {
         <GanttToolbar state={state} />
       ) : viewType === "gallery" ? (
         <GalleryToolbar state={state} />
+      ) : viewType === "form" ? (
+        <FormToolbar state={state} />
       ) : (
         <BaseToolbar state={state} />
       )}
@@ -52,6 +56,8 @@ export function BaseEditor({ nodeId }: BaseEditorProps) {
           <GanttView state={state} />
         ) : viewType === "gallery" ? (
           <GalleryView state={state} />
+        ) : viewType === "form" ? (
+          <FormView state={state} />
         ) : (
           <GridView state={state} />
         )}

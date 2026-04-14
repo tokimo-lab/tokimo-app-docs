@@ -133,6 +133,13 @@ export interface GalleryConfig {
   cardSize: GalleryCardSize;
 }
 
+export interface FormConfig {
+  title: string;
+  description: string;
+  visibleFieldIds: string[];
+  requiredFieldIds: string[];
+}
+
 export interface BaseView {
   id: string;
   name: string;
@@ -148,6 +155,7 @@ export interface BaseView {
   calendarConfig?: CalendarConfig;
   ganttConfig?: GanttConfig;
   galleryConfig?: GalleryConfig;
+  formConfig?: FormConfig;
 }
 
 // ── Content (single-table metadata) ─────────────────────────────────────────

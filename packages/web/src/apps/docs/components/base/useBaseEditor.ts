@@ -9,6 +9,7 @@ import type {
   Field,
   FieldType,
   FilterCondition,
+  FormConfig,
   GalleryConfig,
   GanttConfig,
   GroupRule,
@@ -754,6 +755,84 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     [updateView],
   );
 
+  // ── Form operations ─────────────────────────────────────────────────
+
+  const setFormConfig = useCallback(
+    (partial: Partial<FormConfig>) => {
+      const viewId = activeViewIdRef.current;
+      const view = viewsRef.current.find((v) => v.id === viewId);
+      if (!view) return;
+      const current = view.formConfig ?? {
+        title: "表单",
+        description: "",
+        visibleFieldIds: fieldsRef.current.map((f) => f.id),
+        requiredFieldIds: [],
+      };
+      updateView(viewId, {
+        formConfig: { ...current, ...partial },
+      });
+    },
+    [updateView],
+  );
+
+  const toggleFormField = useCallback(
+    (fieldId: string) => {
+      const viewId = activeViewIdRef.current;
+      const view = viewsRef.current.find((v) => v.id === viewId);
+      if (!view?.formConfig) return;
+      const visible = view.formConfig.visibleFieldIds;
+      const next = visible.includes(fieldId)
+        ? visible.filter((id) => id !== fieldId)
+        : [...visible, fieldId];
+      const required = view.formConfig.requiredFieldIds.filter((id) =>
+        next.includes(id),
+      );
+      updateView(viewId, {
+        formConfig: {
+          ...view.formConfig,
+          visibleFieldIds: next,
+          requiredFieldIds: required,
+        },
+      });
+    },
+    [updateView],
+  );
+
+  const toggleFormRequired = useCallback(
+    (fieldId: string) => {
+      const viewId = activeViewIdRef.current;
+      const view = viewsRef.current.find((v) => v.id === viewId);
+      if (!view?.formConfig) return;
+      const required = view.formConfig.requiredFieldIds;
+      const next = required.includes(fieldId)
+        ? required.filter((id) => id !== fieldId)
+        : [...required, fieldId];
+      updateView(viewId, {
+        formConfig: { ...view.formConfig, requiredFieldIds: next },
+      });
+    },
+    [updateView],
+  );
+
+  const reorderFormFields = useCallback(
+    (fieldIds: string[]) => {
+      const viewId = activeViewIdRef.current;
+      const view = viewsRef.current.find((v) => v.id === viewId);
+      if (!view?.formConfig) return;
+      updateView(viewId, {
+        formConfig: { ...view.formConfig, visibleFieldIds: fieldIds },
+      });
+    },
+    [updateView],
+  );
+
+  const submitForm = useCallback(
+    (data: RecordData) => {
+      createRecordMut.mutate({ nodeId, data });
+    },
+    [nodeId, createRecordMut],
+  );
+
   return {
     // Compatibility: GridView checks `activeTable` for null guard
     activeTable: metaQuery.data ? { fields, views } : undefined,
@@ -821,6 +900,12 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     // Gallery
     setGalleryConfig,
     toggleGalleryCardField,
+    // Form
+    setFormConfig,
+    toggleFormField,
+    toggleFormRequired,
+    reorderFormFields,
+    submitForm,
   };
 }
 
