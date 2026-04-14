@@ -114,7 +114,7 @@ export function FieldEditorPanel({
         {/* Field name */}
         <div className="mb-1 text-xs text-fg-muted">字段名称</div>
         <input
-          className="mb-3 w-full rounded border border-border-base bg-surface-secondary px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-500"
+          className="mb-3 w-full rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-500"
           value={field.name}
           onChange={(e) => onUpdate({ name: e.target.value })}
         />
@@ -123,7 +123,7 @@ export function FieldEditorPanel({
         <div className="mb-1 text-xs text-fg-muted">字段类型</div>
         <button
           type="button"
-          className="mb-3 flex w-full cursor-pointer items-center gap-2 rounded border border-border-base bg-surface-secondary px-2 py-1.5 text-sm hover:bg-fill-tertiary"
+          className="mb-3 flex w-full cursor-pointer items-center gap-2 rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-2 py-1.5 text-sm hover:bg-fill-quaternary dark:hover:bg-white/[0.12]"
           onClick={() => setShowTypePicker(true)}
         >
           <span className="shrink-0 text-fg-muted">
@@ -267,7 +267,7 @@ function ConfigDropdown({
     <div className="relative">
       <button
         type="button"
-        className="flex w-full cursor-pointer items-center justify-between rounded border border-border-base bg-surface-secondary px-2 py-1.5 text-xs hover:bg-fill-tertiary"
+        className="flex w-full cursor-pointer items-center justify-between rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-2 py-1.5 text-xs hover:bg-fill-quaternary dark:hover:bg-white/[0.12]"
         onClick={() => setOpen((v) => !v)}
       >
         <span>{selectedLabel}</span>

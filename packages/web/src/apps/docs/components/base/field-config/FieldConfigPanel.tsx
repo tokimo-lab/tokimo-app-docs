@@ -19,7 +19,7 @@ import {
   UserCheck,
   UserPen,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Field, FieldType } from "../types";
 import { FieldEditorPanel } from "./FieldEditorPanel";
@@ -102,15 +102,15 @@ export function FieldConfigPanel({
 }: FieldConfigPanelProps) {
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
+  const anchorRef = useRef<HTMLDivElement>(null);
 
-  // Position near trigger
+  // Position near trigger (or anchor placeholder)
   useEffect(() => {
-    if (!open || !triggerRef?.current) return;
-    const rect = triggerRef.current.getBoundingClientRect();
-    const panelWidth = 300;
-    let left = rect.right - panelWidth;
-    if (left < 8) left = 8;
-    setPos({ top: rect.bottom + 4, left });
+    if (!open) return;
+    const el = triggerRef?.current ?? anchorRef.current?.parentElement;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setPos({ top: rect.bottom + 4, left: rect.left });
   }, [open, triggerRef]);
 
   // Reset editing state when panel closes
@@ -118,7 +118,12 @@ export function FieldConfigPanel({
     if (!open) setEditingFieldId(null);
   }, [open]);
 
-  if (!open) return null;
+  // Invisible anchor for position calculation when no triggerRef
+  const anchor = !triggerRef ? (
+    <div ref={anchorRef} className="absolute top-0 left-0 w-0 h-0" />
+  ) : null;
+
+  if (!open) return anchor;
 
   const editingField = editingFieldId
     ? (fields.find((f) => f.id === editingFieldId) ?? null)
@@ -131,37 +136,23 @@ export function FieldConfigPanel({
 
   const panelContent = (
     <>
-      {/* Backdrop only needed for portal mode (outside toolbar DOM) */}
-      {triggerRef && (
-        <>
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
-          <div
-            className="fixed inset-0"
-            style={{ zIndex: 9998 }}
-            onClick={onClose}
-          />
-        </>
-      )}
+      {/* Dimming overlay — always render when open, click outside to close */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
+      <div
+        className="fixed inset-0 bg-black/10 dark:bg-black/30"
+        style={{ zIndex: 9998 }}
+        onClick={onClose}
+      />
       <div
         className="flex"
-        style={
-          triggerRef
-            ? {
-                position: "fixed",
-                top: pos.top,
-                left: pos.left,
-                zIndex: 9999,
-                animation: "toolbar-popup-in 150ms ease-out",
-              }
-            : {
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                marginTop: 4,
-                animation: "toolbar-popup-in 150ms ease-out",
-              }
-        }
+        style={{
+          position: "fixed",
+          top: pos.top,
+          left: pos.left,
+          zIndex: 9999,
+          animation: "toolbar-popup-in 150ms ease-out",
+        }}
       >
         {/* Left: field list (always visible) */}
         <div className="w-[280px] rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
@@ -190,8 +181,10 @@ export function FieldConfigPanel({
     </>
   );
 
-  if (triggerRef) {
-    return createPortal(panelContent, document.body);
-  }
-  return panelContent;
+  return (
+    <>
+      {anchor}
+      {createPortal(panelContent, document.body)}
+    </>
+  );
 }
