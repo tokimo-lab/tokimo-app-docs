@@ -1,5 +1,5 @@
 import { cn } from "@tokiomo/components";
-import { ArrowUpDown, Calendar, ChevronDown, Filter, Plus } from "lucide-react";
+import { ArrowUpDown, Calendar, Filter, Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FilterBuilder } from "../toolbar/FilterBuilder";
 import { SortBuilder } from "../toolbar/SortBuilder";
@@ -57,7 +57,6 @@ export function CalendarToolbar({ state }: CalendarToolbarProps) {
         >
           <Plus size={14} />
           添加记录
-          <ChevronDown size={12} />
         </button>
 
         <div className="mx-1 h-4 w-px bg-border-subtle" />

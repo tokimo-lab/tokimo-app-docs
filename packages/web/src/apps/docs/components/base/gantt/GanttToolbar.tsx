@@ -1,7 +1,6 @@
 import { cn } from "@tokiomo/components";
 import {
   ArrowUpDown,
-  ChevronDown,
   Filter,
   GanttChart,
   Group,
@@ -65,7 +64,6 @@ export function GanttToolbar({ state }: GanttToolbarProps) {
         >
           <Plus size={14} />
           添加记录
-          <ChevronDown size={12} />
         </button>
 
         <div className="mx-1 h-4 w-px bg-border-subtle" />
