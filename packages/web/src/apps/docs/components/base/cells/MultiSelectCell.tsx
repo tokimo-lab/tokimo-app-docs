@@ -143,7 +143,7 @@ export function MultiSelectCell({
           placeholder="搜索或创建..."
         />
       </div>
-      <div className="absolute top-full left-0 z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded border border-border-base bg-surface-base shadow-lg">
+      <div className="absolute top-full left-0 z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         {filtered.map((opt) => (
           <button
             key={opt.id}

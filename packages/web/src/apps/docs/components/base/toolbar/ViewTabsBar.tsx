@@ -89,7 +89,7 @@ export function ViewTabsBar({ state }: ViewTabsBarProps) {
               onClick={() => setShowNewViewMenu(false)}
             />
             <div
-              className="absolute top-full left-0 z-50 mt-1 min-w-[150px] rounded border border-border-base bg-surface-base py-1 shadow-lg"
+              className="absolute top-full left-0 z-50 mt-1 min-w-[150px] rounded border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl py-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
               style={{ animation: "toolbar-popup-in 150ms ease-out" }}
             >
               {VIEW_TYPE_ORDER.map((vt) => (
@@ -233,7 +233,7 @@ function ViewTab({
               onClick={() => setMenuOpen(false)}
             />
             <div
-              className="fixed z-[10000] min-w-[120px] rounded border border-border-base bg-surface-base py-1 shadow-lg"
+              className="fixed z-[10000] min-w-[120px] rounded border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl py-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
               style={{
                 top: menuPos.top,
                 left: menuPos.left,

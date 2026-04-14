@@ -58,7 +58,7 @@ export function ColorBuilder({
 
   return (
     <>
-      <div className="min-w-[340px] rounded-lg border border-border-base bg-surface-base p-3 shadow-lg">
+      <div className="min-w-[340px] rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl p-3 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-xs font-medium text-fg-secondary">填色</span>
           <button
@@ -224,7 +224,7 @@ function ColorDot({ colorId, onChange }: ColorDotProps) {
       />
       {open && (
         <>
-          <div className="absolute top-full left-0 z-[60] mt-1 grid grid-cols-4 gap-1 rounded border border-border-base bg-surface-base p-2 shadow-lg">
+          <div className="absolute top-full left-0 z-[60] mt-1 grid grid-cols-4 gap-1 rounded border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl p-2 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             {COLORS.map((c) => (
               <button
                 key={c.id}

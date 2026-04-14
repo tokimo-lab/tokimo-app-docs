@@ -38,7 +38,7 @@ export function CalendarRecordPopover({
   return createPortal(
     <div
       ref={panelRef}
-      className="fixed z-[9999] w-80 rounded-lg border border-border-subtle bg-surface-base shadow-xl"
+      className="fixed z-[9999] w-80 rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
       style={{ top: clampedTop, left: clampedLeft }}
     >
       {/* Header */}

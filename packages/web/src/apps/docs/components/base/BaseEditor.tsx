@@ -32,7 +32,7 @@ export function BaseEditor({ nodeId }: BaseEditorProps) {
   const viewType = state.activeView?.type;
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-surface-base">
+    <div className="flex h-full flex-col overflow-hidden bg-white/60 dark:bg-[rgba(20,20,35,0.70)] backdrop-blur-2xl">
       <ViewTabsBar state={state} />
       {viewType === "kanban" ? (
         <KanbanToolbar state={state} />

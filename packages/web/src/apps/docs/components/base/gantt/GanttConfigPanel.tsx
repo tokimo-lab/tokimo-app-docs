@@ -29,7 +29,7 @@ export function GanttConfigPanel({ state, onClose }: GanttConfigPanelProps) {
   return (
     <div
       ref={panelRef}
-      className="w-64 rounded-lg border border-border-subtle bg-surface-base shadow-lg"
+      className="w-64 rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
     >
       <div className="border-b border-border-subtle px-3 py-2 text-xs font-medium text-fg-primary">
         甘特图配置

@@ -229,7 +229,7 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
           </button>
           {activePanel === "rowHeight" && (
             <ToolbarPopup onClose={closePanel}>
-              <div className="min-w-[100px] rounded border border-border-base bg-surface-base py-1 shadow-lg">
+              <div className="min-w-[100px] rounded border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl py-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
                 {ROW_HEIGHT_OPTIONS.map((opt) => (
                   <button
                     key={opt.key}

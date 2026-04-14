@@ -83,7 +83,7 @@ export function KanbanColumn({
                   className="fixed inset-0 z-40"
                   onClick={() => setShowMenu(false)}
                 />
-                <div className="absolute top-full right-0 z-50 mt-1 w-36 rounded border border-border-base bg-surface-base py-1 shadow-lg">
+                <div className="absolute top-full right-0 z-50 mt-1 w-36 rounded border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl py-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
                   <button
                     type="button"
                     className="w-full cursor-pointer px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"

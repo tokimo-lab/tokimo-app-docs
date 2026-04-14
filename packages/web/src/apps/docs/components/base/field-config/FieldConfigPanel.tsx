@@ -164,7 +164,7 @@ export function FieldConfigPanel({
         }
       >
         {/* Left: field list (always visible) */}
-        <div className="w-[280px] rounded-lg border border-border-base bg-surface-base shadow-lg">
+        <div className="w-[280px] rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
           <FieldListPanel
             fields={fields}
             hiddenFieldIds={hiddenFieldIds}
@@ -178,7 +178,7 @@ export function FieldConfigPanel({
 
         {/* Right: field editor (slides out when editing) */}
         {editingField && (
-          <div className="ml-1 w-[280px] rounded-lg border border-border-base bg-surface-base shadow-lg">
+          <div className="ml-1 w-[280px] rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
             <FieldEditorPanel
               field={editingField}
               onUpdate={(partial) => onUpdateField(editingField.id, partial)}

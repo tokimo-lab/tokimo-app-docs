@@ -70,7 +70,7 @@ export function WorkflowCell({
       <div className="flex h-full items-center px-2">
         {selected?.label ?? "选择状态"}
       </div>
-      <div className="absolute top-full left-0 z-50 mt-0.5 w-full rounded border border-border-base bg-surface-base shadow-lg">
+      <div className="absolute top-full left-0 z-50 mt-0.5 w-full rounded border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         {options.map((opt) => (
           <button
             key={opt.id}

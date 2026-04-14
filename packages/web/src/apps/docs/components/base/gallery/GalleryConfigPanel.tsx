@@ -41,7 +41,7 @@ export function GalleryConfigPanel({
   return (
     <>
       <div
-        className="relative z-50 w-72 rounded-lg border border-border-base bg-surface-base shadow-lg"
+        className="relative z-50 w-72 rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
         style={{ animation: "toolbar-popup-in 150ms ease-out" }}
       >
         <div className="p-3">
