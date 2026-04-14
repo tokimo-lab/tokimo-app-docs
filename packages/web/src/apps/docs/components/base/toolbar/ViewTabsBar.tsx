@@ -10,7 +10,8 @@ import {
   Plus,
   Table,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { BaseView, ViewType } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
 
@@ -133,6 +134,8 @@ function ViewTab({
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState(view.name);
   const inputRef = useRef<HTMLInputElement>(null);
+  const tabRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
 
   const commitRename = useCallback(() => {
     const trimmed = draft.trim();
@@ -149,10 +152,22 @@ function ViewTab({
     setTimeout(() => inputRef.current?.focus(), 0);
   }, [view.name]);
 
+  const openMenu = useCallback(() => {
+    if (tabRef.current) {
+      const rect = tabRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 4, left: rect.left });
+    }
+    setMenuOpen(true);
+  }, []);
+
+  useEffect(() => {
+    setDraft(view.name);
+  }, [view.name]);
+
   const viewIcon = VIEW_TYPE_ICON[view.type] ?? <LayoutGrid size={14} />;
 
   return (
-    <div className="relative flex items-center">
+    <div ref={tabRef} className="group relative flex items-center">
       <button
         type="button"
         className={cn(
@@ -164,7 +179,7 @@ function ViewTab({
         onClick={onSelect}
         onContextMenu={(e) => {
           e.preventDefault();
-          setMenuOpen(true);
+          openMenu();
         }}
       >
         {viewIcon}
@@ -186,7 +201,7 @@ function ViewTab({
         )}
       </button>
 
-      {/* More button — always visible when active, hover otherwise */}
+      {/* More button — visible when active or on hover */}
       {!renaming && (
         <button
           type="button"
@@ -196,45 +211,54 @@ function ViewTab({
           )}
           onClick={(e) => {
             e.stopPropagation();
-            setMenuOpen((v) => !v);
+            if (menuOpen) {
+              setMenuOpen(false);
+            } else {
+              openMenu();
+            }
           }}
         >
           <MoreHorizontal size={12} />
         </button>
       )}
 
-      {/* Dropdown menu */}
-      {menuOpen && (
-        <>
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setMenuOpen(false)}
-          />
-          <div className="absolute top-full left-0 z-50 mt-1 min-w-[120px] rounded border border-border-base bg-surface-base py-1 shadow-lg">
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-              onClick={startRename}
+      {/* Dropdown menu — rendered via portal to escape overflow clipping */}
+      {menuOpen &&
+        createPortal(
+          <>
+            {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
+            <div
+              className="fixed inset-0 z-[9999]"
+              onClick={() => setMenuOpen(false)}
+            />
+            <div
+              className="fixed z-[10000] min-w-[120px] rounded border border-border-base bg-surface-base py-1 shadow-lg"
+              style={{ top: menuPos.top, left: menuPos.left }}
             >
-              重命名
-            </button>
-            {canDelete && (
               <button
                 type="button"
-                className="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-xs text-red-600 hover:bg-fill-tertiary"
-                onClick={() => {
-                  onDelete();
-                  setMenuOpen(false);
-                }}
+                className="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
+                onClick={startRename}
               >
-                删除视图
+                重命名
               </button>
-            )}
-          </div>
-        </>
-      )}
+              {canDelete && (
+                <button
+                  type="button"
+                  className="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-xs text-red-600 hover:bg-fill-tertiary"
+                  onClick={() => {
+                    onDelete();
+                    setMenuOpen(false);
+                  }}
+                >
+                  删除视图
+                </button>
+              )}
+            </div>
+          </>,
+          document.body,
+        )}
     </div>
   );
 }
