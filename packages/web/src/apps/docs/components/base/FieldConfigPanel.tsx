@@ -4,11 +4,23 @@ import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  DollarSign,
+  GitBranch,
   Hash,
   Link,
   List,
   ListChecks,
+  ListOrdered,
+  Mail,
+  Paperclip,
+  Percent,
+  Phone,
+  Star,
   Type,
+  User,
+  UserCheck,
+  UserPen,
 } from "lucide-react";
 import { useState } from "react";
 import type { FieldType } from "./types";
@@ -22,12 +34,25 @@ interface FieldConfigPanelProps {
 
 const FIELD_TYPES: FieldType[] = [
   "text",
-  "number",
-  "select",
   "multiSelect",
-  "checkbox",
+  "select",
+  "member",
   "date",
+  "attachment",
+  "number",
+  "checkbox",
   "url",
+  "workflow",
+  "autoNumber",
+  "phone",
+  "email",
+  "progress",
+  "currency",
+  "rating",
+  "createdBy",
+  "modifiedBy",
+  "createdTime",
+  "modifiedTime",
 ];
 
 const FIELD_TYPE_ICON: Record<FieldType, React.ReactNode> = {
@@ -38,6 +63,19 @@ const FIELD_TYPE_ICON: Record<FieldType, React.ReactNode> = {
   checkbox: <CheckSquare size={14} />,
   date: <Calendar size={14} />,
   url: <Link size={14} />,
+  phone: <Phone size={14} />,
+  email: <Mail size={14} />,
+  currency: <DollarSign size={14} />,
+  progress: <Percent size={14} />,
+  rating: <Star size={14} />,
+  workflow: <GitBranch size={14} />,
+  attachment: <Paperclip size={14} />,
+  member: <User size={14} />,
+  autoNumber: <ListOrdered size={14} />,
+  createdBy: <UserCheck size={14} />,
+  modifiedBy: <UserPen size={14} />,
+  createdTime: <Clock size={14} />,
+  modifiedTime: <Clock size={14} />,
 };
 
 export function FieldConfigPanel({
@@ -72,7 +110,6 @@ export function FieldConfigPanel({
       <div className="fixed inset-0 z-40" onClick={handleClose} />
       <div className="absolute top-full right-0 z-50 mt-1 w-64 rounded-lg border border-border-base bg-surface-base shadow-lg">
         {showTypePicker ? (
-          /* Type picker sub-panel */
           <div className="p-3">
             <button
               type="button"
@@ -82,10 +119,10 @@ export function FieldConfigPanel({
               <ChevronLeft size={14} />
               返回
             </button>
-            <div className="text-xs font-medium text-fg-secondary mb-2">
+            <div className="mb-2 text-xs font-medium text-fg-secondary">
               选择字段类型
             </div>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
               {FIELD_TYPES.map((ft) => (
                 <button
                   key={ft}
@@ -110,13 +147,10 @@ export function FieldConfigPanel({
             </div>
           </div>
         ) : (
-          /* Main panel */
           <div className="p-3">
             <div className="mb-3 text-xs font-medium text-fg-secondary">
               新增字段
             </div>
-
-            {/* Field name */}
             <div className="mb-1 text-xs text-fg-muted">标题</div>
             <input
               className="mb-3 w-full rounded border border-border-base bg-surface-secondary px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-500"
@@ -127,8 +161,6 @@ export function FieldConfigPanel({
                 if (e.key === "Enter") handleSubmit();
               }}
             />
-
-            {/* Field type selector */}
             <div className="mb-1 text-xs text-fg-muted">字段类型</div>
             <button
               type="button"
@@ -143,8 +175,6 @@ export function FieldConfigPanel({
               </span>
               <ChevronRight size={14} className="text-fg-muted" />
             </button>
-
-            {/* Action buttons */}
             <div className="flex justify-end gap-2">
               <button
                 type="button"

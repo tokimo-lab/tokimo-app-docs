@@ -1,11 +1,19 @@
 import { useCallback, useState } from "react";
 import { CheckboxCell } from "../cells/CheckboxCell";
+import { CurrencyCell } from "../cells/CurrencyCell";
 import { DateCell } from "../cells/DateCell";
+import { EmailCell } from "../cells/EmailCell";
+import { MemberCell } from "../cells/MemberCell";
 import { MultiSelectCell } from "../cells/MultiSelectCell";
 import { NumberCell } from "../cells/NumberCell";
+import { PhoneCell } from "../cells/PhoneCell";
+import { ProgressCell } from "../cells/ProgressCell";
+import { RatingCell } from "../cells/RatingCell";
+import { ReadonlyCell } from "../cells/ReadonlyCell";
 import { SelectCell } from "../cells/SelectCell";
 import { TextCell } from "../cells/TextCell";
 import { UrlCell } from "../cells/UrlCell";
+import { WorkflowCell } from "../cells/WorkflowCell";
 import type { CellValue, Field, SelectOption } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
 
@@ -100,6 +108,73 @@ export function GridCell({ recordId, field, value, state }: GridCellProps) {
           onEndEdit={endEdit}
         />
       );
+    case "phone":
+      return (
+        <PhoneCell
+          value={value}
+          onChange={handleChange}
+          editing={editing}
+          onStartEdit={startEdit}
+          onEndEdit={endEdit}
+        />
+      );
+    case "email":
+      return (
+        <EmailCell
+          value={value}
+          onChange={handleChange}
+          editing={editing}
+          onStartEdit={startEdit}
+          onEndEdit={endEdit}
+        />
+      );
+    case "currency":
+      return (
+        <CurrencyCell
+          value={value}
+          onChange={handleChange}
+          editing={editing}
+          onStartEdit={startEdit}
+          onEndEdit={endEdit}
+        />
+      );
+    case "progress":
+      return <ProgressCell value={value} onChange={handleChange} />;
+    case "rating":
+      return <RatingCell value={value} onChange={handleChange} />;
+    case "workflow":
+      return (
+        <WorkflowCell
+          value={value}
+          options={field.options ?? []}
+          onChange={handleChange}
+          editing={editing}
+          onStartEdit={startEdit}
+          onEndEdit={endEdit}
+        />
+      );
+    case "member":
+      return (
+        <MemberCell
+          value={value}
+          onChange={handleChange}
+          editing={editing}
+          onStartEdit={startEdit}
+          onEndEdit={endEdit}
+        />
+      );
+    case "attachment":
+      return (
+        <ReadonlyCell
+          value={Array.isArray(value) ? `${value.length} 个文件` : ""}
+        />
+      );
+    case "autoNumber":
+    case "createdBy":
+    case "modifiedBy":
+    case "createdTime":
+    case "modifiedTime":
+      return <ReadonlyCell value={value} />;
     default:
       return <div className="px-2 leading-[32px]">{String(value ?? "")}</div>;
   }

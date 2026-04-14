@@ -1,5 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { GridView } from "./grid/GridView";
+import { KanbanToolbar } from "./kanban/KanbanToolbar";
+import { KanbanView } from "./kanban/KanbanView";
 import { BaseToolbar } from "./toolbar/BaseToolbar";
 import { ViewTabsBar } from "./toolbar/ViewTabsBar";
 import { useBaseEditor } from "./useBaseEditor";
@@ -19,17 +21,18 @@ export function BaseEditor({ nodeId }: BaseEditorProps) {
     );
   }
 
+  const isKanban = state.activeView?.type === "kanban";
+
   return (
     <div className="flex h-full flex-col overflow-hidden bg-surface-base">
-      {/* View tabs bar */}
       <ViewTabsBar state={state} />
-
-      {/* Toolbar: add record, filter, sort, group, field config */}
-      <BaseToolbar state={state} />
-
-      {/* Grid view */}
+      {isKanban ? (
+        <KanbanToolbar state={state} />
+      ) : (
+        <BaseToolbar state={state} />
+      )}
       <div className="flex-1 overflow-hidden">
-        <GridView state={state} />
+        {isKanban ? <KanbanView state={state} /> : <GridView state={state} />}
       </div>
     </div>
   );

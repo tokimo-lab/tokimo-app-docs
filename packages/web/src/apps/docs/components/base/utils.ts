@@ -29,12 +29,20 @@ export function createField(
   type: FieldType,
   options?: SelectOption[],
 ): Field {
+  const defaultOptions =
+    type === "workflow" && !options
+      ? [
+          { id: generateId("opt"), label: "未开始", color: "#e0e7ff" },
+          { id: generateId("opt"), label: "进行中", color: "#dbeafe" },
+          { id: generateId("opt"), label: "已结束", color: "#dcfce7" },
+        ]
+      : options;
   return {
     id: generateId("fld"),
     name,
     type,
     width: type === "checkbox" ? 80 : 180,
-    options,
+    options: defaultOptions,
   };
 }
 
@@ -73,10 +81,29 @@ export function createViewWithType(
   type: ViewType,
   fields: Field[],
 ): BaseView {
-  return {
-    ...createView(name, fields),
-    type,
-  };
+  const base = createView(name, fields);
+  if (type === "kanban") {
+    const groupableTypes: FieldType[] = [
+      "select",
+      "multiSelect",
+      "member",
+      "checkbox",
+      "rating",
+      "workflow",
+    ];
+    const groupField = fields.find((f) => groupableTypes.includes(f.type));
+    return {
+      ...base,
+      type,
+      kanbanConfig: {
+        groupFieldId: groupField?.id ?? "",
+        cardDisplayMode: "normal",
+        showFieldNames: false,
+        cardVisibleFieldIds: fields.map((f) => f.id),
+      },
+    };
+  }
+  return { ...base, type };
 }
 
 export function createDefaultBaseFields(): Field[] {
@@ -108,12 +135,24 @@ function getDefaultValue(type: FieldType): CellValue {
     case "text":
     case "url":
     case "date":
+    case "phone":
+    case "email":
+    case "select":
+    case "workflow":
+    case "createdBy":
+    case "modifiedBy":
+    case "createdTime":
+    case "modifiedTime":
       return "";
     case "number":
+    case "currency":
+    case "progress":
+    case "rating":
+    case "autoNumber":
       return null;
-    case "select":
-      return "";
     case "multiSelect":
+    case "attachment":
+    case "member":
       return [];
     case "checkbox":
       return false;
@@ -319,10 +358,200 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   multiSelect: "多选",
   checkbox: "复选框",
   date: "日期",
-  url: "网址",
+  url: "超链接",
+  phone: "电话号码",
+  email: "Email",
+  currency: "货币",
+  progress: "进度",
+  rating: "评分",
+  workflow: "流程",
+  attachment: "附件",
+  member: "人员",
+  autoNumber: "自动编号",
+  createdBy: "创建人",
+  modifiedBy: "修改人",
+  createdTime: "创建时间",
+  modifiedTime: "最后更新时间",
 };
 
 export function nextSelectColor(existing: SelectOption[]): string {
   const idx = existing.length % SELECT_COLORS.length;
   return SELECT_COLORS[idx];
+}
+
+// ── Kanban grouping utilities ───────────────────────────────────────────────
+
+export interface KanbanGroup {
+  id: string;
+  label: string;
+  color?: string;
+  records: BaseRecord[];
+}
+
+export const KANBAN_GROUPABLE_TYPES: FieldType[] = [
+  "select",
+  "multiSelect",
+  "member",
+  "checkbox",
+  "rating",
+  "workflow",
+];
+
+export const KANBAN_CAN_ADD_GROUP_TYPES: FieldType[] = [
+  "select",
+  "multiSelect",
+  "member",
+];
+
+export function groupRecordsForKanban(
+  records: BaseRecord[],
+  groupField: Field,
+): KanbanGroup[] {
+  const groups: KanbanGroup[] = [];
+  const fieldId = groupField.id;
+
+  switch (groupField.type) {
+    case "select":
+    case "workflow": {
+      const options = groupField.options ?? [];
+      const uncategorized: BaseRecord[] = [];
+      const optionMap = new Map<string, BaseRecord[]>();
+      for (const opt of options) optionMap.set(opt.id, []);
+
+      for (const rec of records) {
+        const val = rec.data[fieldId];
+        if (typeof val === "string" && optionMap.has(val)) {
+          optionMap.get(val)!.push(rec);
+        } else {
+          uncategorized.push(rec);
+        }
+      }
+
+      groups.push({
+        id: "__uncategorized",
+        label: "未分类",
+        records: uncategorized,
+      });
+      for (const opt of options) {
+        groups.push({
+          id: opt.id,
+          label: opt.label,
+          color: opt.color,
+          records: optionMap.get(opt.id) ?? [],
+        });
+      }
+      break;
+    }
+    case "multiSelect": {
+      const options = groupField.options ?? [];
+      const uncategorized: BaseRecord[] = [];
+      const optionMap = new Map<string, BaseRecord[]>();
+      for (const opt of options) optionMap.set(opt.id, []);
+
+      for (const rec of records) {
+        const val = rec.data[fieldId];
+        if (Array.isArray(val) && val.length > 0) {
+          let matched = false;
+          for (const v of val) {
+            if (optionMap.has(v)) {
+              optionMap.get(v)!.push(rec);
+              matched = true;
+            }
+          }
+          if (!matched) uncategorized.push(rec);
+        } else {
+          uncategorized.push(rec);
+        }
+      }
+
+      groups.push({
+        id: "__uncategorized",
+        label: "未分类",
+        records: uncategorized,
+      });
+      for (const opt of options) {
+        groups.push({
+          id: opt.id,
+          label: opt.label,
+          color: opt.color,
+          records: optionMap.get(opt.id) ?? [],
+        });
+      }
+      break;
+    }
+    case "checkbox": {
+      const checked: BaseRecord[] = [];
+      const unchecked: BaseRecord[] = [];
+      for (const rec of records) {
+        if (rec.data[fieldId] === true) checked.push(rec);
+        else unchecked.push(rec);
+      }
+      groups.push({ id: "__false", label: "未勾选", records: unchecked });
+      groups.push({ id: "__true", label: "已勾选", records: checked });
+      break;
+    }
+    case "rating": {
+      const unrated: BaseRecord[] = [];
+      const ratingMap = new Map<number, BaseRecord[]>();
+      for (let i = 1; i <= 5; i++) ratingMap.set(i, []);
+
+      for (const rec of records) {
+        const val = rec.data[fieldId];
+        const num = typeof val === "number" ? val : 0;
+        if (num >= 1 && num <= 5) {
+          ratingMap.get(num)!.push(rec);
+        } else {
+          unrated.push(rec);
+        }
+      }
+
+      groups.push({
+        id: "__uncategorized",
+        label: "未评分",
+        records: unrated,
+      });
+      for (let i = 1; i <= 5; i++) {
+        groups.push({
+          id: String(i),
+          label: "★".repeat(i),
+          records: ratingMap.get(i) ?? [],
+        });
+      }
+      break;
+    }
+    case "member": {
+      const unassigned: BaseRecord[] = [];
+      const memberMap = new Map<string, BaseRecord[]>();
+
+      for (const rec of records) {
+        const val = rec.data[fieldId];
+        if (Array.isArray(val) && val.length > 0) {
+          for (const v of val) {
+            if (!memberMap.has(v)) memberMap.set(v, []);
+            memberMap.get(v)!.push(rec);
+          }
+        } else if (typeof val === "string" && val) {
+          if (!memberMap.has(val)) memberMap.set(val, []);
+          memberMap.get(val)!.push(rec);
+        } else {
+          unassigned.push(rec);
+        }
+      }
+
+      groups.push({
+        id: "__uncategorized",
+        label: "未分配",
+        records: unassigned,
+      });
+      for (const [name, recs] of memberMap) {
+        groups.push({ id: name, label: name, records: recs });
+      }
+      break;
+    }
+    default: {
+      groups.push({ id: "__all", label: "全部", records });
+    }
+  }
+
+  return groups;
 }

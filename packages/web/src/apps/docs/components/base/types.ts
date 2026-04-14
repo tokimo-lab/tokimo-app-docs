@@ -7,7 +7,20 @@ export type FieldType =
   | "multiSelect"
   | "checkbox"
   | "date"
-  | "url";
+  | "url"
+  | "phone"
+  | "email"
+  | "currency"
+  | "progress"
+  | "rating"
+  | "workflow"
+  | "attachment"
+  | "member"
+  | "autoNumber"
+  | "createdBy"
+  | "modifiedBy"
+  | "createdTime"
+  | "modifiedTime";
 
 export interface SelectOption {
   id: string;
@@ -84,6 +97,13 @@ export interface GroupRule {
   direction: "asc" | "desc";
 }
 
+export interface KanbanConfig {
+  groupFieldId: string;
+  cardDisplayMode: "normal" | "compact";
+  showFieldNames: boolean;
+  cardVisibleFieldIds: string[];
+}
+
 export interface BaseView {
   id: string;
   name: string;
@@ -95,6 +115,7 @@ export interface BaseView {
   fieldOrder: string[];
   rowHeight: RowHeight;
   frozenFieldCount: number;
+  kanbanConfig?: KanbanConfig;
 }
 
 // ── Content (single-table metadata) ─────────────────────────────────────────

@@ -15,6 +15,7 @@ import type {
   SortRule,
   ViewType,
 } from "./types";
+import type { KanbanGroup } from "./utils";
 import {
   applyGroups,
   createDefaultBaseContent,
@@ -24,6 +25,7 @@ import {
   generateId,
   getProcessedRecords,
   getVisibleFields,
+  groupRecordsForKanban,
   nextSelectColor,
 } from "./utils";
 
@@ -154,6 +156,15 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
         : [{ key: "__all", label: "", records: processedRecords }],
     [processedRecords, activeView, fields],
   );
+
+  const kanbanGroups: KanbanGroup[] = useMemo(() => {
+    if (!activeView?.kanbanConfig?.groupFieldId) return [];
+    const groupField = fields.find(
+      (f) => f.id === activeView.kanbanConfig!.groupFieldId,
+    );
+    if (!groupField) return [];
+    return groupRecordsForKanban(processedRecords, groupField);
+  }, [activeView, fields, processedRecords]);
 
   const isLoading = metaQuery.isLoading || recordsQuery.isLoading;
 
@@ -438,6 +449,155 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     [updateView],
   );
 
+  // ── Kanban operations ──────────────────────────────────────────────────
+
+  const setKanbanGroupField = useCallback(
+    (fieldId: string) => {
+      const viewId = activeViewIdRef.current;
+      const view = viewsRef.current.find((v) => v.id === viewId);
+      if (!view) return;
+      updateView(viewId, {
+        kanbanConfig: {
+          ...(view.kanbanConfig ?? {
+            groupFieldId: "",
+            cardDisplayMode: "normal" as const,
+            showFieldNames: false,
+            cardVisibleFieldIds: fieldsRef.current.map((f) => f.id),
+          }),
+          groupFieldId: fieldId,
+        },
+      });
+    },
+    [updateView],
+  );
+
+  const setKanbanDisplayMode = useCallback(
+    (mode: "normal" | "compact") => {
+      const viewId = activeViewIdRef.current;
+      const view = viewsRef.current.find((v) => v.id === viewId);
+      if (!view?.kanbanConfig) return;
+      updateView(viewId, {
+        kanbanConfig: { ...view.kanbanConfig, cardDisplayMode: mode },
+      });
+    },
+    [updateView],
+  );
+
+  const toggleKanbanCardField = useCallback(
+    (fieldId: string) => {
+      const viewId = activeViewIdRef.current;
+      const view = viewsRef.current.find((v) => v.id === viewId);
+      if (!view?.kanbanConfig) return;
+      const visible = view.kanbanConfig.cardVisibleFieldIds;
+      const next = visible.includes(fieldId)
+        ? visible.filter((id) => id !== fieldId)
+        : [...visible, fieldId];
+      updateView(viewId, {
+        kanbanConfig: { ...view.kanbanConfig, cardVisibleFieldIds: next },
+      });
+    },
+    [updateView],
+  );
+
+  const setKanbanShowFieldNames = useCallback(
+    (show: boolean) => {
+      const viewId = activeViewIdRef.current;
+      const view = viewsRef.current.find((v) => v.id === viewId);
+      if (!view?.kanbanConfig) return;
+      updateView(viewId, {
+        kanbanConfig: { ...view.kanbanConfig, showFieldNames: show },
+      });
+    },
+    [updateView],
+  );
+
+  const addRecordToGroup = useCallback(
+    (groupValue: string | null) => {
+      const view = viewsRef.current.find(
+        (v) => v.id === activeViewIdRef.current,
+      );
+      if (!view?.kanbanConfig) {
+        createRecordMut.mutate({ nodeId, data: {} });
+        return;
+      }
+      const fieldId = view.kanbanConfig.groupFieldId;
+      const field = fieldsRef.current.find((f) => f.id === fieldId);
+      if (!field) {
+        createRecordMut.mutate({ nodeId, data: {} });
+        return;
+      }
+
+      let data: Record<string, CellValue> = {};
+      if (groupValue !== null) {
+        if (field.type === "multiSelect" || field.type === "member") {
+          data = { [fieldId]: [groupValue] };
+        } else if (field.type === "checkbox") {
+          data = { [fieldId]: groupValue === "__true" };
+        } else if (field.type === "rating") {
+          data = { [fieldId]: Number(groupValue) };
+        } else {
+          data = { [fieldId]: groupValue };
+        }
+      }
+      createRecordMut.mutate({ nodeId, data });
+    },
+    [nodeId, createRecordMut],
+  );
+
+  const addKanbanGroup = useCallback(
+    (label: string, color: string) => {
+      const view = viewsRef.current.find(
+        (v) => v.id === activeViewIdRef.current,
+      );
+      if (!view?.kanbanConfig) return;
+      const fieldId = view.kanbanConfig.groupFieldId;
+      const field = fieldsRef.current.find((f) => f.id === fieldId);
+      if (!field) return;
+      const existing = field.options ?? [];
+      const option: SelectOption = {
+        id: generateId("opt"),
+        label,
+        color,
+      };
+      updateField(fieldId, { options: [...existing, option] });
+    },
+    [updateField],
+  );
+
+  const deleteKanbanGroup = useCallback(
+    (optionId: string) => {
+      const view = viewsRef.current.find(
+        (v) => v.id === activeViewIdRef.current,
+      );
+      if (!view?.kanbanConfig) return;
+      const fieldId = view.kanbanConfig.groupFieldId;
+      const field = fieldsRef.current.find((f) => f.id === fieldId);
+      if (!field) return;
+      updateField(fieldId, {
+        options: (field.options ?? []).filter((o) => o.id !== optionId),
+      });
+    },
+    [updateField],
+  );
+
+  const renameKanbanGroup = useCallback(
+    (optionId: string, newLabel: string) => {
+      const view = viewsRef.current.find(
+        (v) => v.id === activeViewIdRef.current,
+      );
+      if (!view?.kanbanConfig) return;
+      const fieldId = view.kanbanConfig.groupFieldId;
+      const field = fieldsRef.current.find((f) => f.id === fieldId);
+      if (!field) return;
+      updateField(fieldId, {
+        options: (field.options ?? []).map((o) =>
+          o.id === optionId ? { ...o, label: newLabel } : o,
+        ),
+      });
+    },
+    [updateField],
+  );
+
   const setRowHeight = useCallback(
     (height: RowHeight) => {
       const viewId = activeViewIdRef.current;
@@ -512,6 +672,17 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
 
     // Select options
     addSelectOption,
+
+    // Kanban
+    kanbanGroups,
+    setKanbanGroupField,
+    setKanbanDisplayMode,
+    toggleKanbanCardField,
+    setKanbanShowFieldNames,
+    addRecordToGroup,
+    addKanbanGroup,
+    deleteKanbanGroup,
+    renameKanbanGroup,
   };
 }
 
