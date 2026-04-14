@@ -4,6 +4,7 @@ import { api } from "@/generated/rust-api";
 import type {
   BaseRecord,
   BaseView,
+  CalendarViewMode,
   CellValue,
   Field,
   FieldType,
@@ -627,6 +628,53 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     [commitMeta],
   );
 
+  // ── Calendar operations ────────────────────────────────────────────────
+
+  const setCalendarDateField = useCallback(
+    (fieldId: string) => {
+      const viewId = activeViewIdRef.current;
+      const view = viewsRef.current.find((v) => v.id === viewId);
+      if (!view) return;
+      updateView(viewId, {
+        calendarConfig: {
+          ...(view.calendarConfig ?? {
+            dateFieldId: "",
+            viewMode: "month" as const,
+          }),
+          dateFieldId: fieldId,
+        },
+      });
+    },
+    [updateView],
+  );
+
+  const setCalendarViewMode = useCallback(
+    (mode: CalendarViewMode) => {
+      const viewId = activeViewIdRef.current;
+      const view = viewsRef.current.find((v) => v.id === viewId);
+      if (!view?.calendarConfig) return;
+      updateView(viewId, {
+        calendarConfig: { ...view.calendarConfig, viewMode: mode },
+      });
+    },
+    [updateView],
+  );
+
+  const addRecordOnDate = useCallback(
+    (dateStr: string) => {
+      const view = viewsRef.current.find(
+        (v) => v.id === activeViewIdRef.current,
+      );
+      const dateFieldId = view?.calendarConfig?.dateFieldId;
+      if (!dateFieldId) {
+        createRecordMut.mutate({ nodeId, data: {} });
+        return;
+      }
+      createRecordMut.mutate({ nodeId, data: { [dateFieldId]: dateStr } });
+    },
+    [nodeId, createRecordMut],
+  );
+
   return {
     // Compatibility: GridView checks `activeTable` for null guard
     activeTable: metaQuery.data ? { fields, views } : undefined,
@@ -684,6 +732,10 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     addKanbanGroup,
     deleteKanbanGroup,
     renameKanbanGroup,
+    // Calendar
+    setCalendarDateField,
+    setCalendarViewMode,
+    addRecordOnDate,
   };
 }
 

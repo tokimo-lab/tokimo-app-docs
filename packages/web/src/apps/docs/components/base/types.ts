@@ -104,6 +104,13 @@ export interface KanbanConfig {
   cardVisibleFieldIds: string[];
 }
 
+export type CalendarViewMode = "day" | "week" | "month";
+
+export interface CalendarConfig {
+  dateFieldId: string;
+  viewMode: CalendarViewMode;
+}
+
 export interface BaseView {
   id: string;
   name: string;
@@ -116,6 +123,7 @@ export interface BaseView {
   rowHeight: RowHeight;
   frozenFieldCount: number;
   kanbanConfig?: KanbanConfig;
+  calendarConfig?: CalendarConfig;
 }
 
 // ── Content (single-table metadata) ─────────────────────────────────────────

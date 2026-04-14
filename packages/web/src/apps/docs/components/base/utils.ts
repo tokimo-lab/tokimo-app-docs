@@ -114,6 +114,17 @@ export function createViewWithType(
       },
     };
   }
+  if (type === "calendar") {
+    const dateField = fields.find((f) => f.type === "date");
+    return {
+      ...base,
+      type,
+      calendarConfig: {
+        dateFieldId: dateField?.id ?? "",
+        viewMode: "month",
+      },
+    };
+  }
   return { ...base, type };
 }
 
@@ -566,3 +577,80 @@ export function groupRecordsForKanban(
 
   return groups;
 }
+
+// ── Calendar utilities ──────────────────────────────────────────────────────
+
+export interface CalendarDay {
+  date: Date;
+  dateStr: string; // YYYY-MM-DD
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  records: BaseRecord[];
+}
+
+/** Get a 6×7 grid of days for a month view */
+export function getMonthGrid(
+  year: number,
+  month: number, // 0-indexed
+  records: BaseRecord[],
+  dateFieldId: string,
+): CalendarDay[][] {
+  const today = new Date();
+  const todayStr = formatDateStr(today);
+
+  // First day of the month
+  const firstDay = new Date(year, month, 1);
+  // Monday=0 ... Sunday=6 (ISO weekday)
+  let startWeekday = firstDay.getDay() - 1;
+  if (startWeekday < 0) startWeekday = 6;
+
+  // Start from the Monday before (or on) the 1st
+  const gridStart = new Date(year, month, 1 - startWeekday);
+
+  // Build record map by date string
+  const recordsByDate = new Map<string, BaseRecord[]>();
+  for (const rec of records) {
+    const val = rec.data[dateFieldId];
+    if (typeof val === "string" && val) {
+      const ds = val.slice(0, 10); // YYYY-MM-DD
+      if (!recordsByDate.has(ds)) recordsByDate.set(ds, []);
+      recordsByDate.get(ds)!.push(rec);
+    }
+  }
+
+  const weeks: CalendarDay[][] = [];
+  for (let w = 0; w < 6; w++) {
+    const week: CalendarDay[] = [];
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(gridStart);
+      date.setDate(gridStart.getDate() + w * 7 + d);
+      const dateStr = formatDateStr(date);
+      week.push({
+        date,
+        dateStr,
+        isCurrentMonth: date.getMonth() === month,
+        isToday: dateStr === todayStr,
+        records: recordsByDate.get(dateStr) ?? [],
+      });
+    }
+    weeks.push(week);
+  }
+  return weeks;
+}
+
+function formatDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export const WEEKDAY_LABELS = [
+  "周一",
+  "周二",
+  "周三",
+  "周四",
+  "周五",
+  "周六",
+  "周日",
+];

@@ -1,4 +1,6 @@
 import { Loader2 } from "lucide-react";
+import { CalendarToolbar } from "./calendar/CalendarToolbar";
+import { CalendarView } from "./calendar/CalendarView";
 import { GridView } from "./grid/GridView";
 import { KanbanToolbar } from "./kanban/KanbanToolbar";
 import { KanbanView } from "./kanban/KanbanView";
@@ -21,18 +23,26 @@ export function BaseEditor({ nodeId }: BaseEditorProps) {
     );
   }
 
-  const isKanban = state.activeView?.type === "kanban";
+  const viewType = state.activeView?.type;
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-surface-base">
       <ViewTabsBar state={state} />
-      {isKanban ? (
+      {viewType === "kanban" ? (
         <KanbanToolbar state={state} />
+      ) : viewType === "calendar" ? (
+        <CalendarToolbar state={state} />
       ) : (
         <BaseToolbar state={state} />
       )}
       <div className="flex-1 overflow-hidden">
-        {isKanban ? <KanbanView state={state} /> : <GridView state={state} />}
+        {viewType === "kanban" ? (
+          <KanbanView state={state} />
+        ) : viewType === "calendar" ? (
+          <CalendarView state={state} />
+        ) : (
+          <GridView state={state} />
+        )}
       </div>
     </div>
   );
