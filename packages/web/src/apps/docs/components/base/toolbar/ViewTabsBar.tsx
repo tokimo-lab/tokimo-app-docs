@@ -6,7 +6,7 @@ import {
   FileText,
   Image,
   LayoutGrid,
-  MoreHorizontal,
+  MoreVertical,
   Plus,
   Table,
 } from "lucide-react";
@@ -199,28 +199,25 @@ function ViewTab({
         ) : (
           <span>{view.name}</span>
         )}
+        {/* More button — inside the tab so it stays within the underline */}
+        {!renaming && (isActive || menuOpen) && (
+          // biome-ignore lint/a11y/useKeyWithClickEvents: inner click zone
+          // biome-ignore lint/a11y/noStaticElementInteractions: inner click zone
+          <span
+            className="ml-0.5 inline-flex cursor-pointer rounded p-0.5 text-fg-muted hover:bg-fill-tertiary"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (menuOpen) {
+                setMenuOpen(false);
+              } else {
+                openMenu();
+              }
+            }}
+          >
+            <MoreVertical size={12} />
+          </span>
+        )}
       </button>
-
-      {/* More button — visible when active or on hover */}
-      {!renaming && (
-        <button
-          type="button"
-          className={cn(
-            "cursor-pointer rounded p-0.5 text-fg-muted hover:bg-fill-tertiary",
-            isActive || menuOpen ? "block" : "hidden",
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (menuOpen) {
-              setMenuOpen(false);
-            } else {
-              openMenu();
-            }
-          }}
-        >
-          <MoreHorizontal size={12} />
-        </button>
-      )}
 
       {/* Dropdown menu — rendered via portal to escape overflow clipping */}
       {menuOpen &&

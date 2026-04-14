@@ -317,6 +317,18 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     [records, updateRecordMut],
   );
 
+  const updateRecordSortOrder = useCallback(
+    (recordId: string, sortOrder: number) => {
+      const rec = records.find((r) => r.id === recordId);
+      updateRecordMut.mutate({
+        recordId,
+        data: rec?.data ?? {},
+        sortOrder,
+      });
+    },
+    [records, updateRecordMut],
+  );
+
   // ── Filter/Sort/Group shortcuts ───────────────────────────────────────
   const setFilters = useCallback(
     (conditions: FilterCondition[], conjunction?: "and" | "or") => {
@@ -874,6 +886,7 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
     addRecord,
     deleteRecord,
     updateCell,
+    updateRecordSortOrder,
 
     // Filter/Sort/Group
     setFilters,

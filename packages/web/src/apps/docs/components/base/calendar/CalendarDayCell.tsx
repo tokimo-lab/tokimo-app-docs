@@ -9,7 +9,8 @@ interface CalendarDayCellProps {
   getRecordColor: (index: number) => string;
   fields: Field[];
   onClickDate: () => void;
-  onClickRecord: (recordId: string, e: React.MouseEvent) => void;
+  onDragStart: (recordId: string, e: React.PointerEvent) => void;
+  isDropTarget?: boolean;
 }
 
 const MAX_VISIBLE_RECORDS = 3;
@@ -20,7 +21,8 @@ export function CalendarDayCell({
   getRecordColor,
   fields,
   onClickDate,
-  onClickRecord,
+  onDragStart,
+  isDropTarget,
 }: CalendarDayCellProps) {
   const titleField = fields.find((f) => f.type === "text");
   const visibleRecords = day.records.slice(0, MAX_VISIBLE_RECORDS);
@@ -28,9 +30,11 @@ export function CalendarDayCell({
 
   return (
     <div
+      data-date={day.dateStr}
       className={cn(
         "group/cell flex min-h-0 flex-col border-r border-border-subtle p-1 last:border-r-0",
         !day.isCurrentMonth && "bg-fill-quaternary/30",
+        isDropTarget && "bg-blue-50 dark:bg-blue-900/20",
       )}
     >
       {/* Date number */}
@@ -68,7 +72,10 @@ export function CalendarDayCell({
               type="button"
               className="flex cursor-pointer items-center gap-1 truncate rounded px-1 py-0.5 text-left text-[10px] leading-tight hover:opacity-80"
               style={{ backgroundColor: `${color}20`, color }}
-              onClick={(e) => onClickRecord(rec.id, e)}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                onDragStart(rec.id, e);
+              }}
             >
               <span
                 className="h-1.5 w-1.5 flex-shrink-0 rounded-full"

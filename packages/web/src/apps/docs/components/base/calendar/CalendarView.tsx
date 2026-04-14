@@ -1,6 +1,6 @@
 import { cn } from "@tokiomo/components";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { BaseEditorState } from "../useBaseEditor";
 import { getMonthGrid, getProcessedRecords, WEEKDAY_LABELS } from "../utils";
 import { CalendarDayCell } from "./CalendarDayCell";
@@ -37,6 +37,129 @@ export function CalendarView({ state }: CalendarViewProps) {
 
   const dateFieldId = activeView?.calendarConfig?.dateFieldId ?? "";
   const dateField = fields.find((f) => f.id === dateFieldId);
+
+  // Drag state
+  const [dragState, setDragState] = useState<{
+    recordId: string;
+    startX: number;
+    startY: number;
+    isDragging: boolean;
+    ghostEl: HTMLElement | null;
+  } | null>(null);
+  const [dropTargetDate, setDropTargetDate] = useState<string | null>(null);
+  const dropTargetDateRef = useRef<string | null>(null);
+  const dragJustEndedRef = useRef(false);
+
+  const handleDragStart = useCallback(
+    (recordId: string, e: React.PointerEvent) => {
+      e.preventDefault();
+      const target = e.currentTarget as HTMLElement;
+
+      const ghost = document.createElement("div");
+      ghost.style.cssText = `
+        position: fixed;
+        z-index: 99999;
+        pointer-events: none;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        background: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        opacity: 0;
+      `;
+      ghost.textContent = target.textContent || "未命名";
+      document.body.appendChild(ghost);
+      ghost.style.left = `${e.clientX - 20}px`;
+      ghost.style.top = `${e.clientY - 10}px`;
+
+      setDragState({
+        recordId,
+        startX: e.clientX,
+        startY: e.clientY,
+        isDragging: false,
+        ghostEl: ghost,
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!dragState) return;
+
+    const handleMove = (e: PointerEvent) => {
+      const dx = e.clientX - dragState.startX;
+      const dy = e.clientY - dragState.startY;
+      const moved = Math.abs(dx) + Math.abs(dy) > 5;
+
+      if (moved && !dragState.isDragging) {
+        setDragState((prev) => (prev ? { ...prev, isDragging: true } : null));
+        if (dragState.ghostEl) {
+          dragState.ghostEl.style.opacity = "1";
+        }
+      }
+
+      if (dragState.ghostEl) {
+        dragState.ghostEl.style.left = `${e.clientX - 20}px`;
+        dragState.ghostEl.style.top = `${e.clientY - 10}px`;
+      }
+
+      // Find drop target using elementsFromPoint (works through pointer-events: none layers)
+      const elements = document.elementsFromPoint(e.clientX, e.clientY);
+      let targetDate: string | null = null;
+      for (const el of elements) {
+        const dateAttr = (el as HTMLElement).dataset?.date;
+        if (dateAttr) {
+          targetDate = dateAttr;
+          break;
+        }
+      }
+      dropTargetDateRef.current = targetDate;
+      setDropTargetDate(targetDate);
+    };
+
+    const handleUp = (e: PointerEvent) => {
+      const dx = e.clientX - dragState.startX;
+      const dy = e.clientY - dragState.startY;
+      const wasDrag = Math.abs(dx) + Math.abs(dy) > 5;
+
+      if (dragState.ghostEl) {
+        document.body.removeChild(dragState.ghostEl);
+      }
+
+      if (wasDrag && dropTargetDateRef.current && dateFieldId) {
+        state.updateCell(
+          dragState.recordId,
+          dateFieldId,
+          dropTargetDateRef.current,
+        );
+        dragJustEndedRef.current = true;
+      } else if (!wasDrag) {
+        // It was a click — open the popover
+        const elements = document.elementsFromPoint(e.clientX, e.clientY);
+        const buttonEl = elements.find((el) => el.tagName === "BUTTON") as
+          | HTMLElement
+          | undefined;
+        if (buttonEl) {
+          const rect = buttonEl.getBoundingClientRect();
+          setPopoverAnchor({ top: rect.bottom + 4, left: rect.left });
+          setSelectedRecordId(dragState.recordId);
+        }
+      }
+
+      setDragState(null);
+      setDropTargetDate(null);
+      dropTargetDateRef.current = null;
+    };
+
+    document.addEventListener("pointermove", handleMove);
+    document.addEventListener("pointerup", handleUp);
+    return () => {
+      document.removeEventListener("pointermove", handleMove);
+      document.removeEventListener("pointerup", handleUp);
+    };
+  }, [dragState, state, dateFieldId]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -162,16 +285,8 @@ export function CalendarView({ state }: CalendarViewProps) {
                   getRecordColor={getRecordColor}
                   fields={fields}
                   onClickDate={() => state.addRecordOnDate(day.dateStr)}
-                  onClickRecord={(recordId, e) => {
-                    const rect = (
-                      e.currentTarget as HTMLElement
-                    ).getBoundingClientRect();
-                    setPopoverAnchor({
-                      top: rect.bottom + 4,
-                      left: rect.left,
-                    });
-                    setSelectedRecordId(recordId);
-                  }}
+                  onDragStart={handleDragStart}
+                  isDropTarget={dropTargetDate === day.dateStr}
                 />
               ))}
             </div>

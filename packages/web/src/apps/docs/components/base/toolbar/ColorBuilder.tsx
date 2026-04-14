@@ -58,10 +58,7 @@ export function ColorBuilder({
 
   return (
     <>
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
-      <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="relative z-50 min-w-[340px] rounded-lg border border-border-base bg-surface-base p-3 shadow-lg">
+      <div className="min-w-[340px] rounded-lg border border-border-base bg-surface-base p-3 shadow-lg">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-xs font-medium text-fg-secondary">填色</span>
           <button

@@ -11,6 +11,7 @@ interface FieldListPanelProps {
   onEditField: (fieldId: string) => void;
   onDeleteField: (fieldId: string) => void;
   onAddNew: () => void;
+  activeFieldId?: string | null;
 }
 
 export function FieldListPanel({
@@ -20,6 +21,7 @@ export function FieldListPanel({
   onEditField,
   onDeleteField,
   onAddNew,
+  activeFieldId,
 }: FieldListPanelProps) {
   const [menuFieldId, setMenuFieldId] = useState<string | null>(null);
 
@@ -34,6 +36,7 @@ export function FieldListPanel({
         {fields.map((field, idx) => {
           const isFirst = idx === 0;
           const isHidden = hiddenFieldIds.includes(field.id);
+          const isActive = field.id === activeFieldId;
 
           return (
             <div key={field.id} className="relative">
@@ -43,6 +46,7 @@ export function FieldListPanel({
                 className={cn(
                   "group flex h-8 cursor-pointer items-center gap-2 rounded px-2 text-xs hover:bg-fill-tertiary",
                   isHidden && "opacity-50",
+                  isActive && "bg-fill-tertiary",
                 )}
                 onClick={() => onEditField(field.id)}
               >

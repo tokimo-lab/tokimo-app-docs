@@ -1,4 +1,3 @@
-import { cn } from "@tokiomo/components";
 import {
   Calendar,
   CheckSquare,
@@ -140,23 +139,20 @@ export function FieldConfigPanel({
         onClick={onClose}
       />
       <div
-        className={cn(
-          "w-[300px] rounded-lg border border-border-base bg-surface-base shadow-lg",
-          triggerRef ? "fixed" : "absolute top-full left-0 z-50 mt-1",
-        )}
+        className="flex"
         style={
           triggerRef
-            ? { top: pos.top, left: pos.left, zIndex: 9999 }
-            : undefined
+            ? {
+                position: "fixed",
+                top: pos.top,
+                left: pos.left,
+                zIndex: 9999,
+              }
+            : { position: "absolute", top: "100%", left: 0, marginTop: 4 }
         }
       >
-        {editingField ? (
-          <FieldEditorPanel
-            field={editingField}
-            onUpdate={(partial) => onUpdateField(editingField.id, partial)}
-            onBack={() => setEditingFieldId(null)}
-          />
-        ) : (
+        {/* Left: field list (always visible) */}
+        <div className="w-[280px] rounded-lg border border-border-base bg-surface-base shadow-lg">
           <FieldListPanel
             fields={fields}
             hiddenFieldIds={hiddenFieldIds}
@@ -164,7 +160,19 @@ export function FieldConfigPanel({
             onEditField={(id) => setEditingFieldId(id)}
             onDeleteField={onDeleteField}
             onAddNew={handleAddNew}
+            activeFieldId={editingFieldId}
           />
+        </div>
+
+        {/* Right: field editor (slides out when editing) */}
+        {editingField && (
+          <div className="ml-1 w-[280px] rounded-lg border border-border-base bg-surface-base shadow-lg">
+            <FieldEditorPanel
+              field={editingField}
+              onUpdate={(partial) => onUpdateField(editingField.id, partial)}
+              onBack={() => setEditingFieldId(null)}
+            />
+          </div>
         )}
       </div>
     </>

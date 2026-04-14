@@ -30,7 +30,6 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import { FieldConfigPanel } from "../field-config";
 import type { Field, FieldType } from "../types";
 
 const CHECKBOX_COL_WIDTH = 40;
@@ -93,13 +92,13 @@ export function GridHeader({
   onFilterField,
   onGroupField,
   onFreezeUpTo,
-  hiddenFieldIds,
-  onToggleFieldVisibility,
+  hiddenFieldIds: _hiddenFieldIds,
+  onToggleFieldVisibility: _onToggleFieldVisibility,
   rowNumberWidth,
   rowHeightPx,
 }: GridHeaderProps) {
-  const [showAddField, setShowAddField] = useState(false);
-  const addFieldBtnRef = useRef<HTMLButtonElement>(null);
+  const [_showAddField, _setShowAddField] = useState(false);
+  const _addFieldBtnRef = useRef<HTMLButtonElement>(null);
   const headerHeight = Math.max(36, rowHeightPx ?? 36);
 
   return (
@@ -151,25 +150,13 @@ export function GridHeader({
         style={{ width: ADD_COL_WIDTH }}
       >
         <button
-          ref={addFieldBtnRef}
           type="button"
           className="flex h-full w-full cursor-pointer items-center justify-center text-fg-muted hover:bg-fill-tertiary"
-          onClick={() => setShowAddField((v) => !v)}
+          onClick={() => onAddField("新字段", "text")}
           title="新增字段"
         >
           <Plus size={14} />
         </button>
-        <FieldConfigPanel
-          open={showAddField}
-          onClose={() => setShowAddField(false)}
-          fields={fields}
-          onAddField={onAddField}
-          onUpdateField={(fid, p) => onUpdateField(fid, p)}
-          onDeleteField={onDeleteField}
-          hiddenFieldIds={hiddenFieldIds}
-          onToggleFieldVisibility={onToggleFieldVisibility}
-          triggerRef={addFieldBtnRef}
-        />
       </div>
 
       {/* Spacer */}
