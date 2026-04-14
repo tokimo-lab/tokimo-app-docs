@@ -1,6 +1,6 @@
-import { cn } from "@tokiomo/components";
+import type { DropdownMenuItem } from "@tokiomo/components";
+import { cn, Dropdown } from "@tokiomo/components";
 import { Eye, EyeOff, Lock, MoreHorizontal, Plus } from "lucide-react";
-import { useState } from "react";
 import type { Field } from "../types";
 import { FIELD_TYPE_ICON } from "./FieldConfigPanel";
 
@@ -23,8 +23,6 @@ export function FieldListPanel({
   onAddNew,
   activeFieldId,
 }: FieldListPanelProps) {
-  const [menuFieldId, setMenuFieldId] = useState<string | null>(null);
-
   return (
     <div className="flex flex-col">
       <div className="px-3 pt-3 pb-2 text-xs font-medium text-fg-secondary">
@@ -76,62 +74,35 @@ export function FieldListPanel({
                     <Lock size={14} />
                   </span>
                 ) : (
-                  <button
-                    type="button"
-                    className={cn(
-                      "shrink-0 cursor-pointer rounded p-0.5 text-fg-muted hover:bg-fill-secondary",
-                      menuFieldId !== field.id &&
-                        "opacity-0 group-hover:opacity-100",
-                    )}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuFieldId(
-                        menuFieldId === field.id ? null : field.id,
-                      );
+                  <Dropdown
+                    trigger={["click"]}
+                    placement="bottomRight"
+                    menu={{
+                      items: [
+                        {
+                          key: "edit",
+                          label: "编辑",
+                          onClick: () => onEditField(field.id),
+                        },
+                        {
+                          key: "delete",
+                          label: "删除",
+                          danger: true,
+                          onClick: () => onDeleteField(field.id),
+                        },
+                      ] satisfies DropdownMenuItem[],
                     }}
                   >
-                    <MoreHorizontal size={14} />
-                  </button>
+                    <button
+                      type="button"
+                      className="shrink-0 cursor-pointer rounded p-0.5 text-fg-muted opacity-0 hover:bg-fill-secondary group-hover:opacity-100"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreHorizontal size={14} />
+                    </button>
+                  </Dropdown>
                 )}
               </div>
-
-              {/* Context menu */}
-              {menuFieldId === field.id && (
-                <>
-                  {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
-                  {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
-                  <div
-                    className="fixed inset-0"
-                    style={{ zIndex: 1 }}
-                    onClick={() => setMenuFieldId(null)}
-                  />
-                  <div
-                    className="absolute top-full right-2 min-w-[100px] rounded border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl py-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
-                    style={{ zIndex: 2 }}
-                  >
-                    <button
-                      type="button"
-                      className="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-                      onClick={() => {
-                        setMenuFieldId(null);
-                        onEditField(field.id);
-                      }}
-                    >
-                      编辑
-                    </button>
-                    <button
-                      type="button"
-                      className="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-xs text-red-600 hover:bg-fill-tertiary"
-                      onClick={() => {
-                        setMenuFieldId(null);
-                        onDeleteField(field.id);
-                      }}
-                    >
-                      删除
-                    </button>
-                  </div>
-                </>
-              )}
             </div>
           );
         })}

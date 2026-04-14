@@ -1,6 +1,6 @@
-import { cn } from "@tokiomo/components";
+import { cn, Dropdown } from "@tokiomo/components";
 import { ArrowUpDown, Calendar, Filter, Plus } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { FilterBuilder } from "../toolbar/FilterBuilder";
 import { SortBuilder } from "../toolbar/SortBuilder";
 import type { BaseEditorState } from "../useBaseEditor";
@@ -15,26 +15,13 @@ interface CalendarToolbarProps {
 export function CalendarToolbar({ state }: CalendarToolbarProps) {
   const { activeView, activeTable, fields } = state;
   const [activePanel, setActivePanel] = useState<PanelType>(null);
-  const toolbarRef = useRef<HTMLDivElement>(null);
 
-  const togglePanel = useCallback((panel: PanelType) => {
-    setActivePanel((prev) => (prev === panel ? null : panel));
-  }, []);
+  const openPanel = useCallback(
+    (panel: PanelType) => (open: boolean) =>
+      setActivePanel(open ? panel : null),
+    [],
+  );
   const closePanel = useCallback(() => setActivePanel(null), []);
-
-  useEffect(() => {
-    if (!activePanel) return;
-    const handler = (e: PointerEvent) => {
-      if (
-        toolbarRef.current &&
-        !toolbarRef.current.contains(e.target as Node)
-      ) {
-        setActivePanel(null);
-      }
-    };
-    document.addEventListener("pointerdown", handler);
-    return () => document.removeEventListener("pointerdown", handler);
-  }, [activePanel]);
 
   if (!activeView || !activeTable) return null;
 
@@ -45,10 +32,7 @@ export function CalendarToolbar({ state }: CalendarToolbarProps) {
   );
 
   return (
-    <div
-      ref={toolbarRef}
-      className="flex items-center gap-1 border-b border-border-subtle px-3 py-1"
-    >
+    <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
       <div className="flex items-center gap-1">
         <button
           type="button"
@@ -62,11 +46,18 @@ export function CalendarToolbar({ state }: CalendarToolbarProps) {
         <div className="mx-1 h-4 w-px bg-border-subtle" />
 
         {/* Calendar config */}
-        <div className="relative">
+        <Dropdown
+          trigger={["click"]}
+          open={activePanel === "config"}
+          onOpenChange={openPanel("config")}
+          placement="bottomLeft"
+          dropdownRender={() => (
+            <CalendarConfigPanel state={state} onClose={closePanel} />
+          )}
+        >
           <button
             type="button"
             className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary"
-            onClick={() => togglePanel("config")}
           >
             <Calendar size={14} />
             日历配置
@@ -74,15 +65,24 @@ export function CalendarToolbar({ state }: CalendarToolbarProps) {
               <span className="text-fg-secondary">{dateField.name}</span>
             )}
           </button>
-          {activePanel === "config" && (
-            <ToolbarPopup onClose={closePanel}>
-              <CalendarConfigPanel state={state} onClose={closePanel} />
-            </ToolbarPopup>
-          )}
-        </div>
+        </Dropdown>
 
         {/* Filter */}
-        <div className="relative">
+        <Dropdown
+          trigger={["click"]}
+          open={activePanel === "filter"}
+          onOpenChange={openPanel("filter")}
+          placement="bottomLeft"
+          dropdownRender={() => (
+            <FilterBuilder
+              conditions={activeView.filters.conditions}
+              conjunction={activeView.filters.conjunction}
+              fields={activeTable.fields}
+              onChange={state.setFilters}
+              onClose={closePanel}
+            />
+          )}
+        >
           <button
             type="button"
             className={cn(
@@ -91,7 +91,6 @@ export function CalendarToolbar({ state }: CalendarToolbarProps) {
                 ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                 : "text-fg-muted hover:bg-fill-tertiary",
             )}
-            onClick={() => togglePanel("filter")}
           >
             <Filter size={14} />
             筛选
@@ -101,21 +100,23 @@ export function CalendarToolbar({ state }: CalendarToolbarProps) {
               </span>
             )}
           </button>
-          {activePanel === "filter" && (
-            <ToolbarPopup onClose={closePanel}>
-              <FilterBuilder
-                conditions={activeView.filters.conditions}
-                conjunction={activeView.filters.conjunction}
-                fields={activeTable.fields}
-                onChange={state.setFilters}
-                onClose={closePanel}
-              />
-            </ToolbarPopup>
-          )}
-        </div>
+        </Dropdown>
 
         {/* Sort */}
-        <div className="relative">
+        <Dropdown
+          trigger={["click"]}
+          open={activePanel === "sort"}
+          onOpenChange={openPanel("sort")}
+          placement="bottomLeft"
+          dropdownRender={() => (
+            <SortBuilder
+              sorts={activeView.sorts}
+              fields={activeTable.fields}
+              onChange={state.setSorts}
+              onClose={closePanel}
+            />
+          )}
+        >
           <button
             type="button"
             className={cn(
@@ -124,7 +125,6 @@ export function CalendarToolbar({ state }: CalendarToolbarProps) {
                 ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                 : "text-fg-muted hover:bg-fill-tertiary",
             )}
-            onClick={() => togglePanel("sort")}
           >
             <ArrowUpDown size={14} />
             排序
@@ -134,37 +134,9 @@ export function CalendarToolbar({ state }: CalendarToolbarProps) {
               </span>
             )}
           </button>
-          {activePanel === "sort" && (
-            <ToolbarPopup onClose={closePanel}>
-              <SortBuilder
-                sorts={activeView.sorts}
-                fields={activeTable.fields}
-                onChange={state.setSorts}
-                onClose={closePanel}
-              />
-            </ToolbarPopup>
-          )}
-        </div>
+        </Dropdown>
       </div>
       <div className="flex-1" />
-    </div>
-  );
-}
-
-function ToolbarPopup({
-  children,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="absolute top-full left-0 z-50 mt-1"
-      style={{
-        animation: "toolbar-popup-in 150ms ease-out",
-      }}
-    >
-      {children}
     </div>
   );
 }

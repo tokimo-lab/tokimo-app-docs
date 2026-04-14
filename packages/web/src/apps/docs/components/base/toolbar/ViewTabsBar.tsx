@@ -1,4 +1,5 @@
-import { cn } from "@tokiomo/components";
+import type { DropdownMenuItem } from "@tokiomo/components";
+import { cn, Dropdown } from "@tokiomo/components";
 import {
   BarChart3,
   Calendar,
@@ -11,7 +12,6 @@ import {
   Table,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import type { BaseView, ViewType } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
 
@@ -48,11 +48,17 @@ interface ViewTabsBarProps {
 
 export function ViewTabsBar({ state }: ViewTabsBarProps) {
   const { activeView, activeTable } = state;
-  const [showNewViewMenu, setShowNewViewMenu] = useState(false);
 
   if (!activeTable) return null;
 
   const views = activeTable.views;
+
+  const newViewItems: DropdownMenuItem[] = VIEW_TYPE_ORDER.map((vt) => ({
+    key: vt,
+    label: VIEW_TYPE_LABELS[vt],
+    icon: VIEW_TYPE_ICON[vt],
+    onClick: () => state.addViewWithType(vt),
+  }));
 
   return (
     <div className="flex items-center border-b border-border-subtle bg-surface-secondary px-2">
@@ -70,46 +76,20 @@ export function ViewTabsBar({ state }: ViewTabsBarProps) {
         ))}
       </div>
 
-      {/* Add view button with dropdown */}
-      <div className="relative">
+      {/* Add view dropdown */}
+      <Dropdown
+        trigger={["click"]}
+        placement="bottomLeft"
+        menu={{ items: newViewItems }}
+      >
         <button
           type="button"
           className="ml-1 flex shrink-0 cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary"
-          onClick={() => setShowNewViewMenu((v) => !v)}
         >
           <Plus size={14} />
           <span>新建视图</span>
         </button>
-        {showNewViewMenu && (
-          <>
-            {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
-            <div
-              className="fixed inset-0 z-40"
-              onClick={() => setShowNewViewMenu(false)}
-            />
-            <div
-              className="absolute top-full left-0 z-50 mt-1 min-w-[150px] rounded border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl py-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
-              style={{ animation: "toolbar-popup-in 150ms ease-out" }}
-            >
-              {VIEW_TYPE_ORDER.map((vt) => (
-                <button
-                  key={vt}
-                  type="button"
-                  className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-                  onClick={() => {
-                    state.addViewWithType(vt);
-                    setShowNewViewMenu(false);
-                  }}
-                >
-                  {VIEW_TYPE_ICON[vt]}
-                  {VIEW_TYPE_LABELS[vt]}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+      </Dropdown>
     </div>
   );
 }
@@ -137,8 +117,6 @@ function ViewTab({
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState(view.name);
   const inputRef = useRef<HTMLInputElement>(null);
-  const tabRef = useRef<HTMLDivElement>(null);
-  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
 
   const commitRename = useCallback(() => {
     const trimmed = draft.trim();
@@ -148,121 +126,89 @@ function ViewTab({
     setRenaming(false);
   }, [draft, view.name, onRename]);
 
-  const startRename = useCallback(() => {
-    setDraft(view.name);
-    setRenaming(true);
-    setMenuOpen(false);
-    setTimeout(() => inputRef.current?.focus(), 0);
-  }, [view.name]);
-
-  const openMenu = useCallback(() => {
-    if (tabRef.current) {
-      const rect = tabRef.current.getBoundingClientRect();
-      setMenuPos({ top: rect.bottom + 4, left: rect.left });
-    }
-    setMenuOpen(true);
-  }, []);
-
   useEffect(() => {
     setDraft(view.name);
   }, [view.name]);
 
   const viewIcon = VIEW_TYPE_ICON[view.type] ?? <LayoutGrid size={14} />;
 
-  return (
-    <div ref={tabRef} className="group relative flex items-center">
-      <button
-        type="button"
-        className={cn(
-          "flex cursor-pointer items-center gap-1.5 border-b-2 px-3 py-2 text-xs transition-colors",
-          isActive
-            ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
-            : "border-transparent text-fg-muted hover:text-fg-secondary",
-        )}
-        onClick={onSelect}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          openMenu();
-        }}
-      >
-        {viewIcon}
-        {renaming ? (
-          <input
-            ref={inputRef}
-            className="w-16 border-none bg-transparent text-xs outline-none"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitRename}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commitRename();
-              if (e.key === "Escape") setRenaming(false);
-            }}
-            onClick={(e) => e.stopPropagation()}
-          />
-        ) : (
-          <span>{view.name}</span>
-        )}
-        {/* More button — inside the tab so it stays within the underline */}
-        {!renaming && (isActive || menuOpen) && (
-          // biome-ignore lint/a11y/useKeyWithClickEvents: inner click zone
-          // biome-ignore lint/a11y/noStaticElementInteractions: inner click zone
-          <span
-            className="ml-0.5 inline-flex cursor-pointer rounded p-0.5 text-fg-muted hover:bg-fill-tertiary"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (menuOpen) {
-                setMenuOpen(false);
-              } else {
-                openMenu();
-              }
-            }}
-          >
-            <MoreVertical size={12} />
-          </span>
-        )}
-      </button>
+  const tabMenuItems: DropdownMenuItem[] = [
+    {
+      key: "rename",
+      label: "重命名",
+      onClick: () => {
+        setDraft(view.name);
+        setRenaming(true);
+        setTimeout(() => inputRef.current?.focus(), 0);
+      },
+    },
+    ...(canDelete
+      ? [
+          {
+            key: "delete",
+            label: "删除视图",
+            danger: true,
+            onClick: onDelete,
+          } satisfies DropdownMenuItem,
+        ]
+      : []),
+  ];
 
-      {/* Dropdown menu — rendered via portal to escape overflow clipping */}
-      {menuOpen &&
-        createPortal(
-          <>
-            {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
-            <div
-              className="fixed inset-0 z-[9999]"
-              onClick={() => setMenuOpen(false)}
+  return (
+    <Dropdown
+      open={menuOpen}
+      onOpenChange={setMenuOpen}
+      trigger={[]}
+      placement="bottomLeft"
+      menu={{ items: tabMenuItems }}
+    >
+      <div className="group relative flex items-center">
+        <button
+          type="button"
+          className={cn(
+            "flex cursor-pointer items-center gap-1.5 border-b-2 px-3 py-2 text-xs transition-colors",
+            isActive
+              ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+              : "border-transparent text-fg-muted hover:text-fg-secondary",
+          )}
+          onClick={onSelect}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setMenuOpen(true);
+          }}
+        >
+          {viewIcon}
+          {renaming ? (
+            <input
+              ref={inputRef}
+              className="w-16 border-none bg-transparent text-xs outline-none"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commitRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitRename();
+                if (e.key === "Escape") setRenaming(false);
+              }}
+              onClick={(e) => e.stopPropagation()}
             />
-            <div
-              className="fixed z-[10000] min-w-[120px] rounded border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl py-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
-              style={{
-                top: menuPos.top,
-                left: menuPos.left,
-                animation: "toolbar-popup-in 150ms ease-out",
+          ) : (
+            <span>{view.name}</span>
+          )}
+          {/* More button — inside the tab so it stays within the underline */}
+          {!renaming && (isActive || menuOpen) && (
+            <button
+              type="button"
+              className="ml-0.5 inline-flex cursor-pointer rounded p-0.5 text-fg-muted hover:bg-fill-tertiary"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen((v) => !v);
               }}
             >
-              <button
-                type="button"
-                className="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-                onClick={startRename}
-              >
-                重命名
-              </button>
-              {canDelete && (
-                <button
-                  type="button"
-                  className="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-xs text-red-600 hover:bg-fill-tertiary"
-                  onClick={() => {
-                    onDelete();
-                    setMenuOpen(false);
-                  }}
-                >
-                  删除视图
-                </button>
-              )}
-            </div>
-          </>,
-          document.body,
-        )}
-    </div>
+              <MoreVertical size={12} />
+            </button>
+          )}
+        </button>
+      </div>
+    </Dropdown>
   );
 }

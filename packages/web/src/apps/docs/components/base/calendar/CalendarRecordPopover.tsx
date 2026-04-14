@@ -1,13 +1,23 @@
+import {
+  autoUpdate,
+  FloatingPortal,
+  flip,
+  offset,
+  shift,
+  useDismiss,
+  useFloating,
+  useInteractions,
+  useRole,
+} from "@floating-ui/react";
+import { cn, FloatingVibrancy } from "@tokiomo/components";
 import { X } from "lucide-react";
-import { useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import type { BaseRecord, CellValue, Field } from "../types";
 import { FIELD_TYPE_LABELS } from "../utils";
 
 interface CalendarRecordPopoverProps {
   record: BaseRecord;
   fields: Field[];
-  position: { top: number; left: number };
+  anchorEl: HTMLElement;
   onClose: () => void;
   onUpdateCell: (fieldId: string, value: CellValue) => void;
 }
@@ -15,69 +25,84 @@ interface CalendarRecordPopoverProps {
 export function CalendarRecordPopover({
   record,
   fields,
-  position,
+  anchorEl,
   onClose,
   onUpdateCell,
 }: CalendarRecordPopoverProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
+  const { refs, floatingStyles, context } = useFloating({
+    open: true,
+    onOpenChange: (open) => {
+      if (!open) onClose();
+    },
+    placement: "bottom-start",
+    elements: { reference: anchorEl },
+    middleware: [offset(4), flip(), shift({ padding: 8 })],
+    whileElementsMounted: (...args) => autoUpdate(...args),
+  });
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
+  const dismiss = useDismiss(context);
+  const role = useRole(context);
+  const { getFloatingProps } = useInteractions([dismiss, role]);
 
-  // Clamp position to viewport
-  const clampedTop = Math.min(position.top, window.innerHeight - 360);
-  const clampedLeft = Math.min(position.left, window.innerWidth - 320);
+  return (
+    <FloatingPortal>
+      <div
+        ref={refs.setFloating}
+        style={{
+          ...floatingStyles,
+          backdropFilter: "blur(var(--window-blur, 24px))",
+          WebkitBackdropFilter: "blur(var(--window-blur, 24px))",
+          borderRadius: "var(--window-radius, 10px)",
+        }}
+        className={cn(
+          "z-[9999] w-80 overflow-hidden border shadow-lg ring-1 select-none",
+          "bg-[rgba(255,255,255,calc(var(--window-opacity,85)/100))] border-black/[0.06] ring-black/5",
+          "dark:bg-[rgba(15,15,25,calc(var(--window-opacity,85)/100))] dark:border-white/[0.08] dark:shadow-black/40 dark:ring-white/5",
+        )}
+        {...getFloatingProps()}
+      >
+        <FloatingVibrancy />
+        <div className="relative">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-border-subtle px-3 py-2">
+            <span className="text-xs font-medium text-fg-primary">
+              记录详情
+            </span>
+            <button
+              type="button"
+              className="cursor-pointer rounded p-0.5 text-fg-muted hover:bg-fill-tertiary"
+              onClick={onClose}
+            >
+              <X size={14} />
+            </button>
+          </div>
 
-  return createPortal(
-    <div
-      ref={panelRef}
-      className="fixed z-[9999] w-80 rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
-      style={{ top: clampedTop, left: clampedLeft }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border-subtle px-3 py-2">
-        <span className="text-xs font-medium text-fg-primary">记录详情</span>
-        <button
-          type="button"
-          className="cursor-pointer rounded p-0.5 text-fg-muted hover:bg-fill-tertiary"
-          onClick={onClose}
-        >
-          <X size={14} />
-        </button>
-      </div>
-
-      {/* Fields */}
-      <div className="max-h-72 overflow-y-auto p-3">
-        <div className="flex flex-col gap-3">
-          {fields.map((field) => {
-            const value = record.data[field.id];
-            return (
-              <div key={field.id}>
-                <div className="mb-1 text-[10px] text-fg-muted">
-                  {field.name}
-                  <span className="ml-1 text-fg-disabled">
-                    ({FIELD_TYPE_LABELS[field.type]})
-                  </span>
-                </div>
-                <FieldValueDisplay
-                  field={field}
-                  value={value}
-                  onUpdate={(v) => onUpdateCell(field.id, v)}
-                />
-              </div>
-            );
-          })}
+          {/* Fields */}
+          <div className="max-h-72 overflow-y-auto p-3">
+            <div className="flex flex-col gap-3">
+              {fields.map((field) => {
+                const value = record.data[field.id];
+                return (
+                  <div key={field.id}>
+                    <div className="mb-1 text-[10px] text-fg-muted">
+                      {field.name}
+                      <span className="ml-1 text-fg-disabled">
+                        ({FIELD_TYPE_LABELS[field.type]})
+                      </span>
+                    </div>
+                    <FieldValueDisplay
+                      field={field}
+                      value={value}
+                      onUpdate={(v) => onUpdateCell(field.id, v)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
-    </div>,
-    document.body,
+    </FloatingPortal>
   );
 }
 

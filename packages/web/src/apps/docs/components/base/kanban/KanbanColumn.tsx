@@ -1,6 +1,7 @@
-import { cn } from "@tokiomo/components";
+import type { DropdownMenuItem } from "@tokiomo/components";
+import { cn, Dropdown } from "@tokiomo/components";
 import { MoreHorizontal, Plus } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import type { BaseEditorState } from "../useBaseEditor";
 import type { KanbanGroup } from "../utils";
 import { KanbanCard } from "./KanbanCard";
@@ -27,7 +28,6 @@ export function KanbanColumn({
   draggingRecordId,
   onPointerDragStart,
 }: KanbanColumnProps) {
-  const [showMenu, setShowMenu] = useState(false);
   const isUncategorized =
     group.id === "__uncategorized" || group.id === "__false";
 
@@ -67,49 +67,36 @@ export function KanbanColumn({
           <span className="text-xs text-fg-muted">{group.records.length}</span>
         </div>
         {!isUncategorized && (
-          <div className="relative">
+          <Dropdown
+            trigger={["click"]}
+            placement="bottomRight"
+            menu={{
+              items: [
+                {
+                  key: "rename",
+                  label: "重命名",
+                  onClick: () => {
+                    const newName = prompt("重命名分组", group.label);
+                    if (newName?.trim())
+                      state.renameKanbanGroup(group.id, newName.trim());
+                  },
+                },
+                {
+                  key: "delete",
+                  label: "删除分组",
+                  danger: true,
+                  onClick: () => state.deleteKanbanGroup(group.id),
+                },
+              ] satisfies DropdownMenuItem[],
+            }}
+          >
             <button
               type="button"
               className="cursor-pointer rounded p-1 hover:bg-fill-tertiary"
-              onClick={() => setShowMenu((v) => !v)}
             >
               <MoreHorizontal size={14} className="text-fg-muted" />
             </button>
-            {showMenu && (
-              <>
-                {/* biome-ignore lint/a11y/useKeyWithClickEvents: overlay */}
-                {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowMenu(false)}
-                />
-                <div className="absolute top-full right-0 z-50 mt-1 w-36 rounded border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl py-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-                  <button
-                    type="button"
-                    className="w-full cursor-pointer px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-                    onClick={() => {
-                      const newName = prompt("重命名分组", group.label);
-                      if (newName?.trim())
-                        state.renameKanbanGroup(group.id, newName.trim());
-                      setShowMenu(false);
-                    }}
-                  >
-                    重命名
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full cursor-pointer px-3 py-1.5 text-left text-xs text-red-600 hover:bg-fill-tertiary"
-                    onClick={() => {
-                      state.deleteKanbanGroup(group.id);
-                      setShowMenu(false);
-                    }}
-                  >
-                    删除分组
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          </Dropdown>
         )}
       </div>
 

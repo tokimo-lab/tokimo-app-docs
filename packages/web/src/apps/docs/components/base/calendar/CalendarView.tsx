@@ -30,10 +30,9 @@ export function CalendarView({ state }: CalendarViewProps) {
   const { activeView, fields, records } = state;
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
-  const [popoverAnchor, setPopoverAnchor] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
+  const [popoverAnchorEl, setPopoverAnchorEl] = useState<HTMLElement | null>(
+    null,
+  );
 
   const dateFieldId = activeView?.calendarConfig?.dateFieldId ?? "";
   const dateField = fields.find((f) => f.id === dateFieldId);
@@ -142,8 +141,7 @@ export function CalendarView({ state }: CalendarViewProps) {
           | HTMLElement
           | undefined;
         if (buttonEl) {
-          const rect = buttonEl.getBoundingClientRect();
-          setPopoverAnchor({ top: rect.bottom + 4, left: rect.left });
+          setPopoverAnchorEl(buttonEl);
           setSelectedRecordId(dragState.recordId);
         }
       }
@@ -295,14 +293,14 @@ export function CalendarView({ state }: CalendarViewProps) {
       </div>
 
       {/* Record popover */}
-      {selectedRecord && popoverAnchor && (
+      {selectedRecord && popoverAnchorEl && (
         <CalendarRecordPopover
           record={selectedRecord}
           fields={fields}
-          position={popoverAnchor}
+          anchorEl={popoverAnchorEl}
           onClose={() => {
             setSelectedRecordId(null);
-            setPopoverAnchor(null);
+            setPopoverAnchorEl(null);
           }}
           onUpdateCell={(fieldId, value) =>
             state.updateCell(selectedRecord.id, fieldId, value)

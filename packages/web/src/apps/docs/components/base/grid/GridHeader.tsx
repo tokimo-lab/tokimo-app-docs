@@ -1,4 +1,5 @@
-import { cn } from "@tokiomo/components";
+import type { DropdownMenuItem } from "@tokiomo/components";
+import { cn, Dropdown } from "@tokiomo/components";
 import {
   ArrowDownZA,
   ArrowUpAZ,
@@ -224,10 +225,73 @@ function HeaderCell({
     setRenaming(false);
   }, [draft, onUpdate]);
 
-  const closeMenuAndRun = (action: () => void) => {
-    action();
-    setMenuOpen(false);
-  };
+  const menuItems: DropdownMenuItem[] = [
+    {
+      key: "rename",
+      label: "修改字段/列",
+      icon: <Edit size={12} />,
+      onClick: () => {
+        setRenaming(true);
+        setDraft(field.name);
+        setTimeout(() => inputRef.current?.focus(), 0);
+      },
+    },
+    { key: "editDesc", label: "编辑字段/列描述", icon: <FileText size={12} /> },
+    { type: "divider" },
+    { key: "fill-color", label: "整列填色", icon: <Paintbrush size={12} /> },
+    {
+      key: "duplicate",
+      label: "复制字段/列",
+      icon: <Copy size={12} />,
+      onClick: onDuplicate,
+    },
+    {
+      key: "insert-after",
+      label: "向右插入字段/列",
+      icon: <PlusCircle size={12} />,
+      onClick: onInsertAfter,
+    },
+    { type: "divider" },
+    {
+      key: "freeze",
+      label: "冻结至此字段/列",
+      icon: <Lock size={12} />,
+      onClick: onFreeze,
+    },
+    { type: "divider" },
+    {
+      key: "sort-asc",
+      label: "A → Z 排序",
+      icon: <ArrowUpAZ size={12} />,
+      onClick: onSortAsc,
+    },
+    {
+      key: "sort-desc",
+      label: "Z → A 排序",
+      icon: <ArrowDownZA size={12} />,
+      onClick: onSortDesc,
+    },
+    {
+      key: "group",
+      label: `按「${field.name}」分组`,
+      icon: <Group size={12} />,
+      onClick: onGroup,
+    },
+    {
+      key: "filter",
+      label: `按「${field.name}」筛选`,
+      icon: <Filter size={12} />,
+      onClick: onFilter,
+    },
+    { type: "divider" },
+    {
+      key: "delete",
+      label: "删除字段/列",
+      icon: <Trash2 size={12} />,
+      danger: true,
+      onClick: onDelete,
+    },
+  ];
 
   return (
     <div
@@ -255,138 +319,23 @@ function HeaderCell({
         <span className="truncate">{field.name}</span>
       )}
 
-      {/* Context menu button */}
-      <button
-        type="button"
-        className={cn(
-          "ml-auto hidden cursor-pointer rounded p-0.5 text-fg-muted hover:bg-fill-tertiary group-hover:block",
-          menuOpen && "block",
-        )}
-        onClick={() => setMenuOpen((v) => !v)}
+      {/* Context menu dropdown */}
+      <Dropdown
+        trigger={["click"]}
+        placement="bottomRight"
+        onOpenChange={setMenuOpen}
+        menu={{ items: menuItems }}
       >
-        <ChevronDown size={12} />
-      </button>
-
-      {menuOpen && (
-        <>
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: close dropdown */}
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: overlay */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setMenuOpen(false)}
-          />
-          <div className="absolute top-full right-0 z-50 mt-1 min-w-[180px] rounded border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl py-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            {/* Group 1: Edit */}
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-              onClick={() => {
-                setRenaming(true);
-                setDraft(field.name);
-                setMenuOpen(false);
-                setTimeout(() => inputRef.current?.focus(), 0);
-              }}
-            >
-              <Edit size={12} />
-              修改字段/列
-            </button>
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-              onClick={() => setMenuOpen(false)}
-            >
-              <FileText size={12} />
-              编辑字段/列描述
-            </button>
-
-            <div className="my-1 h-px bg-border-subtle" />
-
-            {/* Group 2: Copy / Insert */}
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-              onClick={() => setMenuOpen(false)}
-            >
-              <Paintbrush size={12} />
-              整列填色
-            </button>
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-              onClick={() => closeMenuAndRun(onDuplicate)}
-            >
-              <Copy size={12} />
-              复制字段/列
-            </button>
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-              onClick={() => closeMenuAndRun(onInsertAfter)}
-            >
-              <PlusCircle size={12} />
-              向右插入字段/列
-            </button>
-
-            <div className="my-1 h-px bg-border-subtle" />
-
-            {/* Group 3: Freeze */}
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-              onClick={() => closeMenuAndRun(onFreeze)}
-            >
-              <Lock size={12} />
-              冻结至此字段/列
-            </button>
-
-            <div className="my-1 h-px bg-border-subtle" />
-
-            {/* Group 4: Sort / Group / Filter */}
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-              onClick={() => closeMenuAndRun(onSortAsc)}
-            >
-              <ArrowUpAZ size={12} />A → Z 排序
-            </button>
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-              onClick={() => closeMenuAndRun(onSortDesc)}
-            >
-              <ArrowDownZA size={12} />Z → A 排序
-            </button>
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-              onClick={() => closeMenuAndRun(onGroup)}
-            >
-              <Group size={12} />
-              按「{field.name}」分组
-            </button>
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-fill-tertiary"
-              onClick={() => closeMenuAndRun(onFilter)}
-            >
-              <Filter size={12} />
-              按「{field.name}」筛选
-            </button>
-
-            <div className="my-1 h-px bg-border-subtle" />
-
-            {/* Group 5: Delete */}
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs text-red-600 hover:bg-fill-tertiary"
-              onClick={() => closeMenuAndRun(onDelete)}
-            >
-              <Trash2 size={12} />
-              删除字段/列
-            </button>
-          </div>
-        </>
-      )}
+        <button
+          type="button"
+          className={cn(
+            "ml-auto hidden cursor-pointer rounded p-0.5 text-fg-muted hover:bg-fill-tertiary group-hover:block",
+            menuOpen && "block",
+          )}
+        >
+          <ChevronDown size={12} />
+        </button>
+      </Dropdown>
 
       {/* Resize handle */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: resize handle */}

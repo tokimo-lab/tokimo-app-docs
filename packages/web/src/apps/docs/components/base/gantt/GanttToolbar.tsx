@@ -1,6 +1,6 @@
-import { cn } from "@tokiomo/components";
+import { cn, Dropdown } from "@tokiomo/components";
 import { ArrowUpDown, Filter, GanttChart, Group, Plus } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { FieldConfigPanel } from "../field-config";
 import { FilterBuilder } from "../toolbar/FilterBuilder";
 import { GroupBuilder } from "../toolbar/GroupBuilder";
@@ -17,26 +17,13 @@ interface GanttToolbarProps {
 export function GanttToolbar({ state }: GanttToolbarProps) {
   const { activeView, activeTable } = state;
   const [activePanel, setActivePanel] = useState<PanelType>(null);
-  const toolbarRef = useRef<HTMLDivElement>(null);
 
-  const togglePanel = useCallback((panel: PanelType) => {
-    setActivePanel((prev) => (prev === panel ? null : panel));
-  }, []);
+  const openPanel = useCallback(
+    (panel: PanelType) => (open: boolean) =>
+      setActivePanel(open ? panel : null),
+    [],
+  );
   const closePanel = useCallback(() => setActivePanel(null), []);
-
-  useEffect(() => {
-    if (!activePanel) return;
-    const handler = (e: PointerEvent) => {
-      if (
-        toolbarRef.current &&
-        !toolbarRef.current.contains(e.target as Node)
-      ) {
-        setActivePanel(null);
-      }
-    };
-    document.addEventListener("pointerdown", handler);
-    return () => document.removeEventListener("pointerdown", handler);
-  }, [activePanel]);
 
   if (!activeView || !activeTable) return null;
 
@@ -45,10 +32,7 @@ export function GanttToolbar({ state }: GanttToolbarProps) {
   const groupCount = activeView.groups.length;
 
   return (
-    <div
-      ref={toolbarRef}
-      className="flex items-center gap-1 border-b border-border-subtle px-3 py-1"
-    >
+    <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
       <div className="flex items-center gap-1">
         <button
           type="button"
@@ -64,7 +48,7 @@ export function GanttToolbar({ state }: GanttToolbarProps) {
         {/* Field config */}
         <FieldConfigPanel
           open={activePanel === "fieldConfig"}
-          onOpenChange={(open) => setActivePanel(open ? "fieldConfig" : null)}
+          onOpenChange={openPanel("fieldConfig")}
           fields={state.fields}
           onAddField={state.addField}
           onUpdateField={state.updateField}
@@ -81,24 +65,40 @@ export function GanttToolbar({ state }: GanttToolbarProps) {
         />
 
         {/* Gantt config */}
-        <div className="relative">
+        <Dropdown
+          trigger={["click"]}
+          open={activePanel === "config"}
+          onOpenChange={openPanel("config")}
+          placement="bottomLeft"
+          dropdownRender={() => (
+            <GanttConfigPanel state={state} onClose={closePanel} />
+          )}
+        >
           <button
             type="button"
             className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted hover:bg-fill-tertiary"
-            onClick={() => togglePanel("config")}
           >
             <GanttChart size={14} />
             甘特图配置
           </button>
-          {activePanel === "config" && (
-            <ToolbarPopup onClose={closePanel}>
-              <GanttConfigPanel state={state} onClose={closePanel} />
-            </ToolbarPopup>
-          )}
-        </div>
+        </Dropdown>
 
         {/* Filter */}
-        <div className="relative">
+        <Dropdown
+          trigger={["click"]}
+          open={activePanel === "filter"}
+          onOpenChange={openPanel("filter")}
+          placement="bottomLeft"
+          dropdownRender={() => (
+            <FilterBuilder
+              conditions={activeView.filters.conditions}
+              conjunction={activeView.filters.conjunction}
+              fields={activeTable.fields}
+              onChange={state.setFilters}
+              onClose={closePanel}
+            />
+          )}
+        >
           <button
             type="button"
             className={cn(
@@ -107,7 +107,6 @@ export function GanttToolbar({ state }: GanttToolbarProps) {
                 ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                 : "text-fg-muted hover:bg-fill-tertiary",
             )}
-            onClick={() => togglePanel("filter")}
           >
             <Filter size={14} />
             筛选
@@ -117,21 +116,23 @@ export function GanttToolbar({ state }: GanttToolbarProps) {
               </span>
             )}
           </button>
-          {activePanel === "filter" && (
-            <ToolbarPopup onClose={closePanel}>
-              <FilterBuilder
-                conditions={activeView.filters.conditions}
-                conjunction={activeView.filters.conjunction}
-                fields={activeTable.fields}
-                onChange={state.setFilters}
-                onClose={closePanel}
-              />
-            </ToolbarPopup>
-          )}
-        </div>
+        </Dropdown>
 
         {/* Group */}
-        <div className="relative">
+        <Dropdown
+          trigger={["click"]}
+          open={activePanel === "group"}
+          onOpenChange={openPanel("group")}
+          placement="bottomLeft"
+          dropdownRender={() => (
+            <GroupBuilder
+              groups={activeView.groups}
+              fields={activeTable.fields}
+              onChange={state.setGroups}
+              onClose={closePanel}
+            />
+          )}
+        >
           <button
             type="button"
             className={cn(
@@ -140,7 +141,6 @@ export function GanttToolbar({ state }: GanttToolbarProps) {
                 ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                 : "text-fg-muted hover:bg-fill-tertiary",
             )}
-            onClick={() => togglePanel("group")}
           >
             <Group size={14} />
             分组
@@ -150,20 +150,23 @@ export function GanttToolbar({ state }: GanttToolbarProps) {
               </span>
             )}
           </button>
-          {activePanel === "group" && (
-            <ToolbarPopup onClose={closePanel}>
-              <GroupBuilder
-                groups={activeView.groups}
-                fields={activeTable.fields}
-                onChange={state.setGroups}
-                onClose={closePanel}
-              />
-            </ToolbarPopup>
-          )}
-        </div>
+        </Dropdown>
 
         {/* Sort */}
-        <div className="relative">
+        <Dropdown
+          trigger={["click"]}
+          open={activePanel === "sort"}
+          onOpenChange={openPanel("sort")}
+          placement="bottomLeft"
+          dropdownRender={() => (
+            <SortBuilder
+              sorts={activeView.sorts}
+              fields={activeTable.fields}
+              onChange={state.setSorts}
+              onClose={closePanel}
+            />
+          )}
+        >
           <button
             type="button"
             className={cn(
@@ -172,7 +175,6 @@ export function GanttToolbar({ state }: GanttToolbarProps) {
                 ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                 : "text-fg-muted hover:bg-fill-tertiary",
             )}
-            onClick={() => togglePanel("sort")}
           >
             <ArrowUpDown size={14} />
             排序
@@ -182,37 +184,9 @@ export function GanttToolbar({ state }: GanttToolbarProps) {
               </span>
             )}
           </button>
-          {activePanel === "sort" && (
-            <ToolbarPopup onClose={closePanel}>
-              <SortBuilder
-                sorts={activeView.sorts}
-                fields={activeTable.fields}
-                onChange={state.setSorts}
-                onClose={closePanel}
-              />
-            </ToolbarPopup>
-          )}
-        </div>
+        </Dropdown>
       </div>
       <div className="flex-1" />
-    </div>
-  );
-}
-
-function ToolbarPopup({
-  children,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="absolute top-full left-0 z-50 mt-1"
-      style={{
-        animation: "toolbar-popup-in 150ms ease-out",
-      }}
-    >
-      {children}
     </div>
   );
 }
