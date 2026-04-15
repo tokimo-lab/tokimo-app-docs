@@ -15,8 +15,7 @@ use crate::AppState;
 pub struct CreateSpaceInput {
     pub name: String,
     pub slug: String,
-    pub icon: Option<String>,
-    pub color: Option<String>,
+    pub avatar: Option<serde_json::Value>,
     pub description: Option<String>,
 }
 
@@ -26,9 +25,7 @@ pub struct UpdateSpaceInput {
     pub name: Option<String>,
     pub slug: Option<String>,
     #[serde(default, with = "::serde_with::rust::double_option")]
-    pub icon: Option<Option<String>>,
-    #[serde(default, with = "::serde_with::rust::double_option")]
-    pub color: Option<Option<String>>,
+    pub avatar: Option<Option<serde_json::Value>>,
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub description: Option<Option<String>>,
     pub sort_order: Option<i32>,
@@ -56,8 +53,7 @@ pub async fn create_space(
         &state.db,
         input.name,
         Some(input.slug),
-        input.icon,
-        input.color,
+        input.avatar,
         input.description,
     )
     .await?;
@@ -80,8 +76,7 @@ pub async fn update_space(
         space_repo::UpdateSpaceParams {
             name: input.name,
             slug: input.slug,
-            icon: input.icon,
-            color: input.color,
+            avatar: input.avatar,
             description: input.description,
             sort_order: input.sort_order,
         },

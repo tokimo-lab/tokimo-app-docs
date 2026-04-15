@@ -1,6 +1,7 @@
 import { AppSidebar, Tooltip } from "@tokiomo/components";
 import { PanelLeft, PanelLeftClose, Plus, Settings } from "lucide-react";
 import type { DocSpaceOutput } from "@/generated/rust-types/DocSpaceOutput";
+import { getAvatarColor, getAvatarIcon } from "@/shared/avatar-utils";
 import { AppIcon } from "@/shared/components/icons";
 
 export default function DocsSpaceSidebar({
@@ -24,7 +25,13 @@ export default function DocsSpaceSidebar({
     {
       items: spaces.map((s) => ({
         key: s.id,
-        icon: <AppIcon icon={s.icon} color={s.color} size={20} />,
+        icon: (
+          <AppIcon
+            icon={getAvatarIcon(s.avatar) || s.name}
+            color={getAvatarColor(s.avatar)}
+            size={20}
+          />
+        ),
         label: s.name,
       })),
     },

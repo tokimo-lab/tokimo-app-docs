@@ -9,8 +9,7 @@ pub struct DocSpaceRepo;
 pub struct UpdateSpaceParams {
     pub name: Option<String>,
     pub slug: Option<String>,
-    pub icon: Option<Option<String>>,
-    pub color: Option<Option<String>>,
+    pub avatar: Option<Option<serde_json::Value>>,
     pub description: Option<Option<String>>,
     pub sort_order: Option<i32>,
 }
@@ -37,8 +36,7 @@ impl DocSpaceRepo {
         db: &DatabaseConnection,
         name: String,
         slug: Option<String>,
-        icon: Option<String>,
-        color: Option<String>,
+        avatar: Option<serde_json::Value>,
         description: Option<String>,
     ) -> Result<doc_spaces::Model, AppError> {
         use crate::error::OptionExt;
@@ -56,8 +54,7 @@ impl DocSpaceRepo {
             id: Set(id),
             name: Set(name),
             slug: Set(slug),
-            icon: Set(icon),
-            color: Set(color),
+            avatar: Set(avatar),
             description: Set(description),
             s3_synced: Set(true),
             sort_order: Set(max_order),
@@ -91,11 +88,8 @@ impl DocSpaceRepo {
         if let Some(s) = params.slug {
             active.slug = Set(Some(s));
         }
-        if let Some(i) = params.icon {
-            active.icon = Set(i);
-        }
-        if let Some(c) = params.color {
-            active.color = Set(c);
+        if let Some(a) = params.avatar {
+            active.avatar = Set(a);
         }
         if let Some(d) = params.description {
             active.description = Set(d);
