@@ -20,6 +20,7 @@ import {
 } from "@/apps/docs/lib/doc-node";
 import type { DocNodeOutput } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
+import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
 import { onAiDocumentEdit, openAiAssistant } from "@/lib/ai-assistant-events";
 import { useMessage, useWindowNav } from "@/system";
 import { useAuth } from "@/system/auth/useAuth";
@@ -448,6 +449,103 @@ export function useDocsPage(spaceId: string) {
 
   const handleInsertVfsFile = useCallback(() => setVfsPickerOpen(true), []);
 
+  // ── Attachment upload ──────────────────────────────────────────────
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleAttachmentUpload = useCallback(() => {
+    attachmentInputRef.current?.click();
+  }, []);
+
+  const uploadAndInsertAttachment = useCallback(
+    async (file: File) => {
+      const editor = editorRef.current;
+      const nodeId = stateRef.current.selectedDocId;
+      if (!editor || !nodeId) return;
+
+      // Insert placeholder block with upload progress
+      const placeholderId = crypto.randomUUID();
+      editor.tf.insertNodes({
+        type: "attachment",
+        attachmentId: placeholderId,
+        storageKey: "",
+        fileName: file.name,
+        fileType: file.type || "application/octet-stream",
+        fileSize: file.size,
+        height: null,
+        uploadProgress: 0,
+        children: [{ text: "" }],
+      } as unknown as TElement);
+
+      try {
+        const result = await docAttachmentApi.upload.mutate({
+          nodeId,
+          file,
+          onProgress: (percent) => {
+            // Update progress on the placeholder block
+            for (const [_node, path] of editor.api.nodes({
+              match: (n: TElement) =>
+                (n as unknown as Record<string, unknown>).attachmentId ===
+                placeholderId,
+            })) {
+              editor.tf.setNodes(
+                { uploadProgress: percent } as Partial<TElement>,
+                { at: path },
+              );
+              break;
+            }
+          },
+        });
+
+        // Replace placeholder with final data
+        for (const [_node, path] of editor.api.nodes({
+          match: (n: TElement) =>
+            (n as unknown as Record<string, unknown>).attachmentId ===
+            placeholderId,
+        })) {
+          editor.tf.setNodes(
+            {
+              attachmentId: result.id,
+              storageKey: result.storageKey,
+              fileName: result.fileName,
+              fileType: result.fileType,
+              fileSize: result.fileSize,
+              uploadProgress: undefined,
+            } as Partial<TElement>,
+            { at: path },
+          );
+          break;
+        }
+      } catch (err) {
+        // Remove failed placeholder
+        for (const [_node, path] of editor.api.nodes({
+          match: (n: TElement) =>
+            (n as unknown as Record<string, unknown>).attachmentId ===
+            placeholderId,
+        })) {
+          editor.tf.removeNodes({ at: path });
+          break;
+        }
+        message.error(
+          `附件上传失败: ${err instanceof Error ? err.message : "未知错误"}`,
+        );
+      }
+    },
+    [message],
+  );
+
+  const handleAttachmentFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (!files?.length) return;
+      for (const file of files) {
+        uploadAndInsertAttachment(file);
+      }
+      // Reset so the same file can be re-selected
+      e.target.value = "";
+    },
+    [uploadAndInsertAttachment],
+  );
+
   const handleVfsFileSelected = useCallback((file: VfsFileSelection) => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -576,6 +674,10 @@ export function useDocsPage(spaceId: string) {
     handleOpenAi,
     handleAiAction,
     handleInsertVfsFile,
+    handleAttachmentUpload,
+    handleAttachmentFileChange,
+    attachmentInputRef,
+    uploadAndInsertAttachment,
     handleVfsFileSelected,
     aiUndoContent,
     aiUndoSummary,

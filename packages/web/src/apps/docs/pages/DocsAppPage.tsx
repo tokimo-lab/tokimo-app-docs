@@ -518,6 +518,12 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 onOpenAi={s.handleOpenAi}
                 onAiAction={s.handleAiAction}
                 onInsertVfsFile={s.handleInsertVfsFile}
+                onAttachmentUpload={s.handleAttachmentUpload}
+                onDropFiles={(files) => {
+                  for (const file of files) {
+                    s.uploadAndInsertAttachment(file);
+                  }
+                }}
               />
             )}
           </>
@@ -591,6 +597,15 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
         open={s.vfsPickerOpen}
         onClose={() => s.setVfsPickerOpen(false)}
         onSelect={s.handleVfsFileSelected}
+      />
+
+      {/* Hidden file input for attachment upload */}
+      <input
+        ref={s.attachmentInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={s.handleAttachmentFileChange}
       />
     </div>
   );

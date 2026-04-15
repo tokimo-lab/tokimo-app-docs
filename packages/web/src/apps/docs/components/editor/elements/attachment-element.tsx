@@ -1,7 +1,7 @@
 import { Download, Paperclip, Settings2 } from "lucide-react";
 import type { PlateElementProps } from "platejs/react";
-import { PlateElement, useElement } from "platejs/react";
-import { useEffect, useState } from "react";
+import { PlateElement, useEditorRef, useElement } from "platejs/react";
+import { useCallback, useEffect, useState } from "react";
 import { rustUrl } from "@/lib/rust-api-runtime";
 import { MaterialFileIcon } from "@/shared/components/icons";
 
@@ -213,6 +213,7 @@ function HeightPopover({
 }
 
 export function AttachmentElement(props: PlateElementProps) {
+  const editor = useEditorRef();
   const element = useElement();
   const el = element as unknown as AttachmentData;
   const [showHeightMenu, setShowHeightMenu] = useState(false);
@@ -226,6 +227,18 @@ export function AttachmentElement(props: PlateElementProps) {
 
   const sizeLabel = formatFileSize(fileSize);
   const downloadUrl = storageKey ? getStorageUrl(storageKey) : null;
+
+  const handleHeightChange = useCallback(
+    (h: number | null) => {
+      const path = editor.api.findPath(element);
+      if (path) {
+        editor.tf.setNodes({ height: h } as Record<string, unknown>, {
+          at: path,
+        });
+      }
+    },
+    [editor, element],
+  );
 
   // Uploading state
   if (uploadProgress != null && uploadProgress < 100) {
@@ -315,9 +328,7 @@ export function AttachmentElement(props: PlateElementProps) {
             {showHeightMenu && (
               <HeightPopover
                 current={height}
-                onSelect={(_h) => {
-                  // Height change will be wired up via Slate transforms in upload-integration phase
-                }}
+                onSelect={handleHeightChange}
                 onClose={() => setShowHeightMenu(false)}
               />
             )}

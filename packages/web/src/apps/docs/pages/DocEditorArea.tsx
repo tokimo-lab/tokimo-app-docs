@@ -22,6 +22,8 @@ export function DocEditorArea({
   onOpenAi,
   onAiAction,
   onInsertVfsFile,
+  onAttachmentUpload,
+  onDropFiles,
   readOnly,
 }: {
   doc: DocNodeOutput;
@@ -35,6 +37,8 @@ export function DocEditorArea({
   onOpenAi?: () => void;
   onAiAction?: (actionId: string) => void;
   onInsertVfsFile?: () => void;
+  onAttachmentUpload?: () => void;
+  onDropFiles?: (files: File[]) => void;
   readOnly?: boolean;
 }) {
   const { t } = useTranslation();
@@ -81,6 +85,30 @@ export function DocEditorArea({
     saveViewport({ scrollTop: scrollRef.current.scrollTop });
   }, [saveViewport]);
 
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      if (readOnly || !onDropFiles) return;
+      if (e.dataTransfer.types.includes("Files")) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      }
+    },
+    [readOnly, onDropFiles],
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      if (readOnly || !onDropFiles) return;
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length > 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        onDropFiles(files);
+      }
+    },
+    [readOnly, onDropFiles],
+  );
+
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -90,10 +118,14 @@ export function DocEditorArea({
   }
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: file drop target for attachment upload
     <div
       ref={scrollRef}
+      role="presentation"
       className="flex h-full flex-col overflow-y-auto"
       onScroll={handleScroll}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
       {/* Title input */}
       <div className="mx-auto w-full max-w-3xl px-6 pt-12 pb-2">
@@ -141,6 +173,7 @@ export function DocEditorArea({
           onOpenAi={readOnly ? undefined : onOpenAi}
           onAiAction={readOnly ? undefined : onAiAction}
           onInsertVfsFile={readOnly ? undefined : onInsertVfsFile}
+          onAttachmentUpload={readOnly ? undefined : onAttachmentUpload}
           readOnly={readOnly}
           nodeId={readOnly ? undefined : doc.id}
           userName={user?.name}
