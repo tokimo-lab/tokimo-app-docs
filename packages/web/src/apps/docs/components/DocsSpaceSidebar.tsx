@@ -29,7 +29,7 @@ export default function DocsSpaceSidebar({
           <AppIcon
             icon={getAvatarIcon(s.avatar) || s.name}
             color={getAvatarColor(s.avatar)}
-            size={20}
+            size={24}
           />
         ),
         label: s.name,
