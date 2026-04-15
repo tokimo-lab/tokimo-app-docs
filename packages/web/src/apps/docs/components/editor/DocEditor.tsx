@@ -169,6 +169,38 @@ const autoformatRules = [
   },
 ];
 
+/** Ensure the document always ends with a non-void paragraph so the user can place the cursor after void blocks. */
+const TrailingBlockPlugin = createSlatePlugin({
+  key: "trailingBlock",
+  extendEditor: ({ editor }) => {
+    const origNormalize = editor.normalizeNode;
+    editor.normalizeNode = ((entry: [unknown, number[]]) => {
+      const [, path] = entry;
+      if (path.length === 0 && editor.children.length > 0) {
+        const lastChild = editor.children[editor.children.length - 1];
+        const lastType = (lastChild as Record<string, unknown>)?.type as
+          | string
+          | undefined;
+        const isVoid = lastType ? editor.api.isVoid(lastChild) : false;
+        const needsTrailing =
+          isVoid ||
+          lastType === "hr" ||
+          lastType === "toc" ||
+          lastType === "column_group";
+        if (needsTrailing) {
+          editor.tf.insertNodes(
+            { type: "p", children: [{ text: "" }] } as never,
+            { at: [editor.children.length] },
+          );
+          return;
+        }
+      }
+      (origNormalize as (entry: [unknown, number[]]) => void)(entry);
+    }) as typeof editor.normalizeNode;
+    return editor;
+  },
+});
+
 const plugins = [
   // Block elements
   ParagraphPlugin.withComponent(ParagraphElement),
@@ -294,6 +326,9 @@ const plugins = [
 
   // Drag & drop block reordering
   DndPlugin,
+
+  // Trailing block — always end with a paragraph after void elements
+  TrailingBlockPlugin,
 ];
 
 export function DocEditor({
