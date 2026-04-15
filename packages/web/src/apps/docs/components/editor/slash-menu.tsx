@@ -735,6 +735,7 @@ export function SlashInputElement(props: PlateElementProps) {
 
   return (
     <PlateElement {...props} as="span" className="inline">
+      <span className="text-blue-600 dark:text-blue-400">/</span>
       <span
         ref={inputRef}
         role="combobox"
