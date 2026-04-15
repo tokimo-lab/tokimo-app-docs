@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
+  FileCode,
   FileText,
   Folder,
   FolderInput,
@@ -132,6 +133,19 @@ function NodeIcon({
           isActive
             ? "text-indigo-600 dark:text-indigo-400"
             : "text-indigo-500 dark:text-indigo-600",
+        )}
+      />
+    );
+  }
+  if (node.type === "markdown") {
+    return (
+      <FileCode
+        size={size}
+        className={cn(
+          "shrink-0",
+          isActive
+            ? "text-emerald-600 dark:text-emerald-400"
+            : "text-emerald-500 dark:text-emerald-600",
         )}
       />
     );

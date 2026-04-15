@@ -113,6 +113,8 @@ export function useDocsPage(spaceId: string) {
   );
 
   const selectedDocId = selectedNodeType === "notion" ? selectedNodeId : null;
+  const selectedMarkdownId =
+    selectedNodeType === "markdown" ? selectedNodeId : null;
   const selectedSheetId = selectedNodeType === "sheet" ? selectedNodeId : null;
   const selectedMindId = selectedNodeType === "mind" ? selectedNodeId : null;
   const selectedSlideId = selectedNodeType === "slide" ? selectedNodeId : null;
@@ -121,6 +123,7 @@ export function useDocsPage(spaceId: string) {
   const selectedBaseId = selectedNodeType === "base" ? selectedNodeId : null;
   const selectedContentNodeId =
     selectedDocId ??
+    selectedMarkdownId ??
     selectedSheetId ??
     selectedMindId ??
     selectedSlideId ??
@@ -155,6 +158,9 @@ export function useDocsPage(spaceId: string) {
     { enabled: !!selectedContentNodeId },
   );
   const selectedDoc = selectedDocId ? (detailQuery.data ?? null) : null;
+  const selectedMarkdown = selectedMarkdownId
+    ? (detailQuery.data ?? null)
+    : null;
   const selectedSheet = selectedSheetId ? (detailQuery.data ?? null) : null;
   const selectedMind = selectedMindId ? (detailQuery.data ?? null) : null;
   const selectedSlide = selectedSlideId ? (detailQuery.data ?? null) : null;
@@ -332,6 +338,28 @@ export function useDocsPage(spaceId: string) {
     [selectedDocId],
   );
 
+  const handleMarkdownContentChange = useCallback(
+    (text: string) => {
+      if (!selectedMarkdownId) return;
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        updateMutRef.current.mutate({
+          id: selectedMarkdownId,
+          content: text,
+        });
+      }, 800);
+    },
+    [selectedMarkdownId],
+  );
+
+  const handleMarkdownTitleChange = useCallback(
+    (title: string) => {
+      if (!selectedMarkdownId) return;
+      updateMutRef.current.mutate({ id: selectedMarkdownId, title });
+    },
+    [selectedMarkdownId],
+  );
+
   const handleSheetContentChange = useCallback(
     (snapshot: unknown) => {
       if (!selectedSheetId) return;
@@ -507,6 +535,7 @@ export function useDocsPage(spaceId: string) {
     selectedSheetId,
     currentFolderId,
     selectedDoc,
+    selectedMarkdown,
     selectedSheet,
     selectedMind,
     selectedSlide,
@@ -532,6 +561,8 @@ export function useDocsPage(spaceId: string) {
     handleTemplateSelect,
     handleContentChange,
     handleTitleChange,
+    handleMarkdownContentChange,
+    handleMarkdownTitleChange,
     handleSheetContentChange,
     handleMindContentChange,
     handleSlideContentChange,

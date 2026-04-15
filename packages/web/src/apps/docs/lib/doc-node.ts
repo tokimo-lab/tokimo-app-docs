@@ -161,6 +161,8 @@ export function untitledI18nKey(type: DocNodeType | string): string {
       return "docs.untitledWhiteboard";
     case "base":
       return "docs.untitledBase";
+    case "markdown":
+      return "docs.untitledMarkdown";
     default:
       return "docs.untitledDocument";
   }

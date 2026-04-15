@@ -26,6 +26,7 @@ import {
   VersionPreviewBar,
 } from "@/apps/docs/components/DocVersionHistory";
 import { CommentSidebar } from "@/apps/docs/components/editor/elements/comment-sidebar";
+import { MarkdownEditor } from "@/apps/docs/components/markdown/MarkdownEditor";
 import { MindEditor } from "@/apps/docs/components/mind/MindEditor";
 import { SheetEditor } from "@/apps/docs/components/sheet/SheetEditor";
 import { SlideEditor } from "@/apps/docs/components/slide/SlideEditor";
@@ -352,6 +353,41 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
               <Spin className="flex-1" />
             ) : (
               <BaseEditor key={s.selectedBase.id} nodeId={s.selectedBase.id} />
+            )}
+          </>
+        ) : s.selectedMarkdown ? (
+          <>
+            {/* Markdown editor toolbar */}
+            <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
+              <button
+                type="button"
+                onClick={() => s.deselectNode()}
+                className="mr-1 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary cursor-pointer"
+                title="返回文档列表"
+              >
+                <ArrowLeft size={14} />
+              </button>
+              <DocBreadcrumb
+                doc={s.selectedMarkdown}
+                allNodes={s.allNodes}
+                onNavigateFolder={(fid) => s.navigateToNode(fid)}
+              />
+            </div>
+            {s.detailQuery.isLoading ? (
+              <Spin className="flex-1" />
+            ) : (
+              <MarkdownEditor
+                key={s.selectedMarkdown.id}
+                nodeId={s.selectedMarkdown.id}
+                content={
+                  typeof s.selectedMarkdown.content === "string"
+                    ? s.selectedMarkdown.content
+                    : ""
+                }
+                title={s.selectedMarkdown.title}
+                onContentChange={s.handleMarkdownContentChange}
+                onTitleChange={s.handleMarkdownTitleChange}
+              />
             )}
           </>
         ) : s.selectedDoc ? (

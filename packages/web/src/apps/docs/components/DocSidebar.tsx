@@ -12,6 +12,7 @@ import {
   BrainCircuit,
   Check,
   Clock,
+  FileCode,
   FileText,
   FolderPlus,
   PanelLeft,
@@ -385,6 +386,12 @@ export function DocSidebar({
                   label: t("docs.newBase"),
                   icon: <Table2 size={14} />,
                   onClick: () => onCreateNode("base"),
+                },
+                {
+                  key: "markdown",
+                  label: t("docs.newMarkdown"),
+                  icon: <FileCode size={14} />,
+                  onClick: () => onCreateNode("markdown"),
                 },
                 {
                   key: "folder",
