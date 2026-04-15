@@ -23,7 +23,7 @@ export function GroupBySelector({
   return (
     <>
       <div
-        className="relative z-50 w-52 rounded-lg border border-black/[0.08] dark:border-white/[0.08] bg-white/80 dark:bg-[rgba(38,38,58,0.88)] backdrop-blur-xl py-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+        className="w-52 py-1"
         style={{ animation: "toolbar-popup-in 150ms ease-out" }}
       >
         <div className="px-3 py-1.5 text-xs font-medium text-fg-muted">
