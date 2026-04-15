@@ -1,11 +1,13 @@
 /**
- * MarkdownEditor — Simple markdown text editor for `markdown` type doc nodes.
+ * MarkdownEditor — Split-pane markdown editor with live preview.
  *
- * Content is stored as a plain markdown string in `doc_nodes.content` (JSON string).
- * Uses a plain textarea for editing; a future version may use CodeMirror.
+ * Left: textarea for editing raw markdown.
+ * Right: rendered markdown preview via react-markdown.
  */
 
 import { useCallback, useRef, useState } from "react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface MarkdownEditorProps {
   /** Document node ID (used as React key externally) */
@@ -73,7 +75,6 @@ export function MarkdownEditor({
         const newValue = `${value.substring(0, start)}  ${value.substring(end)}`;
         setLocalContent(newValue);
         onContentChange(newValue);
-        // Restore cursor position after React re-render
         requestAnimationFrame(() => {
           textarea.selectionStart = start + 2;
           textarea.selectionEnd = start + 2;
@@ -97,17 +98,29 @@ export function MarkdownEditor({
         />
       </div>
 
-      {/* Markdown textarea */}
-      <textarea
-        ref={textareaRef}
-        value={localContent}
-        onChange={handleContentChange}
-        onKeyDown={handleKeyDown}
-        readOnly={readOnly}
-        className="flex-1 resize-none bg-transparent px-8 py-4 font-mono text-sm leading-relaxed text-fg-primary outline-none placeholder:text-fg-muted"
-        placeholder="Write your markdown here..."
-        spellCheck={false}
-      />
+      {/* Split pane: editor + preview */}
+      <div className="flex min-h-0 flex-1">
+        {/* Left: markdown source editor */}
+        <div className="flex min-h-0 w-1/2 flex-col border-r border-border-subtle">
+          <textarea
+            ref={textareaRef}
+            value={localContent}
+            onChange={handleContentChange}
+            onKeyDown={handleKeyDown}
+            readOnly={readOnly}
+            className="flex-1 resize-none bg-transparent px-6 py-4 font-mono text-sm leading-relaxed text-fg-primary outline-none placeholder:text-fg-muted"
+            placeholder="Write your markdown here..."
+            spellCheck={false}
+          />
+        </div>
+
+        {/* Right: rendered preview */}
+        <div className="w-1/2 min-h-0 overflow-y-auto px-6 py-4">
+          <article className="prose prose-sm max-w-none text-fg-primary dark:prose-invert">
+            <Markdown remarkPlugins={[remarkGfm]}>{localContent}</Markdown>
+          </article>
+        </div>
+      </div>
     </div>
   );
 }
