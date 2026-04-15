@@ -3,7 +3,10 @@ import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
 import { useCallback, useState } from "react";
 import { AudioPlayer } from "@/apps/viewers/audio/AudioPlayer";
+import { ImagePreview } from "@/apps/viewers/image/ImagePreview";
+import { PdfEmbed } from "@/apps/viewers/pdf/PdfEmbed";
 import { MonacoTextEditor } from "@/apps/viewers/text/MonacoTextEditor";
+import { VideoPreview } from "@/apps/viewers/video/VideoPreview";
 import { rustUrl } from "@/lib/rust-api-runtime";
 import { MaterialFileIcon } from "@/shared/components/icons";
 
@@ -80,12 +83,12 @@ function PreviewContent({
 
   if (isImageType(fileType)) {
     return (
-      <div className="flex justify-center overflow-hidden" style={style}>
-        <img
+      <div className="overflow-hidden" style={style ?? { height: "300px" }}>
+        <ImagePreview
           src={url}
           alt={fileName}
-          className="max-w-full object-contain"
-          loading="lazy"
+          showToolbar={false}
+          className="h-full"
         />
       </div>
     );
@@ -93,21 +96,16 @@ function PreviewContent({
 
   if (isPdfType(fileType)) {
     return (
-      <iframe
-        src={url}
-        title={fileName}
-        className="w-full border-0"
-        style={{ height: height ? `${height}px` : "400px" }}
-      />
+      <div style={{ height: height ? `${height}px` : "400px" }}>
+        <PdfEmbed src={url} title={fileName} />
+      </div>
     );
   }
 
   if (isVideoType(fileType)) {
     return (
       <div style={style}>
-        <video src={url} controls className="w-full">
-          <track kind="captions" />
-        </video>
+        <VideoPreview src={url} className="w-full" />
       </div>
     );
   }
