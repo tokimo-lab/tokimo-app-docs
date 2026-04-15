@@ -14,7 +14,7 @@ use crate::AppState;
 #[serde(rename_all = "camelCase")]
 pub struct CreateSpaceInput {
     pub name: String,
-    pub slug: Option<String>,
+    pub slug: String,
     pub icon: Option<String>,
     pub color: Option<String>,
     pub description: Option<String>,
@@ -32,7 +32,6 @@ pub struct UpdateSpaceInput {
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub description: Option<Option<String>>,
     pub sort_order: Option<i32>,
-    pub s3_synced: Option<bool>,
 }
 
 /// GET /api/apps/docs/spaces
@@ -52,13 +51,11 @@ pub async fn create_space(
     if input.name.trim().is_empty() {
         return Err(AppError::BadRequest("space name cannot be empty".into()));
     }
-    if let Some(ref slug) = input.slug {
-        validate_slug(slug)?;
-    }
+    validate_slug(&input.slug)?;
     let model = DocSpaceRepo::create(
         &state.db,
         input.name,
-        input.slug,
+        Some(input.slug),
         input.icon,
         input.color,
         input.description,
@@ -87,7 +84,6 @@ pub async fn update_space(
             color: input.color,
             description: input.description,
             sort_order: input.sort_order,
-            s3_synced: input.s3_synced,
         },
     )
     .await?

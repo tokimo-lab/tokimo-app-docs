@@ -13,7 +13,6 @@ pub struct UpdateSpaceParams {
     pub color: Option<Option<String>>,
     pub description: Option<Option<String>>,
     pub sort_order: Option<i32>,
-    pub s3_synced: Option<bool>,
 }
 
 impl DocSpaceRepo {
@@ -60,10 +59,10 @@ impl DocSpaceRepo {
             icon: Set(icon),
             color: Set(color),
             description: Set(description),
+            s3_synced: Set(true),
             sort_order: Set(max_order),
             created_at: Set(Some(now)),
             updated_at: Set(Some(now)),
-            ..Default::default()
         };
         doc_spaces::Entity::insert(model).exec(db).await?;
 
@@ -103,9 +102,6 @@ impl DocSpaceRepo {
         }
         if let Some(o) = params.sort_order {
             active.sort_order = Set(o);
-        }
-        if let Some(s) = params.s3_synced {
-            active.s3_synced = Set(s);
         }
         active.updated_at = Set(Some(now));
 
