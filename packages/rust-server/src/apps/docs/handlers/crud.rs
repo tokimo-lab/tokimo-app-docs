@@ -7,7 +7,9 @@ use uuid::Uuid;
 use super::{parse_uuid, validate_node_name};
 use crate::apps::docs::models::DocNodeOutput;
 use crate::apps::docs::repos::node_repo::DocNodeRepo;
+use crate::apps::docs::repos::space_repo::DocSpaceRepo;
 use crate::apps::docs::services::docs_service::DocsService;
+use crate::apps::docs::services::markdown_sync::DocMarkdownSyncService;
 use crate::db::entities::doc_nodes;
 use crate::error::{AppError, OptionExt};
 use crate::handlers::{ok, ok_empty, ApiResponse};
@@ -185,6 +187,12 @@ pub async fn update_node(
         input.tags,
     )
     .await?;
+
+    // Trigger async S3 markdown sync if the space has s3_synced enabled
+    if node.content.is_some() {
+        maybe_spawn_markdown_sync(state.clone(), &node);
+    }
+
     Ok(ok(DocNodeOutput::from(node)))
 }
 
@@ -265,4 +273,25 @@ pub async fn move_node(
         return Err(AppError::NotFound("node not found".into()));
     }
     Ok(ok_empty())
+}
+
+/// Fire-and-forget: check if the node's space has `s3_synced` enabled,
+/// and if so, spawn an async task to sync the node's markdown to S3.
+fn maybe_spawn_markdown_sync(state: Arc<AppState>, node: &doc_nodes::Model) {
+    let db = state.db.clone();
+    let storage = state.storage.clone();
+    let space_id = node.space_id;
+    let node = node.clone();
+
+    tokio::spawn(async move {
+        match DocSpaceRepo::get_by_id(&db, space_id).await {
+            Ok(Some(space)) if space.s3_synced => {
+                DocMarkdownSyncService::spawn_sync(storage, space, node);
+            }
+            Ok(_) => {} // Space not found or s3_synced is false
+            Err(e) => {
+                tracing::error!(space_id = %space_id, "Failed to check space for markdown sync: {e}");
+            }
+        }
+    });
 }

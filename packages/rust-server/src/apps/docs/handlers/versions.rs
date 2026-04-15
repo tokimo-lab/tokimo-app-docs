@@ -6,8 +6,10 @@ use super::parse_uuid;
 use crate::apps::docs::models::{
     DocNodeOutput, DocNodeVersionDetailOutput, DocNodeVersionOutput,
 };
+use crate::apps::docs::repos::space_repo::DocSpaceRepo;
 use crate::apps::docs::repos::version_repo::DocNodeVersionRepo;
 use crate::apps::docs::services::docs_service::DocsService;
+use crate::apps::docs::services::markdown_sync::DocMarkdownSyncService;
 use crate::error::{AppError, OptionExt};
 use crate::handlers::{ok, ApiResponse};
 use crate::AppState;
@@ -66,5 +68,21 @@ pub async fn restore_version(
         None,
     )
     .await?;
+
+    // Trigger S3 sync after version restore (content changed)
+    if node.content.is_some() {
+        let db = state.db.clone();
+        let storage = state.storage.clone();
+        let space_id = node.space_id;
+        let node_clone = node.clone();
+        tokio::spawn(async move {
+            if let Ok(Some(space)) = DocSpaceRepo::get_by_id(&db, space_id).await
+                && space.s3_synced
+            {
+                DocMarkdownSyncService::spawn_sync(storage, space, node_clone);
+            }
+        });
+    }
+
     Ok(ok(DocNodeOutput::from(node)))
 }
