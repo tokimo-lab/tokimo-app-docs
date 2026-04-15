@@ -6,6 +6,16 @@ use crate::error::AppError;
 
 pub struct DocSpaceRepo;
 
+pub struct UpdateSpaceParams {
+    pub name: Option<String>,
+    pub slug: Option<String>,
+    pub icon: Option<Option<String>>,
+    pub color: Option<Option<String>>,
+    pub description: Option<Option<String>>,
+    pub sort_order: Option<i32>,
+    pub s3_synced: Option<bool>,
+}
+
 impl DocSpaceRepo {
     pub async fn list_all(
         db: &DatabaseConnection,
@@ -27,6 +37,7 @@ impl DocSpaceRepo {
     pub async fn create(
         db: &DatabaseConnection,
         name: String,
+        slug: Option<String>,
         icon: Option<String>,
         color: Option<String>,
         description: Option<String>,
@@ -45,12 +56,14 @@ impl DocSpaceRepo {
         let model = doc_spaces::ActiveModel {
             id: Set(id),
             name: Set(name),
+            slug: Set(slug),
             icon: Set(icon),
             color: Set(color),
             description: Set(description),
             sort_order: Set(max_order),
             created_at: Set(Some(now)),
             updated_at: Set(Some(now)),
+            ..Default::default()
         };
         doc_spaces::Entity::insert(model).exec(db).await?;
 
@@ -63,11 +76,7 @@ impl DocSpaceRepo {
     pub async fn update(
         db: &DatabaseConnection,
         id: Uuid,
-        name: Option<String>,
-        icon: Option<Option<String>>,
-        color: Option<Option<String>>,
-        description: Option<Option<String>>,
-        sort_order: Option<i32>,
+        params: UpdateSpaceParams,
     ) -> Result<Option<doc_spaces::Model>, AppError> {
         let space = doc_spaces::Entity::find_by_id(id).one(db).await?;
         let Some(space) = space else {
@@ -77,20 +86,26 @@ impl DocSpaceRepo {
         let now = chrono::Utc::now().fixed_offset();
         let mut active: doc_spaces::ActiveModel = space.into();
 
-        if let Some(n) = name {
+        if let Some(n) = params.name {
             active.name = Set(n);
         }
-        if let Some(i) = icon {
+        if let Some(s) = params.slug {
+            active.slug = Set(Some(s));
+        }
+        if let Some(i) = params.icon {
             active.icon = Set(i);
         }
-        if let Some(c) = color {
+        if let Some(c) = params.color {
             active.color = Set(c);
         }
-        if let Some(d) = description {
+        if let Some(d) = params.description {
             active.description = Set(d);
         }
-        if let Some(o) = sort_order {
+        if let Some(o) = params.sort_order {
             active.sort_order = Set(o);
+        }
+        if let Some(s) = params.s3_synced {
+            active.s3_synced = Set(s);
         }
         active.updated_at = Set(Some(now));
 

@@ -21,7 +21,8 @@ export type DocNodeType =
   | "form"
   | "mind"
   | "whiteboard"
-  | "base";
+  | "base"
+  | "markdown";
 
 // ── DocNode (local alias with convenience fields) ───────────────────
 

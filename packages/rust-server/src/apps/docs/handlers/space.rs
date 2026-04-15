@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use super::parse_uuid;
 use crate::apps::docs::models::DocSpaceOutput;
-use crate::apps::docs::repos::space_repo::DocSpaceRepo;
+use crate::apps::docs::repos::space_repo::{self, DocSpaceRepo};
 use crate::error::{AppError, OptionExt};
 use crate::handlers::{ok, ok_empty, ApiResponse};
 use crate::AppState;
@@ -14,6 +14,7 @@ use crate::AppState;
 #[serde(rename_all = "camelCase")]
 pub struct CreateSpaceInput {
     pub name: String,
+    pub slug: Option<String>,
     pub icon: Option<String>,
     pub color: Option<String>,
     pub description: Option<String>,
@@ -23,6 +24,7 @@ pub struct CreateSpaceInput {
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSpaceInput {
     pub name: Option<String>,
+    pub slug: Option<String>,
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub icon: Option<Option<String>>,
     #[serde(default, with = "::serde_with::rust::double_option")]
@@ -30,6 +32,7 @@ pub struct UpdateSpaceInput {
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub description: Option<Option<String>>,
     pub sort_order: Option<i32>,
+    pub s3_synced: Option<bool>,
 }
 
 /// GET /api/apps/docs/spaces
@@ -49,9 +52,18 @@ pub async fn create_space(
     if input.name.trim().is_empty() {
         return Err(AppError::BadRequest("space name cannot be empty".into()));
     }
-    let model =
-        DocSpaceRepo::create(&state.db, input.name, input.icon, input.color, input.description)
-            .await?;
+    if let Some(ref slug) = input.slug {
+        validate_slug(slug)?;
+    }
+    let model = DocSpaceRepo::create(
+        &state.db,
+        input.name,
+        input.slug,
+        input.icon,
+        input.color,
+        input.description,
+    )
+    .await?;
     Ok(ok(DocSpaceOutput::from(model)))
 }
 
@@ -62,14 +74,21 @@ pub async fn update_space(
     Json(input): Json<UpdateSpaceInput>,
 ) -> Result<Json<ApiResponse<DocSpaceOutput>>, AppError> {
     let uid = parse_uuid(&id)?;
+    if let Some(ref slug) = input.slug {
+        validate_slug(slug)?;
+    }
     let model = DocSpaceRepo::update(
         &state.db,
         uid,
-        input.name,
-        input.icon,
-        input.color,
-        input.description,
-        input.sort_order,
+        space_repo::UpdateSpaceParams {
+            name: input.name,
+            slug: input.slug,
+            icon: input.icon,
+            color: input.color,
+            description: input.description,
+            sort_order: input.sort_order,
+            s3_synced: input.s3_synced,
+        },
     )
     .await?
     .not_found("doc space not found")?;
@@ -87,4 +106,31 @@ pub async fn delete_space(
         return Err(AppError::NotFound("doc space not found".into()));
     }
     Ok(ok_empty())
+}
+
+/// Validate that a slug is filesystem-safe: [a-z0-9-_], 2-50 chars, no leading/trailing dash/underscore.
+fn validate_slug(slug: &str) -> Result<(), AppError> {
+    if slug.len() < 2 || slug.len() > 50 {
+        return Err(AppError::BadRequest(
+            "slug must be 2-50 characters".into(),
+        ));
+    }
+    if !slug
+        .chars()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_')
+    {
+        return Err(AppError::BadRequest(
+            "slug must contain only lowercase letters, digits, hyphens, and underscores".into(),
+        ));
+    }
+    if slug.starts_with('-')
+        || slug.starts_with('_')
+        || slug.ends_with('-')
+        || slug.ends_with('_')
+    {
+        return Err(AppError::BadRequest(
+            "slug must not start or end with a hyphen or underscore".into(),
+        ));
+    }
+    Ok(())
 }

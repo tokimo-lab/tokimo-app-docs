@@ -13,9 +13,11 @@ use crate::db::entities::{doc_node_versions, doc_nodes, doc_spaces};
 pub struct DocSpaceOutput {
     pub id: String,
     pub name: String,
+    pub slug: Option<String>,
     pub icon: Option<String>,
     pub color: Option<String>,
     pub description: Option<String>,
+    pub s3_synced: bool,
     pub sort_order: i32,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
@@ -26,9 +28,11 @@ impl From<doc_spaces::Model> for DocSpaceOutput {
         Self {
             id: m.id.to_string(),
             name: m.name,
+            slug: m.slug,
             icon: m.icon,
             color: m.color,
             description: m.description,
+            s3_synced: m.s3_synced,
             sort_order: m.sort_order,
             created_at: m.created_at.map(|d| d.to_rfc3339()),
             updated_at: m.updated_at.map(|d| d.to_rfc3339()),
