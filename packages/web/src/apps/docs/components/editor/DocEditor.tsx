@@ -67,6 +67,7 @@ import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { PROVIDER_TYPE, type TokimoWsProviderOptions } from "./collab-provider";
+import { AttachmentElement } from "./elements/attachment-element";
 import { BlockquoteElement } from "./elements/blockquote-element";
 import { BookmarkElement } from "./elements/bookmark-element";
 import { CalloutElement } from "./elements/callout-element";
@@ -116,6 +117,7 @@ interface DocEditorCtx {
   onAiAction?: (actionId: string) => void;
   onOpenAi?: () => void;
   onInsertVfsFile?: () => void;
+  onAttachmentUpload?: () => void;
 }
 const DocEditorContext = createContext<DocEditorCtx>({});
 export function useDocEditorContext() {
@@ -132,6 +134,7 @@ export interface DocEditorProps {
   onOpenAi?: () => void;
   onAiAction?: (actionId: string) => void;
   onInsertVfsFile?: () => void;
+  onAttachmentUpload?: () => void;
   /** Doc node ID — when provided, enables real-time collaborative editing. */
   nodeId?: string;
   /** User display name for remote cursor labels. */
@@ -243,6 +246,12 @@ const plugins = [
     node: { isElement: true, isVoid: true },
   }).withComponent(VfsFileElement),
 
+  // Attachment (uploaded file with preview)
+  createSlatePlugin({
+    key: "attachment",
+    node: { isElement: true, isVoid: true },
+  }).withComponent(AttachmentElement),
+
   // Mention (@)
   MentionPlugin.configure({
     options: { trigger: "@", insertSpaceAfterMention: true },
@@ -297,6 +306,7 @@ export function DocEditor({
   onOpenAi,
   onAiAction,
   onInsertVfsFile,
+  onAttachmentUpload,
   nodeId,
   userName,
 }: DocEditorProps) {
@@ -399,8 +409,8 @@ export function DocEditor({
   }, [editor, editorRef]);
 
   const editorCtx = useMemo(
-    () => ({ onAiAction, onOpenAi, onInsertVfsFile }),
-    [onAiAction, onOpenAi, onInsertVfsFile],
+    () => ({ onAiAction, onOpenAi, onInsertVfsFile, onAttachmentUpload }),
+    [onAiAction, onOpenAi, onInsertVfsFile, onAttachmentUpload],
   );
 
   if (!editor) {

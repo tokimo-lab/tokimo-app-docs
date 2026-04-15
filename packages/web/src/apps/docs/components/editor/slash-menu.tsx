@@ -52,6 +52,8 @@ interface SlashMenuItem {
   aiActionId?: string;
   /** If true, opens VFS file picker instead of a normal editor action. */
   vfsAction?: boolean;
+  /** If true, opens native file picker for attachment upload. */
+  attachmentUpload?: boolean;
 }
 
 interface SlashMenuGroup {
@@ -326,15 +328,11 @@ const SLASH_MENU_GROUPS: SlashMenuGroup[] = [
       {
         icon: <FileIcon className={ICON_CLASS} />,
         label: "文件附件",
-        description: "嵌入文件",
+        description: "上传并嵌入文件",
         keywords: ["file", "attachment", "upload", "download"],
-        action: (editor) => {
-          editor.tf.insertNodes({
-            type: "file",
-            url: "",
-            name: "Untitled",
-            children: [{ text: "" }],
-          } as unknown as TElement);
+        attachmentUpload: true,
+        action: () => {
+          // Handled by attachmentUpload flag
         },
       },
       {
@@ -580,7 +578,8 @@ function getAllItems(groups: SlashMenuGroup[]): SlashMenuItem[] {
 }
 
 export function SlashInputElement(props: PlateElementProps) {
-  const { onAiAction, onInsertVfsFile } = useDocEditorContext();
+  const { onAiAction, onInsertVfsFile, onAttachmentUpload } =
+    useDocEditorContext();
   const editor = useEditorRef();
   const element = useElement();
   const inputRef = useRef<HTMLSpanElement>(null);
@@ -653,13 +652,15 @@ export function SlashInputElement(props: PlateElementProps) {
       removeInput();
       if (item.vfsAction && onInsertVfsFile) {
         onInsertVfsFile();
+      } else if (item.attachmentUpload && onAttachmentUpload) {
+        onAttachmentUpload();
       } else if (item.aiActionId && onAiAction) {
         onAiAction(item.aiActionId);
       } else {
         item.action(editor);
       }
     },
-    [editor, removeInput, onAiAction, onInsertVfsFile],
+    [editor, removeInput, onAiAction, onInsertVfsFile, onAttachmentUpload],
   );
 
   const handleKeyDown = useCallback(
