@@ -4,7 +4,7 @@ use serde::Serialize;
 use ts_rs::TS;
 use uuid::Uuid;
 
-use crate::db::entities::{doc_node_versions, doc_nodes, doc_spaces};
+use crate::db::entities::{doc_node_attachments, doc_node_versions, doc_nodes, doc_spaces};
 
 /// Doc space output
 #[derive(Debug, Clone, Serialize, TS)]
@@ -183,4 +183,33 @@ pub struct DocNodeCommentOutput {
     pub replies: Vec<DocNodeCommentOutput>,
     pub created_at: String,
     pub updated_at: String,
+}
+
+/// Attachment output
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct DocNodeAttachmentOutput {
+    pub id: String,
+    pub node_id: String,
+    pub storage_key: String,
+    pub file_name: String,
+    pub file_type: String,
+    #[ts(type = "number")]
+    pub file_size: i32,
+    pub created_at: String,
+}
+
+impl From<doc_node_attachments::Model> for DocNodeAttachmentOutput {
+    fn from(m: doc_node_attachments::Model) -> Self {
+        Self {
+            id: m.id.to_string(),
+            node_id: m.node_id.to_string(),
+            storage_key: m.storage_key,
+            file_name: m.file_name,
+            file_type: m.file_type,
+            file_size: m.file_size,
+            created_at: m.created_at.to_rfc3339(),
+        }
+    }
 }

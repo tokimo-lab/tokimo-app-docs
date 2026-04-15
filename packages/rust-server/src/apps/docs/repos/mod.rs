@@ -1,3 +1,4 @@
+pub mod attachment_repo;
 pub mod base_record_repo;
 pub mod comment_repo;
 pub mod node_repo;

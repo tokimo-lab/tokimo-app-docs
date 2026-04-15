@@ -5,8 +5,8 @@ use axum::{
 use std::sync::Arc;
 
 use crate::apps::docs::handlers::{
-    base_meta, base_records, browse, collab, comments, crud, space, versions, view_state,
-    whiteboard_library,
+    attachment, base_meta, base_records, browse, collab, comments, crud, space, versions,
+    view_state, whiteboard_library,
 };
 use crate::AppState;
 
@@ -126,5 +126,18 @@ pub fn build_docs_app_routes() -> Router<Arc<AppState>> {
         .route(
             "/api/apps/docs/base/{nodeId}/records/batch-delete",
             post(base_records::batch_delete_records),
+        )
+        // Attachment routes
+        .route(
+            "/api/apps/docs/nodes/{id}/attachments/upload",
+            post(attachment::upload_attachment),
+        )
+        .route(
+            "/api/apps/docs/nodes/{id}/attachments",
+            get(attachment::list_attachments),
+        )
+        .route(
+            "/api/apps/docs/attachments/{id}",
+            axum::routing::delete(attachment::delete_attachment),
         )
 }
