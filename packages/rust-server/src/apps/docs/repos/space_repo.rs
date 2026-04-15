@@ -113,6 +113,17 @@ impl DocSpaceRepo {
         Ok(Some(updated))
     }
 
+    /// List all spaces with s3_synced enabled and a valid slug.
+    pub async fn list_synced(
+        db: &DatabaseConnection,
+    ) -> Result<Vec<doc_spaces::Model>, AppError> {
+        Ok(doc_spaces::Entity::find()
+            .filter(doc_spaces::Column::S3Synced.eq(true))
+            .filter(doc_spaces::Column::Slug.is_not_null())
+            .all(db)
+            .await?)
+    }
+
     pub async fn delete(db: &DatabaseConnection, id: Uuid) -> Result<bool, AppError> {
         let result = doc_spaces::Entity::delete_by_id(id).exec(db).await?;
         Ok(result.rows_affected > 0)
