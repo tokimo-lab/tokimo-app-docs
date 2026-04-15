@@ -1,77 +1,11 @@
 import { Download, Paperclip, Settings2 } from "lucide-react";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { AudioPlayer } from "@/apps/viewers/audio/AudioPlayer";
+import { MonacoTextEditor } from "@/apps/viewers/text/MonacoTextEditor";
 import { rustUrl } from "@/lib/rust-api-runtime";
 import { MaterialFileIcon } from "@/shared/components/icons";
-
-// Monaco setup: workers, loader, transparent themes
-import "@/lib/monaco-setup";
-
-const MonacoEditor = lazy(() =>
-  import("@monaco-editor/react").then((m) => ({ default: m.default })),
-);
-
-const EXT_TO_LANG: Record<string, string> = {
-  css: "css",
-  go: "go",
-  html: "html",
-  java: "java",
-  js: "javascript",
-  jsx: "javascript",
-  json: "json",
-  md: "markdown",
-  nfo: "xml",
-  py: "python",
-  rs: "rust",
-  sh: "shell",
-  sql: "sql",
-  ts: "typescript",
-  tsx: "typescript",
-  txt: "plaintext",
-  xml: "xml",
-  yaml: "yaml",
-  yml: "yaml",
-  toml: "ini",
-  ini: "ini",
-  env: "shell",
-  dockerfile: "dockerfile",
-  makefile: "shell",
-  svelte: "html",
-  vue: "html",
-  scss: "scss",
-  less: "less",
-  graphql: "graphql",
-  prisma: "graphql",
-  conf: "ini",
-  cfg: "ini",
-  log: "plaintext",
-  csv: "plaintext",
-  srt: "plaintext",
-  ass: "plaintext",
-  ssa: "plaintext",
-  vtt: "plaintext",
-};
-
-const MIME_TO_LANG: Record<string, string> = {
-  "application/json": "json",
-  "application/javascript": "javascript",
-  "application/xml": "xml",
-  "text/html": "html",
-  "text/css": "css",
-  "text/xml": "xml",
-  "text/markdown": "markdown",
-};
-
-function detectLanguage(fileName: string, fileType?: string): string {
-  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
-  const base = fileName.toLowerCase();
-  if (base === "dockerfile") return "dockerfile";
-  if (base === "makefile") return "shell";
-  if (EXT_TO_LANG[ext]) return EXT_TO_LANG[ext];
-  if (fileType && MIME_TO_LANG[fileType]) return MIME_TO_LANG[fileType];
-  return "plaintext";
-}
 
 function formatFileSize(bytes: number | null | undefined): string {
   if (bytes == null) return "";
@@ -181,21 +115,16 @@ function PreviewContent({
   if (isAudioType(fileType)) {
     return (
       <div className="px-4 py-3">
-        <audio src={url} controls className="w-full">
-          <track kind="captions" />
-        </audio>
+        <AudioPlayer src={url} fileName={fileName} />
       </div>
     );
   }
 
   if (isTextType(fileType)) {
     return (
-      <TextPreview
-        url={url}
-        height={height}
-        fileName={fileName}
-        fileType={fileType}
-      />
+      <div style={{ height: height ? `${height}px` : "300px" }}>
+        <MonacoTextEditor readOnlyUrl={url} fileName={fileName} />
+      </div>
     );
   }
 
@@ -207,101 +136,6 @@ function PreviewContent({
     >
       <MaterialFileIcon name={fileName} size={48} />
       <span className="text-xs text-fg-muted">Preview not available</span>
-    </div>
-  );
-}
-
-function TextPreview({
-  url,
-  height,
-  fileName,
-  fileType,
-}: {
-  url: string;
-  height: number | null | undefined;
-  fileName: string;
-  fileType?: string;
-}) {
-  const [text, setText] = useState<string | null>(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(url)
-      .then((r) => {
-        if (!r.ok) throw new Error("fetch failed");
-        return r.text();
-      })
-      .then((t) => {
-        if (!cancelled) setText(t);
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [url]);
-
-  const resolvedHeight = height ? `${height}px` : "300px";
-  const lang = detectLanguage(fileName, fileType);
-  const isDark =
-    typeof window !== "undefined" &&
-    document.documentElement.classList.contains("dark");
-
-  if (error) {
-    return (
-      <div
-        className="flex items-center justify-center bg-fill-quaternary text-xs text-fg-muted"
-        style={{ height: resolvedHeight }}
-      >
-        Failed to load preview
-      </div>
-    );
-  }
-
-  if (text === null) {
-    return (
-      <div
-        className="flex items-center justify-center bg-fill-quaternary text-xs text-fg-muted"
-        style={{ height: resolvedHeight }}
-      >
-        Loading...
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ height: resolvedHeight }}>
-      <Suspense
-        fallback={
-          <div
-            className="flex items-center justify-center bg-fill-quaternary text-xs text-fg-muted"
-            style={{ height: resolvedHeight }}
-          >
-            Loading editor...
-          </div>
-        }
-      >
-        <MonacoEditor
-          height="100%"
-          language={lang}
-          theme={isDark ? "tokimo-dark" : "tokimo-light"}
-          defaultValue={text}
-          options={{
-            readOnly: true,
-            minimap: { enabled: false },
-            fontSize: 13,
-            lineNumbers: "on",
-            scrollBeyondLastLine: false,
-            wordWrap: "on",
-            automaticLayout: true,
-            padding: { top: 8 },
-            renderWhitespace: "selection",
-            bracketPairColorization: { enabled: true },
-          }}
-        />
-      </Suspense>
     </div>
   );
 }
