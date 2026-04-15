@@ -232,6 +232,20 @@ pub async fn delete_node(
     if !deleted {
         return Err(AppError::NotFound("node not found".into()));
     }
+
+    // Clean up attachment storage files in background
+    let storage = state.storage.clone();
+    let prefix = format!("docs/attachments/{node_id}/");
+    tokio::spawn(async move {
+        if let Ok(objects) = storage.list(Some(&prefix)).await {
+            for obj in objects {
+                if let Err(e) = storage.delete(&obj.key).await {
+                    tracing::warn!("Failed to delete attachment file {}: {e}", obj.key);
+                }
+            }
+        }
+    });
+
     Ok(ok_empty())
 }
 
