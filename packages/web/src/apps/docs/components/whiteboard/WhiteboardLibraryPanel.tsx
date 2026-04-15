@@ -33,7 +33,7 @@ export function WhiteboardLibraryPanel({
     isLoading,
     error,
     refetch,
-  } = api.whiteboardLibrary.listLibraries.useQuery();
+  } = api.docs.whiteboardLibrary.listLibraries.useQuery();
 
   const filtered = useMemo(() => {
     if (!libraries) return [];

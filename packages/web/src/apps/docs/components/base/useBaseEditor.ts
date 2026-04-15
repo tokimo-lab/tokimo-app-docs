@@ -62,44 +62,44 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
   const defaults = useRef(createDefaultBaseContent());
 
   // ── Queries ─────────────────────────────────────────────────────────────
-  const metaQuery = api.bitable.getMeta.useQuery(
+  const metaQuery = api.docs.bitable.getMeta.useQuery(
     { nodeId },
     { enabled: !!nodeId },
   );
 
-  const recordsQuery = api.bitable.listRecords.useQuery(
+  const recordsQuery = api.docs.bitable.listRecords.useQuery(
     { nodeId, pageSize: 1000 },
     { enabled: !!nodeId },
   );
 
   // ── Mutations ───────────────────────────────────────────────────────────
-  const updateMetaMut = api.bitable.updateMeta.useMutation({
+  const updateMetaMut = api.docs.bitable.updateMeta.useMutation({
     onSuccess: () => {
-      api.bitable.getMeta.invalidate(queryClient, { nodeId });
+      api.docs.bitable.getMeta.invalidate(queryClient, { nodeId });
     },
   });
 
-  const createRecordMut = api.bitable.createRecord.useMutation({
+  const createRecordMut = api.docs.bitable.createRecord.useMutation({
     onSuccess: () => {
-      api.bitable.listRecords.invalidate(queryClient, {
+      api.docs.bitable.listRecords.invalidate(queryClient, {
         nodeId,
         pageSize: 1000,
       });
     },
   });
 
-  const updateRecordMut = api.bitable.updateRecord.useMutation({
+  const updateRecordMut = api.docs.bitable.updateRecord.useMutation({
     onSuccess: () => {
-      api.bitable.listRecords.invalidate(queryClient, {
+      api.docs.bitable.listRecords.invalidate(queryClient, {
         nodeId,
         pageSize: 1000,
       });
     },
   });
 
-  const deleteRecordMut = api.bitable.deleteRecord.useMutation({
+  const deleteRecordMut = api.docs.bitable.deleteRecord.useMutation({
     onSuccess: () => {
-      api.bitable.listRecords.invalidate(queryClient, {
+      api.docs.bitable.listRecords.invalidate(queryClient, {
         nodeId,
         pageSize: 1000,
       });
