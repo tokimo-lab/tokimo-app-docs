@@ -124,8 +124,8 @@ export function DocEditorArea({
       role="presentation"
       className="flex h-full flex-col overflow-y-auto"
       onScroll={handleScroll}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
+      onDragOverCapture={handleDragOver}
+      onDropCapture={handleDrop}
     >
       {/* Title input */}
       <div className="mx-auto w-full max-w-3xl px-6 pt-12 pb-2">
