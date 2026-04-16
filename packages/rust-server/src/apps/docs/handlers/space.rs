@@ -1,14 +1,14 @@
-use axum::extract::{Path, State};
 use axum::Json;
+use axum::extract::{Path, State};
 use serde::Deserialize;
 use std::sync::Arc;
 
 use super::parse_uuid;
+use crate::AppState;
 use crate::apps::docs::models::DocSpaceOutput;
 use crate::apps::docs::repos::space_repo::{self, DocSpaceRepo};
 use crate::error::{AppError, OptionExt};
-use crate::handlers::{ok, ok_empty, ApiResponse};
-use crate::AppState;
+use crate::handlers::{ApiResponse, ok, ok_empty};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -49,14 +49,7 @@ pub async fn create_space(
         return Err(AppError::BadRequest("space name cannot be empty".into()));
     }
     validate_slug(&input.slug)?;
-    let model = DocSpaceRepo::create(
-        &state.db,
-        input.name,
-        Some(input.slug),
-        input.avatar,
-        input.description,
-    )
-    .await?;
+    let model = DocSpaceRepo::create(&state.db, input.name, Some(input.slug), input.avatar, input.description).await?;
     Ok(ok(DocSpaceOutput::from(model)))
 }
 
@@ -102,9 +95,7 @@ pub async fn delete_space(
 /// Validate that a slug is filesystem-safe: [a-z0-9-_], 2-50 chars, no leading/trailing dash/underscore.
 fn validate_slug(slug: &str) -> Result<(), AppError> {
     if slug.len() < 2 || slug.len() > 50 {
-        return Err(AppError::BadRequest(
-            "slug must be 2-50 characters".into(),
-        ));
+        return Err(AppError::BadRequest("slug must be 2-50 characters".into()));
     }
     if !slug
         .chars()
@@ -114,11 +105,7 @@ fn validate_slug(slug: &str) -> Result<(), AppError> {
             "slug must contain only lowercase letters, digits, hyphens, and underscores".into(),
         ));
     }
-    if slug.starts_with('-')
-        || slug.starts_with('_')
-        || slug.ends_with('-')
-        || slug.ends_with('_')
-    {
+    if slug.starts_with('-') || slug.starts_with('_') || slug.ends_with('-') || slug.ends_with('_') {
         return Err(AppError::BadRequest(
             "slug must not start or end with a hyphen or underscore".into(),
         ));

@@ -36,10 +36,7 @@ impl AttachmentRepo {
     }
 
     /// Get a single attachment by ID (including soft-deleted).
-    pub async fn get_by_id(
-        db: &DatabaseConnection,
-        id: Uuid,
-    ) -> Result<Option<doc_node_attachments::Model>, AppError> {
+    pub async fn get_by_id(db: &DatabaseConnection, id: Uuid) -> Result<Option<doc_node_attachments::Model>, AppError> {
         doc_node_attachments::Entity::find_by_id(id)
             .one(db)
             .await
@@ -73,10 +70,7 @@ impl AttachmentRepo {
     }
 
     /// Soft-delete: set deleted_at = now().
-    pub async fn soft_delete(
-        db: &DatabaseConnection,
-        id: Uuid,
-    ) -> Result<bool, AppError> {
+    pub async fn soft_delete(db: &DatabaseConnection, id: Uuid) -> Result<bool, AppError> {
         let record = doc_node_attachments::Entity::find_by_id(id)
             .filter(doc_node_attachments::Column::DeletedAt.is_null())
             .one(db)
@@ -92,10 +86,7 @@ impl AttachmentRepo {
     }
 
     /// Restore a soft-deleted attachment (clear deleted_at).
-    pub async fn restore(
-        db: &DatabaseConnection,
-        id: Uuid,
-    ) -> Result<bool, AppError> {
+    pub async fn restore(db: &DatabaseConnection, id: Uuid) -> Result<bool, AppError> {
         let record = doc_node_attachments::Entity::find_by_id(id)
             .one(db)
             .await
@@ -113,10 +104,7 @@ impl AttachmentRepo {
     }
 
     /// Hard-delete an attachment by ID (used by purge task).
-    pub async fn delete_by_id(
-        db: &DatabaseConnection,
-        id: Uuid,
-    ) -> Result<u64, AppError> {
+    pub async fn delete_by_id(db: &DatabaseConnection, id: Uuid) -> Result<u64, AppError> {
         let res = doc_node_attachments::Entity::delete_by_id(id)
             .exec(db)
             .await
@@ -139,10 +127,7 @@ impl AttachmentRepo {
     }
 
     /// List all storage keys for a node (used for bulk cleanup).
-    pub async fn list_storage_keys_by_node(
-        db: &DatabaseConnection,
-        node_id: Uuid,
-    ) -> Result<Vec<String>, AppError> {
+    pub async fn list_storage_keys_by_node(db: &DatabaseConnection, node_id: Uuid) -> Result<Vec<String>, AppError> {
         let rows = doc_node_attachments::Entity::find()
             .filter(doc_node_attachments::Column::NodeId.eq(node_id))
             .all(db)

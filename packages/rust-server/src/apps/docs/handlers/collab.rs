@@ -7,23 +7,23 @@ use std::sync::Arc;
 
 use axum::{
     extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
         Path, State,
+        ws::{Message, WebSocket, WebSocketUpgrade},
     },
     response::IntoResponse,
 };
 use futures_util::{SinkExt, StreamExt};
 use uuid::Uuid;
+use yrs::encoding::read::Read as YrsRead;
 use yrs::sync::awareness::AwarenessUpdate;
-use yrs::sync::protocol::{DefaultProtocol, Protocol, MSG_AWARENESS};
+use yrs::sync::protocol::{DefaultProtocol, MSG_AWARENESS, Protocol};
 use yrs::updates::decoder::{Decode, DecoderV1};
 use yrs::updates::encoder::{Encode, Encoder};
-use yrs::encoding::read::Read as YrsRead;
 
+use crate::AppState;
 use crate::apps::docs::services::collab::CollabRoom;
 use crate::error::AppError;
 use crate::handlers::user::AuthUser;
-use crate::AppState;
 
 /// GET /api/apps/docs/collab/{node_id} — upgrade to WebSocket.
 pub async fn collab_ws(
@@ -50,12 +50,7 @@ pub async fn collab_ws(
     Ok(ws.on_upgrade(move |socket| handle_collab_session(state, user_id, node_id, socket)))
 }
 
-async fn handle_collab_session(
-    state: Arc<AppState>,
-    user_id: Uuid,
-    node_id: Uuid,
-    socket: WebSocket,
-) {
+async fn handle_collab_session(state: Arc<AppState>, user_id: Uuid, node_id: Uuid, socket: WebSocket) {
     let room = match state.collab.get_or_create_room(node_id).await {
         Ok(r) => r,
         Err(e) => {
@@ -116,10 +111,7 @@ async fn handle_collab_session(
 }
 
 /// Send initial sync messages: SyncStep1 (our state vector) to the new client.
-async fn send_initial_sync(
-    room: &CollabRoom,
-    conn_id: u64,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn send_initial_sync(room: &CollabRoom, conn_id: u64) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let awareness = room.awareness.read().await;
     let protocol = DefaultProtocol;
 
@@ -139,13 +131,7 @@ async fn send_initial_sync(
 /// - SyncStep1 → reply with SyncStep2 to sender only
 /// - SyncStep2/Update → apply to doc, forward raw bytes to all OTHER clients
 /// - Awareness → apply, forward raw bytes to ALL clients
-async fn handle_incoming_message(
-    room: &CollabRoom,
-    conn_id: u64,
-    data: &[u8],
-    node_id: Uuid,
-    user_id: Uuid,
-) {
+async fn handle_incoming_message(room: &CollabRoom, conn_id: u64, data: &[u8], node_id: Uuid, user_id: Uuid) {
     let protocol = DefaultProtocol;
 
     // Use Protocol::handle to process the message (applies updates internally)

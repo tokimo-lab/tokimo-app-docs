@@ -1,8 +1,8 @@
 use sea_orm::*;
 use uuid::Uuid;
 
-use crate::db::entities::{doc_node_comments, users};
 use crate::apps::docs::models::DocNodeCommentOutput;
+use crate::db::entities::{doc_node_comments, users};
 use crate::error::AppError;
 use crate::error::OptionExt;
 
@@ -10,10 +10,7 @@ pub struct DocNodeCommentRepo;
 
 impl DocNodeCommentRepo {
     /// List comments for a node (top-level + replies).
-    pub async fn list_by_node(
-        db: &DatabaseConnection,
-        node_id: Uuid,
-    ) -> Result<Vec<DocNodeCommentOutput>, AppError> {
+    pub async fn list_by_node(db: &DatabaseConnection, node_id: Uuid) -> Result<Vec<DocNodeCommentOutput>, AppError> {
         let comments = doc_node_comments::Entity::find()
             .filter(doc_node_comments::Column::NodeId.eq(node_id))
             .find_also_related(users::Entity)
@@ -26,9 +23,7 @@ impl DocNodeCommentRepo {
             std::collections::HashMap::new();
 
         for (comment, user) in &comments {
-            let user_name = user
-                .as_ref()
-                .map_or_else(|| "Unknown".to_string(), |u| u.name.clone());
+            let user_name = user.as_ref().map_or_else(|| "Unknown".to_string(), |u| u.name.clone());
             let output = DocNodeCommentOutput {
                 id: comment.id.to_string(),
                 node_id: comment.node_id.to_string(),
@@ -82,9 +77,7 @@ impl DocNodeCommentRepo {
             created_at: Set(now),
             updated_at: Set(now),
         };
-        doc_node_comments::Entity::insert(model)
-            .exec(db)
-            .await?;
+        doc_node_comments::Entity::insert(model).exec(db).await?;
         doc_node_comments::Entity::find_by_id(id)
             .one(db)
             .await?
@@ -92,14 +85,8 @@ impl DocNodeCommentRepo {
     }
 
     /// Resolve/unresolve a comment.
-    pub async fn resolve(
-        db: &DatabaseConnection,
-        id: Uuid,
-        resolved: bool,
-    ) -> Result<bool, AppError> {
-        let comment = doc_node_comments::Entity::find_by_id(id)
-            .one(db)
-            .await?;
+    pub async fn resolve(db: &DatabaseConnection, id: Uuid, resolved: bool) -> Result<bool, AppError> {
+        let comment = doc_node_comments::Entity::find_by_id(id).one(db).await?;
         let Some(comment) = comment else {
             return Ok(false);
         };
@@ -113,9 +100,7 @@ impl DocNodeCommentRepo {
 
     /// Delete a comment.
     pub async fn delete(db: &DatabaseConnection, id: Uuid) -> Result<bool, AppError> {
-        let result = doc_node_comments::Entity::delete_by_id(id)
-            .exec(db)
-            .await?;
+        let result = doc_node_comments::Entity::delete_by_id(id).exec(db).await?;
         Ok(result.rows_affected > 0)
     }
 }

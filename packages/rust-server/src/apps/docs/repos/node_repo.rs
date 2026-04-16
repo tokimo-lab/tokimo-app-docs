@@ -2,8 +2,8 @@ use sea_orm::prelude::Expr;
 use sea_orm::*;
 use uuid::Uuid;
 
-use crate::db::entities::doc_nodes;
 use crate::apps::docs::models::DocNodeListItem;
+use crate::db::entities::doc_nodes;
 use crate::db::pagination::{Page, PageInput};
 use crate::error::AppError;
 use crate::error::OptionExt;
@@ -39,12 +39,8 @@ pub struct DocNodeRepo;
 
 impl DocNodeRepo {
     /// List nodes with pagination, sorting, search, and filtering.
-    pub async fn list(
-        db: &DatabaseConnection,
-        input: ListDocNodesInput,
-    ) -> Result<Page<DocNodeListItem>, AppError> {
-        let mut query = doc_nodes::Entity::find()
-            .filter(doc_nodes::Column::SpaceId.eq(input.space_id));
+    pub async fn list(db: &DatabaseConnection, input: ListDocNodesInput) -> Result<Page<DocNodeListItem>, AppError> {
+        let mut query = doc_nodes::Entity::find().filter(doc_nodes::Column::SpaceId.eq(input.space_id));
 
         if let Some(pid) = input.parent_id {
             if let Some(id) = pid {
@@ -109,10 +105,7 @@ impl DocNodeRepo {
     }
 
     /// Get all unique tags for a space's nodes.
-    pub async fn list_tags(
-        db: &DatabaseConnection,
-        space_id: Uuid,
-    ) -> Result<Vec<String>, AppError> {
+    pub async fn list_tags(db: &DatabaseConnection, space_id: Uuid) -> Result<Vec<String>, AppError> {
         let nodes = doc_nodes::Entity::find()
             .filter(doc_nodes::Column::SpaceId.eq(space_id))
             .filter(doc_nodes::Column::IsArchived.eq(false))
@@ -131,10 +124,7 @@ impl DocNodeRepo {
     }
 
     /// Get a single node by ID (full model with content).
-    pub async fn get_by_id(
-        db: &DatabaseConnection,
-        id: Uuid,
-    ) -> Result<Option<doc_nodes::Model>, AppError> {
+    pub async fn get_by_id(db: &DatabaseConnection, id: Uuid) -> Result<Option<doc_nodes::Model>, AppError> {
         Ok(doc_nodes::Entity::find_by_id(id).one(db).await?)
     }
 
@@ -230,11 +220,7 @@ impl DocNodeRepo {
     }
 
     /// Archive a node (soft delete).
-    pub async fn archive(
-        db: &DatabaseConnection,
-        id: Uuid,
-        archived: bool,
-    ) -> Result<bool, AppError> {
+    pub async fn archive(db: &DatabaseConnection, id: Uuid, archived: bool) -> Result<bool, AppError> {
         let node = doc_nodes::Entity::find_by_id(id).one(db).await?;
         let Some(node) = node else {
             return Ok(false);
@@ -255,10 +241,7 @@ impl DocNodeRepo {
         };
 
         doc_nodes::Entity::update_many()
-            .col_expr(
-                doc_nodes::Column::ParentId,
-                Expr::value(node.parent_id),
-            )
+            .col_expr(doc_nodes::Column::ParentId, Expr::value(node.parent_id))
             .filter(doc_nodes::Column::ParentId.eq(id))
             .exec(db)
             .await?;
@@ -268,10 +251,7 @@ impl DocNodeRepo {
     }
 
     /// Toggle favorite status. Returns new state.
-    pub async fn toggle_favorite(
-        db: &DatabaseConnection,
-        id: Uuid,
-    ) -> Result<Option<bool>, AppError> {
+    pub async fn toggle_favorite(db: &DatabaseConnection, id: Uuid) -> Result<Option<bool>, AppError> {
         let node = doc_nodes::Entity::find_by_id(id).one(db).await?;
         let Some(node) = node else {
             return Ok(None);
@@ -286,10 +266,7 @@ impl DocNodeRepo {
     }
 
     /// Toggle pin status. Returns new state.
-    pub async fn toggle_pin(
-        db: &DatabaseConnection,
-        id: Uuid,
-    ) -> Result<Option<bool>, AppError> {
+    pub async fn toggle_pin(db: &DatabaseConnection, id: Uuid) -> Result<Option<bool>, AppError> {
         let node = doc_nodes::Entity::find_by_id(id).one(db).await?;
         let Some(node) = node else {
             return Ok(None);

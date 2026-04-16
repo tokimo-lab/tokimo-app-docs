@@ -28,10 +28,7 @@ impl DocSpaceWriteCallback {
     }
 
     /// Find a markdown doc_node by title within this space.
-    async fn find_markdown_node_by_title(
-        &self,
-        title: &str,
-    ) -> Result<Option<doc_nodes::Model>, DbErr> {
+    async fn find_markdown_node_by_title(&self, title: &str) -> Result<Option<doc_nodes::Model>, DbErr> {
         doc_nodes::Entity::find()
             .filter(doc_nodes::Column::SpaceId.eq(self.space_id))
             .filter(doc_nodes::Column::Type.eq("markdown"))
@@ -43,11 +40,7 @@ impl DocSpaceWriteCallback {
 
 #[async_trait::async_trait]
 impl WriteCallback for DocSpaceWriteCallback {
-    async fn on_file_written(
-        &self,
-        relative_path: &str,
-        content: &[u8],
-    ) -> Result<(), String> {
+    async fn on_file_written(&self, relative_path: &str, content: &[u8]) -> Result<(), String> {
         // Only handle .md files
         let is_md = std::path::Path::new(relative_path)
             .extension()

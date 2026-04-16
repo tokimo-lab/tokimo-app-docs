@@ -1,10 +1,11 @@
-use axum::extract::{Path, State};
 use axum::Json;
+use axum::extract::{Path, State};
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
 use super::{parse_uuid, validate_node_name};
+use crate::AppState;
 use crate::apps::docs::models::DocNodeOutput;
 use crate::apps::docs::repos::node_repo::DocNodeRepo;
 use crate::apps::docs::repos::space_repo::DocSpaceRepo;
@@ -12,8 +13,7 @@ use crate::apps::docs::services::docs_service::DocsService;
 use crate::apps::docs::services::markdown_sync::DocMarkdownSyncService;
 use crate::db::entities::doc_nodes;
 use crate::error::{AppError, OptionExt};
-use crate::handlers::{ok, ok_empty, ApiResponse};
-use crate::AppState;
+use crate::handlers::{ApiResponse, ok, ok_empty};
 use sea_orm::*;
 
 #[derive(Debug, Deserialize)]
@@ -45,10 +45,7 @@ pub struct MoveNodeInput {
 }
 
 /// Verify that the parent node exists and is a folder.
-async fn verify_parent_is_folder(
-    db: &DatabaseConnection,
-    parent_id: Uuid,
-) -> Result<(), AppError> {
+async fn verify_parent_is_folder(db: &DatabaseConnection, parent_id: Uuid) -> Result<(), AppError> {
     let parent = doc_nodes::Entity::find_by_id(parent_id)
         .one(db)
         .await?
@@ -89,17 +86,11 @@ async fn check_unique_sibling_name(
 }
 
 /// Check that moving `node_id` under `target_parent_id` does not create a cycle.
-async fn check_no_cycle(
-    db: &DatabaseConnection,
-    node_id: Uuid,
-    target_parent_id: Uuid,
-) -> Result<(), AppError> {
+async fn check_no_cycle(db: &DatabaseConnection, node_id: Uuid, target_parent_id: Uuid) -> Result<(), AppError> {
     let mut current = Some(target_parent_id);
     while let Some(pid) = current {
         if pid == node_id {
-            return Err(AppError::BadRequest(
-                "cannot move a node under itself".into(),
-            ));
+            return Err(AppError::BadRequest("cannot move a node under itself".into()));
         }
         let parent = doc_nodes::Entity::find_by_id(pid).one(db).await?;
         current = parent.and_then(|p| p.parent_id);
@@ -114,11 +105,7 @@ pub async fn create_node(
     Json(input): Json<CreateNodeInput>,
 ) -> Result<Json<ApiResponse<DocNodeOutput>>, AppError> {
     let space_id = parse_uuid(&id)?;
-    let parent_id = input
-        .parent_id
-        .as_deref()
-        .map(parse_uuid)
-        .transpose()?;
+    let parent_id = input.parent_id.as_deref().map(parse_uuid).transpose()?;
     let node_type = input.r#type.unwrap_or_else(|| "notion".to_string());
     let title = input.title.unwrap_or_default();
 
@@ -166,14 +153,7 @@ pub async fn update_node(
             .await?
             .not_found("node not found")?;
         if !title.is_empty() && title != &node.title {
-            check_unique_sibling_name(
-                &state.db,
-                node.space_id,
-                node.parent_id,
-                title,
-                Some(node_id),
-            )
-            .await?;
+            check_unique_sibling_name(&state.db, node.space_id, node.parent_id, title, Some(node_id)).await?;
         }
     }
 
@@ -256,11 +236,7 @@ pub async fn move_node(
     Json(input): Json<MoveNodeInput>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
     let node_id = parse_uuid(&id)?;
-    let parent_id = input
-        .parent_id
-        .as_deref()
-        .map(parse_uuid)
-        .transpose()?;
+    let parent_id = input.parent_id.as_deref().map(parse_uuid).transpose()?;
 
     if let Some(pid) = parent_id {
         verify_parent_is_folder(&state.db, pid).await?;
@@ -271,18 +247,10 @@ pub async fn move_node(
         .await?
         .not_found("node not found")?;
     if parent_id != node.parent_id && !node.title.is_empty() {
-        check_unique_sibling_name(
-            &state.db,
-            node.space_id,
-            parent_id,
-            &node.title,
-            Some(node_id),
-        )
-        .await?;
+        check_unique_sibling_name(&state.db, node.space_id, parent_id, &node.title, Some(node_id)).await?;
     }
 
-    let moved =
-        DocNodeRepo::move_node(&state.db, node_id, parent_id, input.sort_order).await?;
+    let moved = DocNodeRepo::move_node(&state.db, node_id, parent_id, input.sort_order).await?;
     if !moved {
         return Err(AppError::NotFound("node not found".into()));
     }

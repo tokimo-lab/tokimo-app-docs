@@ -1,14 +1,14 @@
-use axum::extract::{Path, State};
 use axum::Json;
+use axum::extract::{Path, State};
 use serde::Deserialize;
 use std::sync::Arc;
 
 use super::parse_uuid;
+use crate::AppState;
 use crate::apps::docs::repos::user_state_repo::UserStateRepo;
 use crate::error::AppError;
 use crate::handlers::user::AuthUser;
-use crate::handlers::{ok, ok_empty, ApiResponse};
-use crate::AppState;
+use crate::handlers::{ApiResponse, ok, ok_empty};
 
 // ── DTOs ────────────────────────────────────────────────────────────
 
@@ -48,9 +48,7 @@ pub async fn put_view_state(
     let node_id = parse_uuid(&id)?;
 
     if !body.view_state.is_object() {
-        return Err(AppError::BadRequest(
-            "viewState must be a JSON object".into(),
-        ));
+        return Err(AppError::BadRequest("viewState must be a JSON object".into()));
     }
 
     UserStateRepo::upsert_view_state(&state.db, user_id, node_id, body.view_state).await?;

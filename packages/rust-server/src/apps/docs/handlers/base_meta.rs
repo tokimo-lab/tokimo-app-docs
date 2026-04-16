@@ -1,15 +1,15 @@
-use axum::extract::{Path, State};
 use axum::Json;
+use axum::extract::{Path, State};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use ts_rs::TS;
 
 use super::parse_uuid;
+use crate::AppState;
 use crate::db::entities::doc_nodes;
 use crate::error::{AppError, OptionExt};
 use crate::handlers::user::AuthUser;
-use crate::handlers::{ok, ApiResponse};
-use crate::AppState;
+use crate::handlers::{ApiResponse, ok};
 use sea_orm::*;
 
 // ── Output DTOs ──────────────────────────────────────────────────────────────
@@ -63,8 +63,14 @@ pub async fn get_base_meta(
     }
 
     let content = node.content.clone().unwrap_or(serde_json::json!({}));
-    let needs_init = content.get("fields").and_then(|v| v.as_array()).is_none_or(Vec::is_empty)
-        || content.get("views").and_then(|v| v.as_array()).is_none_or(Vec::is_empty);
+    let needs_init = content
+        .get("fields")
+        .and_then(|v| v.as_array())
+        .is_none_or(Vec::is_empty)
+        || content
+            .get("views")
+            .and_then(|v| v.as_array())
+            .is_none_or(Vec::is_empty);
 
     let content = if needs_init {
         let default_content = create_default_content();
@@ -98,9 +104,9 @@ pub async fn update_base_meta(
     }
 
     let mut content = node.content.clone().unwrap_or(serde_json::json!({}));
-    let obj = content.as_object_mut().ok_or_else(|| {
-        AppError::Internal("node content is not a JSON object".into())
-    })?;
+    let obj = content
+        .as_object_mut()
+        .ok_or_else(|| AppError::Internal("node content is not a JSON object".into()))?;
 
     if let Some(fields) = body.fields {
         obj.insert("fields".to_string(), fields);
@@ -109,10 +115,7 @@ pub async fn update_base_meta(
         obj.insert("views".to_string(), views);
     }
     if let Some(active_view_id) = body.active_view_id {
-        obj.insert(
-            "activeViewId".to_string(),
-            serde_json::Value::String(active_view_id),
-        );
+        obj.insert("activeViewId".to_string(), serde_json::Value::String(active_view_id));
     }
 
     let mut active: doc_nodes::ActiveModel = node.into();
@@ -126,18 +129,9 @@ pub async fn update_base_meta(
 fn extract_meta(node_id: &str, content: &serde_json::Value) -> BaseMetaOutput {
     BaseMetaOutput {
         node_id: node_id.to_string(),
-        fields: content
-            .get("fields")
-            .cloned()
-            .unwrap_or(serde_json::json!([])),
-        views: content
-            .get("views")
-            .cloned()
-            .unwrap_or(serde_json::json!([])),
-        active_view_id: content
-            .get("activeViewId")
-            .and_then(|v| v.as_str())
-            .map(String::from),
+        fields: content.get("fields").cloned().unwrap_or(serde_json::json!([])),
+        views: content.get("views").cloned().unwrap_or(serde_json::json!([])),
+        active_view_id: content.get("activeViewId").and_then(|v| v.as_str()).map(String::from),
     }
 }
 

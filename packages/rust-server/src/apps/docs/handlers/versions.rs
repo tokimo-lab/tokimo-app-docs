@@ -1,18 +1,16 @@
-use axum::extract::{Path, State};
 use axum::Json;
+use axum::extract::{Path, State};
 use std::sync::Arc;
 
 use super::parse_uuid;
-use crate::apps::docs::models::{
-    DocNodeOutput, DocNodeVersionDetailOutput, DocNodeVersionOutput,
-};
+use crate::AppState;
+use crate::apps::docs::models::{DocNodeOutput, DocNodeVersionDetailOutput, DocNodeVersionOutput};
 use crate::apps::docs::repos::space_repo::DocSpaceRepo;
 use crate::apps::docs::repos::version_repo::DocNodeVersionRepo;
 use crate::apps::docs::services::docs_service::DocsService;
 use crate::apps::docs::services::markdown_sync::DocMarkdownSyncService;
 use crate::error::{AppError, OptionExt};
-use crate::handlers::{ok, ApiResponse};
-use crate::AppState;
+use crate::handlers::{ApiResponse, ok};
 
 /// GET /api/apps/docs/nodes/{id}/versions
 pub async fn list_versions(
@@ -21,10 +19,7 @@ pub async fn list_versions(
 ) -> Result<Json<ApiResponse<Vec<DocNodeVersionOutput>>>, AppError> {
     let node_id = parse_uuid(&id)?;
     let versions = DocNodeVersionRepo::list(&state.db, node_id).await?;
-    let outputs: Vec<DocNodeVersionOutput> = versions
-        .into_iter()
-        .map(DocNodeVersionOutput::from)
-        .collect();
+    let outputs: Vec<DocNodeVersionOutput> = versions.into_iter().map(DocNodeVersionOutput::from).collect();
     Ok(ok(outputs))
 }
 
@@ -53,9 +48,7 @@ pub async fn restore_version(
         .not_found("version not found")?;
 
     if version.node_id != node_id {
-        return Err(AppError::BadRequest(
-            "version does not belong to this node".into(),
-        ));
+        return Err(AppError::BadRequest("version does not belong to this node".into()));
     }
 
     let node = DocsService::update_node_with_version(

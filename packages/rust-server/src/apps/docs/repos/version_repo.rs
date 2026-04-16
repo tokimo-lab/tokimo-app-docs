@@ -34,9 +34,7 @@ impl DocNodeVersionRepo {
             word_count: Set(word_count),
             created_at: Set(now),
         };
-        doc_node_versions::Entity::insert(model)
-            .exec(db)
-            .await?;
+        doc_node_versions::Entity::insert(model).exec(db).await?;
         doc_node_versions::Entity::find_by_id(id)
             .one(db)
             .await?
@@ -76,10 +74,7 @@ impl DocNodeVersionRepo {
     }
 
     /// List all versions for a node (without content), ordered by version DESC.
-    pub async fn list(
-        db: &DatabaseConnection,
-        node_id: Uuid,
-    ) -> Result<Vec<doc_node_versions::Model>, AppError> {
+    pub async fn list(db: &DatabaseConnection, node_id: Uuid) -> Result<Vec<doc_node_versions::Model>, AppError> {
         let versions = doc_node_versions::Entity::find()
             .filter(doc_node_versions::Column::NodeId.eq(node_id))
             .order_by_desc(doc_node_versions::Column::Version)
@@ -89,13 +84,8 @@ impl DocNodeVersionRepo {
     }
 
     /// Get a single version by ID (with content).
-    pub async fn get_by_id(
-        db: &DatabaseConnection,
-        id: Uuid,
-    ) -> Result<Option<doc_node_versions::Model>, AppError> {
-        Ok(doc_node_versions::Entity::find_by_id(id)
-            .one(db)
-            .await?)
+    pub async fn get_by_id(db: &DatabaseConnection, id: Uuid) -> Result<Option<doc_node_versions::Model>, AppError> {
+        Ok(doc_node_versions::Entity::find_by_id(id).one(db).await?)
     }
 
     /// Keep only the latest N versions for a node, deleting older ones.

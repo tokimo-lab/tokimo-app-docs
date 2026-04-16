@@ -29,10 +29,7 @@ impl BaseRecordRepo {
     }
 
     /// Get a single record by id.
-    pub async fn get_by_id(
-        db: &DatabaseConnection,
-        id: Uuid,
-    ) -> Result<docs_base_records::Model, AppError> {
+    pub async fn get_by_id(db: &DatabaseConnection, id: Uuid) -> Result<docs_base_records::Model, AppError> {
         docs_base_records::Entity::find_by_id(id)
             .one(db)
             .await?
@@ -80,9 +77,7 @@ impl BaseRecordRepo {
             })
             .collect();
 
-        docs_base_records::Entity::insert_many(models)
-            .exec(db)
-            .await?;
+        docs_base_records::Entity::insert_many(models).exec(db).await?;
 
         docs_base_records::Entity::find()
             .filter(docs_base_records::Column::Id.is_in(ids))
@@ -124,10 +119,7 @@ impl BaseRecordRepo {
     }
 
     /// Batch-delete records by ids. Returns the number of deleted rows.
-    pub async fn batch_delete(
-        db: &DatabaseConnection,
-        ids: Vec<Uuid>,
-    ) -> Result<u64, AppError> {
+    pub async fn batch_delete(db: &DatabaseConnection, ids: Vec<Uuid>) -> Result<u64, AppError> {
         let result = docs_base_records::Entity::delete_many()
             .filter(docs_base_records::Column::Id.is_in(ids))
             .exec(db)
@@ -136,10 +128,7 @@ impl BaseRecordRepo {
     }
 
     /// Get the maximum sort_order for a node (used to append new records).
-    pub async fn max_sort_order(
-        db: &DatabaseConnection,
-        node_id: Uuid,
-    ) -> Result<i32, AppError> {
+    pub async fn max_sort_order(db: &DatabaseConnection, node_id: Uuid) -> Result<i32, AppError> {
         use sea_orm::{ConnectionTrait, DatabaseBackend, Statement};
 
         let stmt = Statement::from_sql_and_values(

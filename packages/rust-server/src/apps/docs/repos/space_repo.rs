@@ -15,9 +15,7 @@ pub struct UpdateSpaceParams {
 }
 
 impl DocSpaceRepo {
-    pub async fn list_all(
-        db: &DatabaseConnection,
-    ) -> Result<Vec<doc_spaces::Model>, AppError> {
+    pub async fn list_all(db: &DatabaseConnection) -> Result<Vec<doc_spaces::Model>, AppError> {
         Ok(doc_spaces::Entity::find()
             .order_by_asc(doc_spaces::Column::SortOrder)
             .order_by_asc(doc_spaces::Column::CreatedAt)
@@ -25,10 +23,7 @@ impl DocSpaceRepo {
             .await?)
     }
 
-    pub async fn get_by_id(
-        db: &DatabaseConnection,
-        id: Uuid,
-    ) -> Result<Option<doc_spaces::Model>, AppError> {
+    pub async fn get_by_id(db: &DatabaseConnection, id: Uuid) -> Result<Option<doc_spaces::Model>, AppError> {
         Ok(doc_spaces::Entity::find_by_id(id).one(db).await?)
     }
 
@@ -104,9 +99,7 @@ impl DocSpaceRepo {
     }
 
     /// List all spaces with s3_synced enabled and a valid slug.
-    pub async fn list_synced(
-        db: &DatabaseConnection,
-    ) -> Result<Vec<doc_spaces::Model>, AppError> {
+    pub async fn list_synced(db: &DatabaseConnection) -> Result<Vec<doc_spaces::Model>, AppError> {
         Ok(doc_spaces::Entity::find()
             .filter(doc_spaces::Column::S3Synced.eq(true))
             .filter(doc_spaces::Column::Slug.is_not_null())

@@ -5,18 +5,18 @@
 //! periodically persisted to PostgreSQL (`doc_nodes.yjs_state`).
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 use dashmap::DashMap;
 use sea_orm::DatabaseConnection;
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use yrs::sync::protocol::MSG_AWARENESS;
-use yrs::sync::Awareness;
-use yrs::updates::encoder::{Encode, Encoder, EncoderV1};
 use yrs::encoding::write::Write as YrsWrite;
+use yrs::sync::Awareness;
+use yrs::sync::protocol::MSG_AWARENESS;
+use yrs::updates::encoder::{Encode, Encoder, EncoderV1};
 use yrs::{Doc, Options, ReadTxn, Transact};
 
 use crate::db::entities::doc_nodes;
@@ -153,10 +153,7 @@ impl CollabRoom {
     }
 
     fn idle_duration(&self) -> Duration {
-        self.last_activity
-            .lock()
-            .map(|t| t.elapsed())
-            .unwrap_or(Duration::ZERO)
+        self.last_activity.lock().map(|t| t.elapsed()).unwrap_or(Duration::ZERO)
     }
 }
 
@@ -218,11 +215,7 @@ impl CollabService {
     }
 
     /// Persist a single room's Yjs state to PostgreSQL.
-    pub async fn persist_room(
-        &self,
-        node_id: Uuid,
-        room: &CollabRoom,
-    ) -> Result<(), AppError> {
+    pub async fn persist_room(&self, node_id: Uuid, room: &CollabRoom) -> Result<(), AppError> {
         let state = {
             let awareness = room.awareness.read().await;
             let doc = awareness.doc();
@@ -290,9 +283,7 @@ impl CollabService {
             && room.is_dirty()
             && let Err(e) = self.persist_room(node_id, &room).await
         {
-            tracing::error!(
-                "collab: failed to persist on last disconnect {node_id}: {e}"
-            );
+            tracing::error!("collab: failed to persist on last disconnect {node_id}: {e}");
         }
     }
 
@@ -320,15 +311,11 @@ impl CollabService {
                 Ok(update) => {
                     let mut txn = doc.transact_mut();
                     if let Err(e) = txn.apply_update(update) {
-                        tracing::error!(
-                            "collab: failed to apply stored state for {node_id}: {e}"
-                        );
+                        tracing::error!("collab: failed to apply stored state for {node_id}: {e}");
                     }
                 }
                 Err(e) => {
-                    tracing::error!(
-                        "collab: failed to decode stored state for {node_id}: {e}"
-                    );
+                    tracing::error!("collab: failed to decode stored state for {node_id}: {e}");
                 }
             }
         }
@@ -339,22 +326,17 @@ impl CollabService {
     async fn load_yjs_state(&self, node_id: Uuid) -> Result<Option<Vec<u8>>, AppError> {
         use sea_orm::*;
 
-        let result = doc_nodes::Entity::find_by_id(node_id)
-            .one(&self.db)
-            .await?;
+        let result = doc_nodes::Entity::find_by_id(node_id).one(&self.db).await?;
 
         Ok(result.and_then(|m| m.yjs_state))
     }
 
     async fn save_yjs_state(&self, node_id: Uuid, state: &[u8]) -> Result<(), AppError> {
-        use sea_orm::*;
         use sea_orm::sea_query::Expr;
+        use sea_orm::*;
 
         doc_nodes::Entity::update_many()
-            .col_expr(
-                doc_nodes::Column::YjsState,
-                Expr::value(state.to_vec()),
-            )
+            .col_expr(doc_nodes::Column::YjsState, Expr::value(state.to_vec()))
             .filter(doc_nodes::Column::Id.eq(node_id))
             .exec(&self.db)
             .await?;

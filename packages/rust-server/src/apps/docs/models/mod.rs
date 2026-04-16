@@ -1,5 +1,5 @@
-use sea_orm::entity::prelude::DateTimeWithTimeZone;
 use sea_orm::DerivePartialModel;
+use sea_orm::entity::prelude::DateTimeWithTimeZone;
 use serde::Serialize;
 use ts_rs::TS;
 use uuid::Uuid;

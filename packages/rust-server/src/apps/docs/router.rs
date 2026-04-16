@@ -1,14 +1,14 @@
 use axum::{
-    routing::{get, patch, post},
     Router,
+    routing::{get, patch, post},
 };
 use std::sync::Arc;
 
-use crate::apps::docs::handlers::{
-    attachment, base_meta, base_records, browse, collab, comments, crud, space, versions,
-    view_state, whiteboard_library,
-};
 use crate::AppState;
+use crate::apps::docs::handlers::{
+    attachment, base_meta, base_records, browse, collab, comments, crud, space, versions, view_state,
+    whiteboard_library,
+};
 
 pub fn build_docs_app_routes() -> Router<Arc<AppState>> {
     Router::new()

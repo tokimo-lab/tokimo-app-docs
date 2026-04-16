@@ -27,9 +27,7 @@ pub fn validate_node_name(name: &str) -> Result<(), AppError> {
         return Err(AppError::BadRequest("node name cannot be empty".into()));
     }
     if name.len() > 255 {
-        return Err(AppError::BadRequest(
-            "node name too long (max 255 chars)".into(),
-        ));
+        return Err(AppError::BadRequest("node name too long (max 255 chars)".into()));
     }
     if let Some(ch) = name.chars().find(|c| FORBIDDEN_CHARS.contains(c)) {
         return Err(AppError::BadRequest(format!(
@@ -37,9 +35,7 @@ pub fn validate_node_name(name: &str) -> Result<(), AppError> {
         )));
     }
     if name.starts_with('.') || name.ends_with('.') {
-        return Err(AppError::BadRequest(
-            "node name cannot start or end with a dot".into(),
-        ));
+        return Err(AppError::BadRequest("node name cannot start or end with a dot".into()));
     }
     if name != name.trim() {
         return Err(AppError::BadRequest(

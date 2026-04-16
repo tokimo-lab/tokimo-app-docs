@@ -1,17 +1,17 @@
-use axum::extract::{Path, Query, State};
 use axum::Json;
+use axum::extract::{Path, Query, State};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use ts_rs::TS;
 
 use super::parse_uuid;
+use crate::AppState;
 use crate::apps::docs::repos::base_record_repo::BaseRecordRepo;
 use crate::db::entities::docs_base_records;
 use crate::db::pagination::{Page, PageInput};
 use crate::error::AppError;
 use crate::handlers::user::AuthUser;
-use crate::handlers::{ok, ok_empty, ApiResponse};
-use crate::AppState;
+use crate::handlers::{ApiResponse, ok, ok_empty};
 
 // ── Output DTOs ──────────────────────────────────────────────────────────────
 
@@ -71,8 +71,7 @@ pub async fn list_records(
     Query(page): Query<PageInput>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     let uid = parse_uuid(&node_id)?;
-    let result: Page<docs_base_records::Model> =
-        BaseRecordRepo::list(&state.db, uid, &page).await?;
+    let result: Page<docs_base_records::Model> = BaseRecordRepo::list(&state.db, uid, &page).await?;
 
     let output = Page::new(
         result.items.into_iter().map(BaseRecordOutput::from).collect(),
@@ -126,11 +125,7 @@ pub async fn batch_delete_records(
     Path(_node_id): Path<String>,
     Json(body): Json<BatchDeleteInput>,
 ) -> Result<Json<ApiResponse<BatchDeleteOutput>>, AppError> {
-    let ids: Vec<uuid::Uuid> = body
-        .ids
-        .iter()
-        .map(|s| parse_uuid(s))
-        .collect::<Result<Vec<_>, _>>()?;
+    let ids: Vec<uuid::Uuid> = body.ids.iter().map(|s| parse_uuid(s)).collect::<Result<Vec<_>, _>>()?;
     let deleted = BaseRecordRepo::batch_delete(&state.db, ids).await?;
     Ok(ok(BatchDeleteOutput {
         deleted: deleted as i64,

@@ -4,10 +4,8 @@ use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::warn;
 
-const CATALOG_URL: &str =
-    "https://raw.githubusercontent.com/excalidraw/excalidraw-libraries/main/libraries.json";
-const GITHUB_RAW_BASE: &str =
-    "https://raw.githubusercontent.com/excalidraw/excalidraw-libraries/main";
+const CATALOG_URL: &str = "https://raw.githubusercontent.com/excalidraw/excalidraw-libraries/main/libraries.json";
+const GITHUB_RAW_BASE: &str = "https://raw.githubusercontent.com/excalidraw/excalidraw-libraries/main";
 const CACHE_TTL: Duration = Duration::from_secs(24 * 60 * 60);
 
 /// Raw entry from the upstream libraries.json catalog.
@@ -50,9 +48,7 @@ fn catalog_lock() -> &'static RwLock<Option<CatalogCache>> {
 }
 
 /// Fetch (or return cached) the library catalog.
-pub async fn get_catalog(
-    http: &reqwest::Client,
-) -> Result<Vec<RawLibraryEntry>, crate::error::AppError> {
+pub async fn get_catalog(http: &reqwest::Client) -> Result<Vec<RawLibraryEntry>, crate::error::AppError> {
     // Fast path: read lock
     {
         let guard = catalog_lock().read().await;
@@ -76,16 +72,19 @@ pub async fn get_catalog(
         .map_err(|e| crate::error::AppError::Internal(format!("parse catalog: {e}")))?;
 
     // Fill in empty IDs with a hash of the source field for entries missing id
-    entries = entries.into_iter().map(|mut e| {
-        if e.id.is_empty() {
-            use std::collections::hash_map::DefaultHasher;
-            use std::hash::{Hash, Hasher};
-            let mut hasher = DefaultHasher::new();
-            e.source.hash(&mut hasher);
-            e.id = format!("gen_{:x}", hasher.finish());
-        }
-        e
-    }).collect();
+    entries = entries
+        .into_iter()
+        .map(|mut e| {
+            if e.id.is_empty() {
+                use std::collections::hash_map::DefaultHasher;
+                use std::hash::{Hash, Hasher};
+                let mut hasher = DefaultHasher::new();
+                e.source.hash(&mut hasher);
+                e.id = format!("gen_{:x}", hasher.finish());
+            }
+            e
+        })
+        .collect();
 
     let mut guard = catalog_lock().write().await;
     *guard = Some(CatalogCache {
@@ -97,10 +96,7 @@ pub async fn get_catalog(
 }
 
 /// Find the `source` path for a library by ID.
-pub async fn get_library_source_url(
-    http: &reqwest::Client,
-    id: &str,
-) -> Result<String, crate::error::AppError> {
+pub async fn get_library_source_url(http: &reqwest::Client, id: &str) -> Result<String, crate::error::AppError> {
     let catalog = get_catalog(http).await?;
     let entry = catalog
         .iter()
@@ -110,19 +106,14 @@ pub async fn get_library_source_url(
 }
 
 /// Find the `preview` path for a library by ID.
-pub async fn get_library_preview_url(
-    http: &reqwest::Client,
-    id: &str,
-) -> Result<String, crate::error::AppError> {
+pub async fn get_library_preview_url(http: &reqwest::Client, id: &str) -> Result<String, crate::error::AppError> {
     let catalog = get_catalog(http).await?;
     let entry = catalog
         .iter()
         .find(|e| e.id == id)
         .ok_or_else(|| crate::error::AppError::NotFound(format!("library {id} not found")))?;
     if entry.preview.is_empty() {
-        return Err(crate::error::AppError::NotFound(format!(
-            "library {id} has no preview"
-        )));
+        return Err(crate::error::AppError::NotFound(format!("library {id} has no preview")));
     }
     Ok(format!("{GITHUB_RAW_BASE}/libraries/{}", entry.preview))
 }
@@ -180,10 +171,7 @@ pub async fn fetch_cached_file(
 
 fn guess_content_type(filename: &str) -> &'static str {
     use std::path::Path;
-    let ext = Path::new(filename)
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("");
+    let ext = Path::new(filename).extension().and_then(|e| e.to_str()).unwrap_or("");
     match ext.to_ascii_lowercase().as_str() {
         "png" => "image/png",
         "excalidrawlib" | "json" => "application/json",

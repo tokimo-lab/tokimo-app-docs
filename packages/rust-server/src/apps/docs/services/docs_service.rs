@@ -34,14 +34,7 @@ impl DocsService {
             let snap_title = title.as_deref().unwrap_or(&existing.title).to_string();
             let snap_content = existing.content.clone();
             let snap_word_count = existing.word_count;
-            let _ = DocNodeVersionRepo::create_if_due(
-                db,
-                node_id,
-                snap_title,
-                snap_content,
-                snap_word_count,
-            )
-            .await;
+            let _ = DocNodeVersionRepo::create_if_due(db, node_id, snap_title, snap_content, snap_word_count).await;
         }
 
         let node = DocNodeRepo::update(
