@@ -1,81 +1,119 @@
 import {
   createContext,
   type ReactNode,
+  type RefObject,
+  useCallback,
   useContext,
   useEffect,
   useRef,
+  useState,
 } from "react";
 
 /**
- * Tracks whether the parent scroll container is actively scrolling.
- * When scrolling (+ 1s cooldown), embedded viewers should not capture
- * wheel events — otherwise scrolling the page accidentally zooms images.
+ * Focus-based scroll protection for embedded viewers (images, PDFs, Monaco, etc).
+ *
+ * When a block is NOT activated, its preview content has `pointer-events: none`,
+ * so wheel/click events pass through to the parent scroll container.
+ * When a user clicks on the block, it becomes "activated" — the preview area
+ * gains pointer-events and can capture wheel (zoom, internal scroll, etc).
+ *
+ * Activation clears when:
+ * - Another block is activated (only one at a time)
+ * - The block scrolls completely out of the editor viewport
  */
 
-const COOLDOWN_MS = 1000;
+interface BlockFocusContextValue {
+  activatedKey: string | null;
+  activate: (key: string) => void;
+  deactivate: (key: string) => void;
+  /** The editor scroll container, used as IntersectionObserver root. */
+  editorScrollRef: RefObject<HTMLDivElement | null>;
+}
 
-export const ScrollGuardContext = createContext<
-  React.RefObject<boolean> | undefined
->(undefined);
+export const BlockFocusContext = createContext<BlockFocusContextValue | null>(
+  null,
+);
 
 /**
- * Hook for the scroll container: attach to onScroll.
- * Returns a stable ref whose `.current` is `true` while scrolling
- * and for `COOLDOWN_MS` after the last scroll event.
+ * Provider hook — call in DocEditorArea, pass scrollRef.
  */
-export function useScrollGuardProvider() {
-  const scrollingRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+export function useBlockFocusProvider(
+  scrollRef: RefObject<HTMLDivElement | null>,
+) {
+  const [activatedKey, setActivatedKey] = useState<string | null>(null);
 
-  const onScroll = () => {
-    scrollingRef.current = true;
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      scrollingRef.current = false;
-    }, COOLDOWN_MS);
+  const activate = useCallback((key: string) => setActivatedKey(key), []);
+  const deactivate = useCallback(
+    (key: string) => setActivatedKey((prev) => (prev === key ? null : prev)),
+    [],
+  );
+
+  return {
+    value: { activatedKey, activate, deactivate, editorScrollRef: scrollRef },
   };
+}
 
+/**
+ * Consumer hook — call in any block that has embedded viewers.
+ *
+ * Returns activation state + a ref to attach to the block container
+ * (used by IntersectionObserver to auto-deactivate when out of viewport).
+ */
+export function useBlockFocus(blockKey: string | undefined) {
+  const ctx = useContext(BlockFocusContext);
+  const isActivated = !!blockKey && ctx?.activatedKey === blockKey;
+
+  const activate = useCallback(() => {
+    if (blockKey) ctx?.activate(blockKey);
+  }, [ctx, blockKey]);
+
+  const deactivate = useCallback(() => {
+    if (blockKey) ctx?.deactivate(blockKey);
+  }, [ctx, blockKey]);
+
+  // Auto-deactivate when block scrolls out of the editor viewport
+  const observeRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+    if (!isActivated || !observeRef.current) return;
+    const root = ctx?.editorScrollRef.current ?? null;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting && blockKey) {
+          ctx?.deactivate(blockKey);
+        }
+      },
+      { root, threshold: 0 },
+    );
+    observer.observe(observeRef.current);
+    return () => observer.disconnect();
+  }, [isActivated, blockKey, ctx]);
 
-  return { scrollingRef, onScroll };
+  return { isActivated, activate, deactivate, observeRef };
 }
 
 /**
- * Hook for embedded viewers: returns true while the parent is scrolling.
- * Falls back to `false` if there's no provider (standalone viewer windows).
+ * Wrapper that blocks wheel events from reaching children when the block
+ * is NOT activated. Used for iframe-based / Monaco / PDF viewers that can't
+ * be controlled via `pointer-events: none` alone (e.g. already-mounted iframes).
  */
-export function useScrollGuard(): React.RefObject<boolean> {
-  const ref = useContext(ScrollGuardContext);
-  const fallback = useRef(false);
-  return ref ?? fallback;
-}
-
-/**
- * Wrapper that blocks wheel events from reaching children while the parent
- * scroll container is actively scrolling. Useful for Monaco, iframe-based
- * viewers, and any component with internal scroll that can't consume the
- * ScrollGuardContext directly.
- */
-export function ScrollGuardShield({ children }: { children: ReactNode }) {
-  const guardRef = useScrollGuard();
+export function WheelCaptureShield({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: ReactNode;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el) return;
+    if (!el || active) return;
     const handler = (e: WheelEvent) => {
-      if (guardRef.current) {
-        e.stopPropagation();
-      }
+      e.stopPropagation();
     };
-    // Capture phase so we intercept before children handle the event
     el.addEventListener("wheel", handler, { capture: true });
     return () => el.removeEventListener("wheel", handler, { capture: true });
-  }, [guardRef]);
+  }, [active]);
 
   return (
     <div ref={containerRef} className="h-full w-full">

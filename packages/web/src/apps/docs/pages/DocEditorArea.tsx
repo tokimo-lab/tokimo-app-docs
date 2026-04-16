@@ -7,8 +7,8 @@ import { DocTagInput } from "@/apps/docs/components/DocTagInput";
 import { DocEditor, type DocEditorHandle } from "@/apps/docs/components/editor";
 import { useDocViewport } from "@/apps/docs/hooks/use-doc-viewport";
 import {
-  ScrollGuardContext,
-  useScrollGuardProvider,
+  BlockFocusContext,
+  useBlockFocusProvider,
 } from "@/apps/docs/hooks/use-scroll-guard";
 import { untitledI18nKey } from "@/apps/docs/lib/doc-node";
 import type { DocNodeOutput } from "@/generated/rust-api";
@@ -162,7 +162,7 @@ export function DocEditorArea({
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const dragCounterRef = useRef(0);
   const dragIndexRef = useRef(-1);
-  const { scrollingRef, onScroll: onScrollGuard } = useScrollGuardProvider();
+  const { value: blockFocusValue } = useBlockFocusProvider(scrollRef);
 
   // Viewport scroll persistence
   const {
@@ -199,10 +199,9 @@ export function DocEditorArea({
 
   // ── Track scroll changes ───────────────────────────────────────────
   const handleScroll = useCallback(() => {
-    onScrollGuard();
     if (!scrollRef.current) return;
     saveViewport({ scrollTop: scrollRef.current.scrollTop });
-  }, [saveViewport, onScrollGuard]);
+  }, [saveViewport]);
 
   // ── Add transition to editor blocks while dragging ────────────────
   useEffect(() => {
@@ -291,7 +290,7 @@ export function DocEditorArea({
   }
 
   return (
-    <ScrollGuardContext value={scrollingRef}>
+    <BlockFocusContext value={blockFocusValue}>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: file drop target for attachment upload */}
       <div
         ref={scrollRef}
@@ -356,6 +355,6 @@ export function DocEditorArea({
           />
         </div>
       </div>
-    </ScrollGuardContext>
+    </BlockFocusContext>
   );
 }

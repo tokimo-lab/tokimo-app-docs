@@ -17,7 +17,10 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { ScrollGuardShield } from "@/apps/docs/hooks/use-scroll-guard";
+import {
+  useBlockFocus,
+  WheelCaptureShield,
+} from "@/apps/docs/hooks/use-scroll-guard";
 import { AudioPlayer } from "@/apps/viewers/audio/AudioPlayer";
 import { ImagePreview } from "@/apps/viewers/image/ImagePreview";
 import { PdfEmbed, type PdfViewMode } from "@/apps/viewers/pdf/PdfEmbed";
@@ -428,6 +431,7 @@ function PreviewContent({
   fileCategory,
   detectedLanguage,
   isBinary,
+  activated,
 }: {
   storageKey: string;
   fileType: string;
@@ -442,6 +446,7 @@ function PreviewContent({
   fileCategory?: string;
   detectedLanguage?: string;
   isBinary?: boolean;
+  activated?: boolean;
 }) {
   const url = getStorageUrl(storageKey);
   const style = height ? { height: `${height}px` } : undefined;
@@ -462,7 +467,7 @@ function PreviewContent({
 
   if (kind === "pdf") {
     return (
-      <ScrollGuardShield>
+      <WheelCaptureShield active={!!activated}>
         <div style={{ height: height ? `${height}px` : "400px" }}>
           <PdfEmbed
             src={url}
@@ -474,7 +479,7 @@ function PreviewContent({
             onZoomChange={onPdfZoomChange}
           />
         </div>
-      </ScrollGuardShield>
+      </WheelCaptureShield>
     );
   }
 
@@ -497,20 +502,20 @@ function PreviewContent({
   if (kind === "text") {
     return (
       <div style={{ height: height ? `${height}px` : "300px" }}>
-        <ScrollGuardShield>
+        <WheelCaptureShield active={!!activated}>
           <MonacoTextEditor
             readOnlyUrl={url}
             fileName={fileName}
             language={detectedLanguage}
           />
-        </ScrollGuardShield>
+        </WheelCaptureShield>
       </div>
     );
   }
 
   if (kind === "office" && attachmentId) {
     return (
-      <ScrollGuardShield>
+      <WheelCaptureShield active={!!activated}>
         <OfficePreview
           attachmentId={attachmentId}
           fileName={fileName}
@@ -521,7 +526,7 @@ function PreviewContent({
           pdfZoom={pdfZoom}
           onPdfZoomChange={onPdfZoomChange}
         />
-      </ScrollGuardShield>
+      </WheelCaptureShield>
     );
   }
 
@@ -710,6 +715,13 @@ export function AttachmentElement(props: PlateElementProps) {
   const isBinary = el.isBinary;
   const attachmentId = el.attachmentId;
 
+  // Block focus: controls whether preview content captures wheel events
+  const { isActivated, activate, observeRef } = useBlockFocus(attachmentId);
+
+  const needsScrollCapture =
+    resolvePreviewKind(fileType, fileCategory, isBinary, fileName) !==
+    "fallback";
+
   const sizeLabel = formatFileSize(fileSize);
   const downloadUrl = storageKey ? getStorageUrl(storageKey) : null;
 
@@ -800,11 +812,15 @@ export function AttachmentElement(props: PlateElementProps) {
 
   return (
     <PlateElement className="my-3" {...props}>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: void Slate block — keyboard activation handled by Slate */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: void Slate block */}
       <div
+        ref={observeRef}
         contentEditable={false}
         className={`group/block relative transition-[border-color,opacity] ${
           isDragging ? "opacity-50" : ""
         }`}
+        onClick={needsScrollCapture ? activate : undefined}
       >
         <div ref={containerRef}>
           <BlockToolbar
@@ -813,10 +829,12 @@ export function AttachmentElement(props: PlateElementProps) {
           />
         </div>
         <div
-          className={`overflow-hidden rounded-lg border bg-surface-base ${
+          className={`overflow-hidden rounded-lg border bg-surface-base transition-colors ${
             isDragging
               ? "border-border-brand"
-              : "border-border-base hover:border-border-hover"
+              : isActivated
+                ? "border-blue-500 dark:border-blue-400"
+                : "border-border-base hover:border-border-hover"
           }`}
         >
           {/* Title bar */}
@@ -877,9 +895,11 @@ export function AttachmentElement(props: PlateElementProps) {
             </div>
           </div>
 
-          {/* Preview area */}
+          {/* Preview area — pointer-events disabled until block is activated */}
           {storageKey && (
-            <div className="overflow-hidden">
+            <div
+              className={`overflow-hidden ${needsScrollCapture && !isActivated ? "pointer-events-none" : ""}`}
+            >
               <PreviewErrorBoundary>
                 <LazyViewport
                   height={getPlaceholderHeight(
@@ -903,6 +923,7 @@ export function AttachmentElement(props: PlateElementProps) {
                     fileCategory={fileCategory}
                     detectedLanguage={detectedLanguage}
                     isBinary={isBinary}
+                    activated={isActivated}
                   />
                 </LazyViewport>
               </PreviewErrorBoundary>
