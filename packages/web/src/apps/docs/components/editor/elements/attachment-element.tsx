@@ -1,4 +1,10 @@
-import { Download, Paperclip, Settings2 } from "lucide-react";
+import {
+  Download,
+  FileWarning,
+  Loader2,
+  Paperclip,
+  Settings2,
+} from "lucide-react";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -8,6 +14,7 @@ import { ImagePreview } from "@/apps/viewers/image/ImagePreview";
 import { PdfEmbed } from "@/apps/viewers/pdf/PdfEmbed";
 import { MonacoTextEditor } from "@/apps/viewers/text/MonacoTextEditor";
 import { VideoPreview } from "@/apps/viewers/video/VideoPreview";
+import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
 import { rustUrl } from "@/lib/rust-api-runtime";
 import { MaterialFileIcon } from "@/shared/components/icons";
 
@@ -37,6 +44,12 @@ interface AttachmentData {
   height?: number | null;
   /** Upload progress 0-100, present only while uploading */
   uploadProgress?: number;
+  /** Detection fields from backend */
+  fileCategory?: string;
+  detectedMime?: string;
+  detectedLanguage?: string;
+  isBinary?: boolean;
+  textEncoding?: string;
 }
 
 function getStorageUrl(storageKey: string): string {
@@ -68,28 +81,81 @@ function isTextType(mime: string): boolean {
   );
 }
 
+/** Check if a file is an office document that can be previewed via Gotenberg */
+function isOfficeType(category?: string, mime?: string): boolean {
+  if (
+    category === "document" ||
+    category === "spreadsheet" ||
+    category === "presentation"
+  ) {
+    // Exclude PDF since we handle it natively
+    if (mime === "application/pdf") return false;
+    return true;
+  }
+  return false;
+}
+
+type PreviewKind =
+  | "image"
+  | "pdf"
+  | "video"
+  | "audio"
+  | "text"
+  | "office"
+  | "fallback";
+
+/** Determine preview kind from detection fields, falling back to MIME heuristics */
+function resolvePreviewKind(
+  fileType: string,
+  fileCategory?: string,
+  isBinary?: boolean,
+): PreviewKind {
+  // Use fileCategory from detector when available
+  if (fileCategory) {
+    if (isOfficeType(fileCategory, fileType)) return "office";
+    switch (fileCategory) {
+      case "image":
+        return "image";
+      case "video":
+        return "video";
+      case "audio":
+        return "audio";
+      case "text":
+        return "text";
+    }
+  }
+
+  // Fallback to MIME-based heuristics for older attachments without detection fields
+  if (isImageType(fileType)) return "image";
+  if (isPdfType(fileType)) return "pdf";
+  if (isVideoType(fileType)) return "video";
+  if (isAudioType(fileType)) return "audio";
+  if (isTextType(fileType)) return "text";
+  if (isBinary === false) return "text";
+
+  // PDF check (category=document but caught above via MIME)
+  if (fileType === "application/pdf") return "pdf";
+
+  return "fallback";
+}
+
 const DEFAULT_HEIGHTS: Record<string, number> = {
   image: 300,
   pdf: 400,
   text: 300,
+  office: 400,
   fallback: 120,
 };
 
 function getPlaceholderHeight(
   fileType: string,
   explicitHeight: number | null | undefined,
+  fileCategory?: string,
+  isBinary?: boolean,
 ): number {
   if (explicitHeight) return explicitHeight;
-  if (fileType.startsWith("image/")) return DEFAULT_HEIGHTS.image;
-  if (fileType === "application/pdf") return DEFAULT_HEIGHTS.pdf;
-  if (
-    fileType.startsWith("text/") ||
-    fileType === "application/json" ||
-    fileType === "application/xml" ||
-    fileType === "application/javascript"
-  )
-    return DEFAULT_HEIGHTS.text;
-  return DEFAULT_HEIGHTS.fallback;
+  const kind = resolvePreviewKind(fileType, fileCategory, isBinary);
+  return DEFAULT_HEIGHTS[kind] ?? DEFAULT_HEIGHTS.fallback;
 }
 
 /** Renders children only when the element is near the viewport. */
@@ -134,21 +200,99 @@ function LazyViewport({
   return <>{children}</>;
 }
 
+/** Office document preview — fetches PDF preview URL from backend, renders via PdfEmbed */
+function OfficePreview({
+  attachmentId,
+  fileName,
+  height,
+}: {
+  attachmentId: string;
+  fileName: string;
+  height: number | null | undefined;
+}) {
+  const [state, setState] = useState<{
+    status: "loading" | "ready" | "error";
+    url?: string;
+    error?: string;
+  }>({ status: "loading" });
+
+  useEffect(() => {
+    let cancelled = false;
+    docAttachmentApi.preview
+      .fetch({ id: attachmentId })
+      .then((result) => {
+        if (!cancelled) {
+          setState({ status: "ready", url: rustUrl(result.url) });
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setState({
+            status: "error",
+            error: err instanceof Error ? err.message : "Preview failed",
+          });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [attachmentId]);
+
+  if (state.status === "loading") {
+    return (
+      <div
+        className="flex items-center justify-center gap-2 text-fg-muted"
+        style={{ height: height ? `${height}px` : "400px" }}
+      >
+        <Loader2 size={18} className="animate-spin" />
+        <span className="text-xs">Generating preview…</span>
+      </div>
+    );
+  }
+
+  if (state.status === "error" || !state.url) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center gap-2 text-fg-muted"
+        style={{ height: height ? `${height}px` : "120px" }}
+      >
+        <FileWarning size={24} />
+        <span className="text-xs">{state.error ?? "Preview unavailable"}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ height: height ? `${height}px` : "400px" }}>
+      <PdfEmbed src={state.url} title={fileName} />
+    </div>
+  );
+}
+
 function PreviewContent({
   storageKey,
   fileType,
   fileName,
   height,
+  attachmentId,
+  fileCategory,
+  detectedLanguage,
+  isBinary,
 }: {
   storageKey: string;
   fileType: string;
   fileName: string;
   height: number | null | undefined;
+  attachmentId?: string;
+  fileCategory?: string;
+  detectedLanguage?: string;
+  isBinary?: boolean;
 }) {
   const url = getStorageUrl(storageKey);
   const style = height ? { height: `${height}px` } : undefined;
+  const kind = resolvePreviewKind(fileType, fileCategory, isBinary);
 
-  if (isImageType(fileType)) {
+  if (kind === "image") {
     return (
       <div className="overflow-hidden" style={style ?? { height: "300px" }}>
         <ImagePreview
@@ -161,7 +305,7 @@ function PreviewContent({
     );
   }
 
-  if (isPdfType(fileType)) {
+  if (kind === "pdf") {
     return (
       <div style={{ height: height ? `${height}px` : "400px" }}>
         <PdfEmbed src={url} title={fileName} />
@@ -169,7 +313,7 @@ function PreviewContent({
     );
   }
 
-  if (isVideoType(fileType)) {
+  if (kind === "video") {
     return (
       <div style={style}>
         <VideoPreview src={url} className="w-full" />
@@ -177,7 +321,7 @@ function PreviewContent({
     );
   }
 
-  if (isAudioType(fileType)) {
+  if (kind === "audio") {
     return (
       <div className="px-4 py-3">
         <AudioPlayer src={url} fileName={fileName} />
@@ -185,13 +329,29 @@ function PreviewContent({
     );
   }
 
-  if (isTextType(fileType)) {
+  if (kind === "text") {
     return (
       <div style={{ height: height ? `${height}px` : "300px" }}>
         <ScrollGuardShield>
-          <MonacoTextEditor readOnlyUrl={url} fileName={fileName} />
+          <MonacoTextEditor
+            readOnlyUrl={url}
+            fileName={fileName}
+            language={detectedLanguage}
+          />
         </ScrollGuardShield>
       </div>
+    );
+  }
+
+  if (kind === "office" && attachmentId) {
+    return (
+      <ScrollGuardShield>
+        <OfficePreview
+          attachmentId={attachmentId}
+          fileName={fileName}
+          height={height}
+        />
+      </ScrollGuardShield>
     );
   }
 
@@ -251,6 +411,10 @@ export function AttachmentElement(props: PlateElementProps) {
   const fileSize = el.fileSize;
   const height = el.height;
   const uploadProgress = el.uploadProgress;
+  const fileCategory = el.fileCategory;
+  const detectedLanguage = el.detectedLanguage;
+  const isBinary = el.isBinary;
+  const attachmentId = el.attachmentId;
 
   const sizeLabel = formatFileSize(fileSize);
   const downloadUrl = storageKey ? getStorageUrl(storageKey) : null;
@@ -305,12 +469,23 @@ export function AttachmentElement(props: PlateElementProps) {
         {/* Preview area */}
         {storageKey && (
           <div className="overflow-hidden">
-            <LazyViewport height={getPlaceholderHeight(fileType, height)}>
+            <LazyViewport
+              height={getPlaceholderHeight(
+                fileType,
+                height,
+                fileCategory,
+                isBinary,
+              )}
+            >
               <PreviewContent
                 storageKey={storageKey}
                 fileType={fileType}
                 fileName={fileName}
                 height={height}
+                attachmentId={attachmentId}
+                fileCategory={fileCategory}
+                detectedLanguage={detectedLanguage}
+                isBinary={isBinary}
               />
             </LazyViewport>
           </div>
