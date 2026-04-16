@@ -172,9 +172,17 @@ export function useBlockDrag(containerRef: RefObject<HTMLElement | null>): {
           ds.fromIndex = getSlateBlockDomIndex(slateBlock);
 
           const rect = slateBlock.getBoundingClientRect();
-          // Use current pointer (after threshold), not initial press position
-          ds.offsetX = ev.clientX - rect.left;
-          ds.offsetY = ev.clientY - rect.top;
+          // Anchor ghost so the grip button center stays under the cursor,
+          // regardless of how far the pointer moved to exceed the threshold.
+          const gripBtn = container.querySelector("button");
+          const gripRect = gripBtn?.getBoundingClientRect();
+          if (gripRect) {
+            ds.offsetX = gripRect.left + gripRect.width / 2 - rect.left;
+            ds.offsetY = gripRect.top + gripRect.height / 2 - rect.top;
+          } else {
+            ds.offsetX = ev.clientX - rect.left;
+            ds.offsetY = ev.clientY - rect.top;
+          }
 
           const ghost = slateBlock.cloneNode(true) as HTMLElement;
           ghost.id = "block-drag-ghost";
