@@ -8,7 +8,9 @@ import { DocEditor, type DocEditorHandle } from "@/apps/docs/components/editor";
 import { useDocViewport } from "@/apps/docs/hooks/use-doc-viewport";
 import {
   BlockFocusContext,
+  ScrollGuardContext,
   useBlockFocusProvider,
+  useScrollGuardProvider,
 } from "@/apps/docs/hooks/use-scroll-guard";
 import { untitledI18nKey } from "@/apps/docs/lib/doc-node";
 import type { DocNodeOutput } from "@/generated/rust-api";
@@ -163,6 +165,7 @@ export function DocEditorArea({
   const dragCounterRef = useRef(0);
   const dragIndexRef = useRef(-1);
   const { value: blockFocusValue } = useBlockFocusProvider(scrollRef);
+  const { scrollingRef, onScrollGuard } = useScrollGuardProvider();
 
   // Viewport scroll persistence
   const {
@@ -200,8 +203,9 @@ export function DocEditorArea({
   // ── Track scroll changes ───────────────────────────────────────────
   const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
+    onScrollGuard();
     saveViewport({ scrollTop: scrollRef.current.scrollTop });
-  }, [saveViewport]);
+  }, [saveViewport, onScrollGuard]);
 
   // ── Add transition to editor blocks while dragging ────────────────
   useEffect(() => {
@@ -290,71 +294,73 @@ export function DocEditorArea({
   }
 
   return (
-    <BlockFocusContext value={blockFocusValue}>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: file drop target for attachment upload */}
-      <div
-        ref={scrollRef}
-        role="presentation"
-        className="relative flex h-full flex-col overflow-y-auto"
-        onScroll={handleScroll}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOverCapture={handleDragOver}
-        onDropCapture={handleDrop}
-      >
-        {/* Title input */}
-        <div className="w-full pl-[28px] pr-3 pt-6 pb-2">
-          <input
-            type="text"
-            value={title}
-            readOnly={readOnly}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => {
-              if (!readOnly && title !== doc.title) {
-                onTitleChange(title);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                (e.target as HTMLInputElement).blur();
-              }
-            }}
-            className="w-full border-none bg-transparent text-4xl font-bold text-fg-primary outline-none placeholder:text-fg-muted  "
-            placeholder={t(untitledI18nKey(doc.type))}
-          />
-        </div>
-
-        {/* Tags */}
-        {!readOnly && (
-          <div className="w-full pl-[22px] pr-3 pb-2">
-            <DocTagInput
-              nodeId={doc.id}
-              spaceId={spaceId}
-              tags={doc.tags}
-              onChange={onTagsChange}
+    <ScrollGuardContext value={scrollingRef}>
+      <BlockFocusContext value={blockFocusValue}>
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: file drop target for attachment upload */}
+        <div
+          ref={scrollRef}
+          role="presentation"
+          className="relative flex h-full flex-col overflow-y-auto"
+          onScroll={handleScroll}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOverCapture={handleDragOver}
+          onDropCapture={handleDrop}
+        >
+          {/* Title input */}
+          <div className="w-full pl-[28px] pr-3 pt-6 pb-2">
+            <input
+              type="text"
+              value={title}
+              readOnly={readOnly}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={() => {
+                if (!readOnly && title !== doc.title) {
+                  onTitleChange(title);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  (e.target as HTMLInputElement).blur();
+                }
+              }}
+              className="w-full border-none bg-transparent text-4xl font-bold text-fg-primary outline-none placeholder:text-fg-muted  "
+              placeholder={t(untitledI18nKey(doc.type))}
             />
           </div>
-        )}
 
-        {/* Plate editor */}
-        <div className="flex-1">
-          <DocEditor
-            key={readOnly ? `preview-${doc.id}` : doc.id}
-            value={doc.content as Value | null}
-            onChange={readOnly ? () => {} : onContentChange}
-            editorRef={readOnly ? undefined : editorRef}
-            onAddComment={readOnly ? undefined : onAddComment}
-            onOpenAi={readOnly ? undefined : onOpenAi}
-            onAiAction={readOnly ? undefined : onAiAction}
-            onInsertVfsFile={readOnly ? undefined : onInsertVfsFile}
-            onAttachmentUpload={readOnly ? undefined : onAttachmentUpload}
-            readOnly={readOnly}
-            nodeId={readOnly ? undefined : doc.id}
-            userName={user?.name}
-          />
+          {/* Tags */}
+          {!readOnly && (
+            <div className="w-full pl-[22px] pr-3 pb-2">
+              <DocTagInput
+                nodeId={doc.id}
+                spaceId={spaceId}
+                tags={doc.tags}
+                onChange={onTagsChange}
+              />
+            </div>
+          )}
+
+          {/* Plate editor */}
+          <div className="flex-1">
+            <DocEditor
+              key={readOnly ? `preview-${doc.id}` : doc.id}
+              value={doc.content as Value | null}
+              onChange={readOnly ? () => {} : onContentChange}
+              editorRef={readOnly ? undefined : editorRef}
+              onAddComment={readOnly ? undefined : onAddComment}
+              onOpenAi={readOnly ? undefined : onOpenAi}
+              onAiAction={readOnly ? undefined : onAiAction}
+              onInsertVfsFile={readOnly ? undefined : onInsertVfsFile}
+              onAttachmentUpload={readOnly ? undefined : onAttachmentUpload}
+              readOnly={readOnly}
+              nodeId={readOnly ? undefined : doc.id}
+              userName={user?.name}
+            />
+          </div>
         </div>
-      </div>
-    </BlockFocusContext>
+      </BlockFocusContext>
+    </ScrollGuardContext>
   );
 }

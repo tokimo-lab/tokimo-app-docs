@@ -262,7 +262,7 @@ export function DocSidebar({
       <div className="flex w-10 shrink-0 flex-col items-center border-r border-border-base bg-surface-base/50 py-2">
         <button
           type="button"
-          className="rounded p-1.5 text-fg-muted hover:bg-fill-tertiary"
+          className="cursor-pointer rounded p-1.5 text-fg-muted hover:bg-fill-tertiary"
           onClick={onToggleCollapsed}
           title="展开侧栏"
         >
@@ -292,7 +292,7 @@ export function DocSidebar({
         >
           <button
             type="button"
-            className="shrink-0 rounded p-1 text-fg-muted hover:bg-fill-tertiary"
+            className="shrink-0 cursor-pointer rounded p-1 text-fg-muted hover:bg-fill-tertiary"
             title="排序"
           >
             <ArrowUpDown size={14} />
@@ -300,7 +300,7 @@ export function DocSidebar({
         </Dropdown>
         <button
           type="button"
-          className="shrink-0 rounded p-1 text-fg-muted hover:bg-fill-tertiary"
+          className="shrink-0 cursor-pointer rounded p-1 text-fg-muted hover:bg-fill-tertiary"
           onClick={onToggleCollapsed}
           title="收起侧栏"
         >
@@ -318,7 +318,7 @@ export function DocSidebar({
               key={item.key}
               type="button"
               className={cn(
-                "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                "flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
                 isActive
                   ? "bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                   : "text-fg-secondary hover:bg-fill-tertiary",

@@ -9,18 +9,52 @@ import {
   useState,
 } from "react";
 
-/**
- * Focus-based scroll protection for embedded viewers (images, PDFs, Monaco, etc).
- *
- * When a block is NOT activated, its preview content has `pointer-events: none`,
- * so wheel/click events pass through to the parent scroll container.
- * When a user clicks on the block, it becomes "activated" — the preview area
- * gains pointer-events and can capture wheel (zoom, internal scroll, etc).
- *
- * Activation clears when:
- * - Another block is activated (only one at a time)
- * - The block scrolls completely out of the editor viewport
- */
+// ═══════════════════════════════════════════════════════════════════════════
+// Layer 1: Time-based scroll guard (secondary protection)
+// While the editor is scrolling (+ 500ms cooldown), embedded viewers should
+// not capture wheel events — prevents accidental zoom during fast scrolling.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const COOLDOWN_MS = 500;
+
+export const ScrollGuardContext = createContext<
+  React.RefObject<boolean> | undefined
+>(undefined);
+
+/** Provider hook — returns a ref + onScroll callback for the scroll container. */
+export function useScrollGuardProvider() {
+  const scrollingRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const onScrollGuard = () => {
+    scrollingRef.current = true;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      scrollingRef.current = false;
+    }, COOLDOWN_MS);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  return { scrollingRef, onScrollGuard };
+}
+
+/** Consumer hook — returns ref whose `.current` is true while parent scrolls. */
+export function useScrollGuard(): React.RefObject<boolean> {
+  const ref = useContext(ScrollGuardContext);
+  const fallback = useRef(false);
+  return ref ?? fallback;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Layer 2: Focus-based block activation (primary protection)
+// Preview content has `pointer-events: none` until user clicks the block.
+// Only activated block receives wheel/pointer events.
+// ═══════════════════════════════════════════════════════════════════════════
 
 interface BlockFocusContextValue {
   activatedKey: string | null;
@@ -34,9 +68,7 @@ export const BlockFocusContext = createContext<BlockFocusContextValue | null>(
   null,
 );
 
-/**
- * Provider hook — call in DocEditorArea, pass scrollRef.
- */
+/** Provider hook — call in DocEditorArea, pass scrollRef. */
 export function useBlockFocusProvider(
   scrollRef: RefObject<HTMLDivElement | null>,
 ) {

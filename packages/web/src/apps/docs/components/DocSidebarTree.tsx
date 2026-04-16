@@ -636,7 +636,7 @@ export function ArchivedNodeRow({
       >
         <button
           type="button"
-          className="rounded p-0.5 text-fg-muted hover:text-green-500"
+          className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-green-500"
           onClick={onRestore}
           title="恢复"
         >
@@ -644,7 +644,7 @@ export function ArchivedNodeRow({
         </button>
         <button
           type="button"
-          className="rounded p-0.5 text-fg-muted hover:text-red-500"
+          className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-red-500"
           onClick={onPermanentDelete}
           title="永久删除"
         >
