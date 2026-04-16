@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollGuardShield } from "@/apps/docs/hooks/use-scroll-guard";
 import { AudioPlayer } from "@/apps/viewers/audio/AudioPlayer";
 import { ImagePreview } from "@/apps/viewers/image/ImagePreview";
-import { PdfEmbed } from "@/apps/viewers/pdf/PdfEmbed";
+import { PdfEmbed, type PdfViewMode } from "@/apps/viewers/pdf/PdfEmbed";
 import { MonacoTextEditor } from "@/apps/viewers/text/MonacoTextEditor";
 import { VideoPreview } from "@/apps/viewers/video/VideoPreview";
 import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
@@ -53,6 +53,7 @@ interface AttachmentData {
   fileSize?: number;
   height?: number | null;
   maxWidth?: number | null;
+  pdfMode?: string | null;
   /** Upload progress 0-100, present only while uploading */
   uploadProgress?: number;
   /** Detection fields from backend */
@@ -287,10 +288,16 @@ function OfficePreview({
   attachmentId,
   fileName,
   height,
+  maxWidth,
+  pdfMode,
+  onPdfModeChange,
 }: {
   attachmentId: string;
   fileName: string;
   height: number | null | undefined;
+  maxWidth?: number | null;
+  pdfMode?: PdfViewMode;
+  onPdfModeChange?: (mode: PdfViewMode) => void;
 }) {
   const [state, setState] = useState<{
     status: "loading" | "ready" | "error";
@@ -346,7 +353,13 @@ function OfficePreview({
 
   return (
     <div style={{ height: height ? `${height}px` : "400px" }}>
-      <PdfEmbed src={state.url} title={fileName} />
+      <PdfEmbed
+        src={state.url}
+        title={fileName}
+        maxWidth={maxWidth ?? undefined}
+        mode={pdfMode}
+        onModeChange={onPdfModeChange}
+      />
     </div>
   );
 }
@@ -357,6 +370,8 @@ function PreviewContent({
   fileName,
   height,
   maxWidth,
+  pdfMode,
+  onPdfModeChange,
   attachmentId,
   fileCategory,
   detectedLanguage,
@@ -367,6 +382,8 @@ function PreviewContent({
   fileName: string;
   height: number | null | undefined;
   maxWidth?: number | null;
+  pdfMode?: PdfViewMode;
+  onPdfModeChange?: (mode: PdfViewMode) => void;
   attachmentId?: string;
   fileCategory?: string;
   detectedLanguage?: string;
@@ -392,7 +409,13 @@ function PreviewContent({
   if (kind === "pdf") {
     return (
       <div style={{ height: height ? `${height}px` : "400px" }}>
-        <PdfEmbed src={url} title={fileName} maxWidth={maxWidth ?? undefined} />
+        <PdfEmbed
+          src={url}
+          title={fileName}
+          maxWidth={maxWidth ?? undefined}
+          mode={pdfMode}
+          onModeChange={onPdfModeChange}
+        />
       </div>
     );
   }
@@ -434,6 +457,9 @@ function PreviewContent({
           attachmentId={attachmentId}
           fileName={fileName}
           height={height}
+          maxWidth={maxWidth}
+          pdfMode={pdfMode}
+          onPdfModeChange={onPdfModeChange}
         />
       </ScrollGuardShield>
     );
@@ -569,6 +595,7 @@ export function AttachmentElement(props: PlateElementProps) {
   const fileSize = el.fileSize;
   const height = el.height;
   const maxWidth = el.maxWidth;
+  const pdfMode = (el.pdfMode as PdfViewMode) || "scroll";
   const uploadProgress = el.uploadProgress;
   const fileCategory = el.fileCategory;
   const detectedLanguage = el.detectedLanguage;
@@ -603,6 +630,18 @@ export function AttachmentElement(props: PlateElementProps) {
       const path = editor.api.findPath(element);
       if (path) {
         editor.tf.setNodes({ maxWidth: w } as Record<string, unknown>, {
+          at: path,
+        });
+      }
+    },
+    [editor, element],
+  );
+
+  const handlePdfModeChange = useCallback(
+    (m: PdfViewMode) => {
+      const path = editor.api.findPath(element);
+      if (path) {
+        editor.tf.setNodes({ pdfMode: m } as Record<string, unknown>, {
           at: path,
         });
       }
@@ -662,6 +701,8 @@ export function AttachmentElement(props: PlateElementProps) {
                 fileName={fileName}
                 height={height}
                 maxWidth={maxWidth}
+                pdfMode={pdfMode}
+                onPdfModeChange={handlePdfModeChange}
                 attachmentId={attachmentId}
                 fileCategory={fileCategory}
                 detectedLanguage={detectedLanguage}
