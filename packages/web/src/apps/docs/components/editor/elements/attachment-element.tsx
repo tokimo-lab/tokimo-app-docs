@@ -1,7 +1,7 @@
 import { Download, Paperclip, Settings2 } from "lucide-react";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollGuardShield } from "@/apps/docs/hooks/use-scroll-guard";
 import { AudioPlayer } from "@/apps/viewers/audio/AudioPlayer";
 import { ImagePreview } from "@/apps/viewers/image/ImagePreview";
@@ -66,6 +66,72 @@ function isTextType(mime: string): boolean {
     mime === "application/xml" ||
     mime === "application/javascript"
   );
+}
+
+const DEFAULT_HEIGHTS: Record<string, number> = {
+  image: 300,
+  pdf: 400,
+  text: 300,
+  fallback: 120,
+};
+
+function getPlaceholderHeight(
+  fileType: string,
+  explicitHeight: number | null | undefined,
+): number {
+  if (explicitHeight) return explicitHeight;
+  if (fileType.startsWith("image/")) return DEFAULT_HEIGHTS.image;
+  if (fileType === "application/pdf") return DEFAULT_HEIGHTS.pdf;
+  if (
+    fileType.startsWith("text/") ||
+    fileType === "application/json" ||
+    fileType === "application/xml" ||
+    fileType === "application/javascript"
+  )
+    return DEFAULT_HEIGHTS.text;
+  return DEFAULT_HEIGHTS.fallback;
+}
+
+/** Renders children only when the element is near the viewport. */
+function LazyViewport({
+  height,
+  children,
+}: {
+  height: number;
+  children: React.ReactNode;
+}) {
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  if (!visible) {
+    return (
+      <div
+        ref={sentinelRef}
+        className="flex items-center justify-center bg-fill-tertiary/30"
+        style={{ height: `${height}px` }}
+      >
+        <Paperclip size={20} className="animate-pulse text-fg-muted" />
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 function PreviewContent({
@@ -239,12 +305,14 @@ export function AttachmentElement(props: PlateElementProps) {
         {/* Preview area */}
         {storageKey && (
           <div className="overflow-hidden">
-            <PreviewContent
-              storageKey={storageKey}
-              fileType={fileType}
-              fileName={fileName}
-              height={height}
-            />
+            <LazyViewport height={getPlaceholderHeight(fileType, height)}>
+              <PreviewContent
+                storageKey={storageKey}
+                fileType={fileType}
+                fileName={fileName}
+                height={height}
+              />
+            </LazyViewport>
           </div>
         )}
 
