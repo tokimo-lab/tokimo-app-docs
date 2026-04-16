@@ -641,8 +641,6 @@ function SettingsPopover({
 
 // ── Custom pointer-based block drag ──────────────────────────────────
 const DRAG_THRESHOLD = 5;
-const PLACEHOLDER_CLS =
-  "attachment-drag-placeholder rounded-xl border-2 border-dashed border-fill-brand bg-fill-brand-secondary/20 pointer-events-none my-1 transition-[height] duration-200";
 
 /** Snapshot bounding rects of all direct children of the editor. */
 function snapshotEditorPositions(editorEl: Element): Map<Element, DOMRect> {
@@ -657,8 +655,10 @@ function snapshotEditorPositions(editorEl: Element): Map<Element, DOMRect> {
 function flipAnimateEditor(
   editorEl: Element,
   before: Map<Element, DOMRect>,
+  skipEl?: Element,
 ): void {
   for (const child of editorEl.children) {
+    if (child === skipEl) continue;
     const oldRect = before.get(child);
     if (!oldRect) continue;
     const newRect = child.getBoundingClientRect();
@@ -680,90 +680,84 @@ function flipAnimateEditor(
   }
 }
 
-/** Find the Slate block index closest to clientY (skipping dragged + placeholder). */
-function findBlockInsertIndex(
-  clientY: number,
-  draggedEl: HTMLElement | null,
-): number {
-  const editorEl = document.querySelector("[data-slate-editor]");
-  if (!editorEl) return -1;
+/**
+ * Find the target child index in editorEl for a drag at clientY.
+ * The dragged element is included in the count (it's in the flow).
+ */
+function findBlockTargetIndex(clientY: number, editorEl: Element): number {
   const blocks = editorEl.querySelectorAll(
     ":scope > [data-slate-node='element']",
   );
   if (blocks.length === 0) return 0;
-  let idx = 0;
   for (let i = 0; i < blocks.length; i++) {
-    const block = blocks[i] as HTMLElement;
-    // Skip the element being dragged
-    if (draggedEl && block.contains(draggedEl)) continue;
-    const rect = block.getBoundingClientRect();
+    const rect = blocks[i].getBoundingClientRect();
     const mid = rect.top + rect.height / 2;
-    if (clientY < mid) return idx;
-    idx++;
+    if (clientY < mid) return i;
   }
-  return idx;
+  return blocks.length;
 }
 
-/** Get or create the drag placeholder and insert/move it at given Slate block index. */
-function upsertBlockPlaceholder(
-  index: number,
-  height: number,
-  draggedEl: HTMLElement | null,
+/** Move a Slate block element to a target index among its siblings, with FLIP. */
+function moveSlateBlockTo(
+  slateBlock: HTMLElement,
+  targetIndex: number,
+  editorEl: Element,
 ): void {
-  const editorEl = document.querySelector("[data-slate-editor]");
-  if (!editorEl) return;
-
-  const phId = "attachment-drag-ph";
-  let ph = document.getElementById(phId);
-  if (!ph) {
-    ph = document.createElement("div");
-    ph.id = phId;
-    ph.setAttribute("contenteditable", "false");
-    ph.style.height = `${height}px`;
-    ph.className = PLACEHOLDER_CLS;
+  const blocks = editorEl.querySelectorAll(
+    ":scope > [data-slate-node='element']",
+  );
+  // Current index of the dragged block
+  let currentIndex = -1;
+  for (let i = 0; i < blocks.length; i++) {
+    if (blocks[i] === slateBlock) {
+      currentIndex = i;
+      break;
+    }
   }
+  if (currentIndex === -1 || currentIndex === targetIndex) return;
 
   const before = snapshotEditorPositions(editorEl);
 
-  // Collect non-dragged, non-placeholder Slate block elements
-  const blocks: Element[] = [];
-  for (const child of editorEl.querySelectorAll(
-    ":scope > [data-slate-node='element']",
-  )) {
-    if (draggedEl && (child as HTMLElement).contains(draggedEl)) continue;
-    blocks.push(child);
+  // Collect non-dragged blocks in order
+  const others: Element[] = [];
+  for (let i = 0; i < blocks.length; i++) {
+    if (blocks[i] !== slateBlock) others.push(blocks[i]);
   }
 
-  if (index >= blocks.length) {
-    editorEl.appendChild(ph);
-  } else {
-    editorEl.insertBefore(ph, blocks[index]);
-  }
-
-  flipAnimateEditor(editorEl, before);
-}
-
-function removeBlockPlaceholder(): void {
-  document.getElementById("attachment-drag-ph")?.remove();
-}
-
-/** Count Slate block elements before the placeholder. */
-function getBlockPlaceholderIndex(draggedEl: HTMLElement | null): number {
-  const ph = document.getElementById("attachment-drag-ph");
-  if (!ph) return -1;
-  const editorEl = ph.parentElement;
-  if (!editorEl) return -1;
-  let idx = 0;
-  let sibling = editorEl.firstElementChild;
-  while (sibling && sibling !== ph) {
-    if (sibling.getAttribute("data-slate-node") === "element") {
-      if (!(draggedEl && sibling.contains(draggedEl))) {
-        idx++;
+  // Insert before the block at targetIndex (in the others array)
+  if (targetIndex > currentIndex) {
+    // Moving down: targetIndex in the full list, adjust for removed element
+    const refIdx = targetIndex - 1;
+    if (refIdx >= others.length) {
+      // Append after last block — find next non-block sibling or append
+      const lastBlock = others[others.length - 1];
+      if (lastBlock.nextSibling) {
+        editorEl.insertBefore(slateBlock, lastBlock.nextSibling);
+      } else {
+        editorEl.appendChild(slateBlock);
       }
+    } else {
+      editorEl.insertBefore(slateBlock, others[refIdx].nextSibling);
     }
-    sibling = sibling.nextElementSibling;
+  } else {
+    // Moving up: insert before the block at targetIndex in others
+    editorEl.insertBefore(slateBlock, others[targetIndex]);
   }
-  return idx;
+
+  flipAnimateEditor(editorEl, before, slateBlock);
+}
+
+/** Get the current DOM index of a Slate block among its siblings. */
+function getSlateBlockDomIndex(slateBlock: HTMLElement): number {
+  const editorEl = slateBlock.parentElement;
+  if (!editorEl) return -1;
+  const blocks = editorEl.querySelectorAll(
+    ":scope > [data-slate-node='element']",
+  );
+  for (let i = 0; i < blocks.length; i++) {
+    if (blocks[i] === slateBlock) return i;
+  }
+  return -1;
 }
 
 export function AttachmentElement(props: PlateElementProps) {
@@ -778,9 +772,10 @@ export function AttachmentElement(props: PlateElementProps) {
     startY: number;
     active: boolean;
     ghost: HTMLElement | null;
+    slateBlock: HTMLElement | null;
     offsetX: number;
     offsetY: number;
-    lastIndex: number;
+    fromIndex: number;
   } | null>(null);
 
   const storageKey = el.storageKey || "";
@@ -860,7 +855,6 @@ export function AttachmentElement(props: PlateElementProps) {
   // ── Pointer-based block drag ──────────────────────────────────────
   const handleDragPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      // Only primary button
       if (e.button !== 0) return;
       e.preventDefault();
       dragStateRef.current = {
@@ -868,9 +862,10 @@ export function AttachmentElement(props: PlateElementProps) {
         startY: e.clientY,
         active: false,
         ghost: null,
+        slateBlock: null,
         offsetX: 0,
         offsetY: 0,
-        lastIndex: -1,
+        fromIndex: -1,
       };
 
       const onMove = (ev: PointerEvent) => {
@@ -886,48 +881,46 @@ export function AttachmentElement(props: PlateElementProps) {
           ds.active = true;
           setIsDragging(true);
 
-          // Create ghost (clone of the container)
           const container = containerRef.current;
-          if (container) {
-            const rect = container.getBoundingClientRect();
-            ds.offsetX = ds.startX - rect.left;
-            ds.offsetY = ds.startY - rect.top;
+          if (!container) return;
 
-            const ghost = container.cloneNode(true) as HTMLElement;
-            ghost.id = "attachment-drag-ghost";
-            ghost.style.cssText = `
-              position: fixed; z-index: 9999; pointer-events: none;
-              width: ${rect.width}px; opacity: 0.85;
-              box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-              transform: scale(1.02); transition: opacity 150ms;
-            `;
-            ghost.style.left = `${ev.clientX - ds.offsetX}px`;
-            ghost.style.top = `${ev.clientY - ds.offsetY}px`;
-            document.body.appendChild(ghost);
-            ds.ghost = ghost;
+          // Find the Slate block element (data-slate-node="element")
+          const slateBlock = container.closest(
+            "[data-slate-node='element']",
+          ) as HTMLElement | null;
+          if (!slateBlock) return;
+          ds.slateBlock = slateBlock;
+          ds.fromIndex = getSlateBlockDomIndex(slateBlock);
 
-            // Insert placeholder at current position
-            const phHeight = rect.height;
-            const idx = findBlockInsertIndex(ev.clientY, container);
-            ds.lastIndex = idx;
-            upsertBlockPlaceholder(idx, phHeight, container);
-          }
+          // Create ghost (clone of the container, follows cursor)
+          const rect = container.getBoundingClientRect();
+          ds.offsetX = ds.startX - rect.left;
+          ds.offsetY = ds.startY - rect.top;
+
+          const ghost = container.cloneNode(true) as HTMLElement;
+          ghost.id = "attachment-drag-ghost";
+          ghost.style.cssText = `
+            position: fixed; z-index: 9999; pointer-events: none;
+            width: ${rect.width}px; opacity: 0.85;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            transform: scale(1.02); transition: opacity 150ms;
+          `;
+          ghost.style.left = `${ev.clientX - ds.offsetX}px`;
+          ghost.style.top = `${ev.clientY - ds.offsetY}px`;
+          document.body.appendChild(ghost);
+          ds.ghost = ghost;
         }
 
         // Update ghost position
-        if (ds.active && ds.ghost) {
+        if (ds.active && ds.ghost && ds.slateBlock) {
           ds.ghost.style.left = `${ev.clientX - ds.offsetX}px`;
           ds.ghost.style.top = `${ev.clientY - ds.offsetY}px`;
 
-          // Update placeholder position
-          const container = containerRef.current;
-          const idx = findBlockInsertIndex(ev.clientY, container);
-          if (idx !== ds.lastIndex && idx >= 0) {
-            ds.lastIndex = idx;
-            const phHeight = container
-              ? container.getBoundingClientRect().height
-              : 120;
-            upsertBlockPlaceholder(idx, phHeight, container);
+          // Move the original block in the DOM (it's semi-transparent)
+          const editorEl = ds.slateBlock.parentElement;
+          if (editorEl) {
+            const targetIdx = findBlockTargetIndex(ev.clientY, editorEl);
+            moveSlateBlockTo(ds.slateBlock, targetIdx, editorEl);
           }
         }
       };
@@ -944,30 +937,25 @@ export function AttachmentElement(props: PlateElementProps) {
           return;
         }
 
-        // Get target index before cleanup
-        const container = containerRef.current;
-        const targetIndex = getBlockPlaceholderIndex(container);
+        // Get the block's current DOM index (where it was moved to)
+        const newDomIndex = ds.slateBlock
+          ? getSlateBlockDomIndex(ds.slateBlock)
+          : -1;
 
-        // Remove ghost and placeholder
+        // Remove ghost
         ds.ghost?.remove();
-        removeBlockPlaceholder();
         setIsDragging(false);
 
-        // Move the Slate node
-        if (targetIndex >= 0) {
+        // Sync Slate state with the new DOM position
+        if (newDomIndex >= 0 && ds.fromIndex >= 0) {
           const fromPath = editor.api.findPath(element);
           if (fromPath) {
             const fromIndex = fromPath[0];
-            // Compute the actual target path
-            let toIndex = targetIndex;
-            if (fromIndex < toIndex) {
-              // Moving down: account for the removed element
-              toIndex += 1;
-            }
-            if (fromIndex !== toIndex) {
+            if (fromIndex !== newDomIndex) {
+              // DOM already reflects the final position, so toIndex = newDomIndex
               editor.tf.moveNodes({
                 at: fromPath,
-                to: [toIndex],
+                to: [newDomIndex],
               });
             }
           }
