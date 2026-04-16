@@ -11,7 +11,7 @@ export function CodeBlockElement({ element, ...props }: PlateElementProps) {
   return (
     <PlateElement element={element} {...props} className="my-4">
       <div
-        className={`group/block relative transition-opacity ${isDragging ? "opacity-30" : ""}`}
+        className={`group/block relative transition-opacity ${isDragging ? "opacity-50" : ""}`}
       >
         <div ref={containerRef} contentEditable={false}>
           <BlockToolbar

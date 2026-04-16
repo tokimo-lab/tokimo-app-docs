@@ -10,7 +10,7 @@ export function TableElement({ children, ...props }: PlateElementProps) {
 
   return (
     <PlateElement
-      className={`group/block relative my-4 transition-opacity ${isDragging ? "opacity-30" : ""}`}
+      className={`group/block relative my-4 transition-opacity ${isDragging ? "opacity-50" : ""}`}
       {...props}
     >
       <div ref={containerRef} contentEditable={false}>

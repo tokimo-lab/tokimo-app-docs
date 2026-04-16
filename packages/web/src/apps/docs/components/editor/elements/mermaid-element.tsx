@@ -91,7 +91,7 @@ export function MermaidElement(props: PlateElementProps) {
     <PlateElement className="my-4" {...props}>
       <div
         contentEditable={false}
-        className={`group/block relative rounded border border-border-base bg-surface-base p-4 transition-opacity select-none ${isDragging ? "opacity-30" : ""}`}
+        className={`group/block relative rounded border border-border-base bg-surface-base p-4 transition-opacity select-none ${isDragging ? "opacity-50" : ""}`}
       >
         <div ref={containerRef}>
           <BlockToolbar

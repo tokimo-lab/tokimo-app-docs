@@ -77,7 +77,7 @@ export function BookmarkElement(props: PlateElementProps) {
     <PlateElement className="my-3" {...props}>
       <div
         contentEditable={false}
-        className={`group/block relative transition-opacity ${isDragging ? "opacity-30" : ""}`}
+        className={`group/block relative transition-opacity ${isDragging ? "opacity-50" : ""}`}
       >
         <div ref={containerRef}>
           <BlockToolbar

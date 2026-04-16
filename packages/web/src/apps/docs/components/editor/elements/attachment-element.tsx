@@ -756,7 +756,7 @@ export function AttachmentElement(props: PlateElementProps) {
       <div
         contentEditable={false}
         className={`group/block relative transition-[border-color,opacity] ${
-          isDragging ? "opacity-30" : ""
+          isDragging ? "opacity-50" : ""
         }`}
       >
         <div ref={containerRef}>

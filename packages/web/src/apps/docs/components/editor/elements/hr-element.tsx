@@ -13,7 +13,7 @@ export function HrElement(props: PlateElementProps) {
     <PlateElement {...props}>
       <div
         contentEditable={false}
-        className={`group/block relative transition-opacity ${isDragging ? "opacity-30" : ""}`}
+        className={`group/block relative transition-opacity ${isDragging ? "opacity-50" : ""}`}
       >
         <div ref={containerRef}>
           <BlockToolbar

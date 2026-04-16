@@ -40,7 +40,7 @@ export function CalloutElement(props: PlateElementProps) {
 
   return (
     <PlateElement
-      className={`group/block relative my-3 flex gap-2 rounded-lg border p-4 transition-opacity ${style.bg} ${style.border} ${isDragging ? "opacity-30" : ""}`}
+      className={`group/block relative my-3 flex gap-2 rounded-lg border p-4 transition-opacity ${style.bg} ${style.border} ${isDragging ? "opacity-50" : ""}`}
       {...props}
     >
       <div ref={containerRef} contentEditable={false}>
