@@ -33,6 +33,16 @@ const HEIGHT_OPTIONS = [
   { label: "300px", value: 300 },
   { label: "400px", value: 400 },
   { label: "600px", value: 600 },
+  { label: "800px", value: 800 },
+  { label: "1000px", value: 1000 },
+] as const;
+
+const MAX_WIDTH_OPTIONS = [
+  { label: "100%", value: null },
+  { label: "400px", value: 400 },
+  { label: "500px", value: 500 },
+  { label: "600px", value: 600 },
+  { label: "800px", value: 800 },
 ] as const;
 
 interface AttachmentData {
@@ -42,6 +52,7 @@ interface AttachmentData {
   fileType?: string;
   fileSize?: number;
   height?: number | null;
+  maxWidth?: number | null;
   /** Upload progress 0-100, present only while uploading */
   uploadProgress?: number;
   /** Detection fields from backend */
@@ -345,6 +356,7 @@ function PreviewContent({
   fileType,
   fileName,
   height,
+  maxWidth,
   attachmentId,
   fileCategory,
   detectedLanguage,
@@ -354,6 +366,7 @@ function PreviewContent({
   fileType: string;
   fileName: string;
   height: number | null | undefined;
+  maxWidth?: number | null;
   attachmentId?: string;
   fileCategory?: string;
   detectedLanguage?: string;
@@ -379,7 +392,7 @@ function PreviewContent({
   if (kind === "pdf") {
     return (
       <div style={{ height: height ? `${height}px` : "400px" }}>
-        <PdfEmbed src={url} title={fileName} />
+        <PdfEmbed src={url} title={fileName} maxWidth={maxWidth ?? undefined} />
       </div>
     );
   }
@@ -438,34 +451,107 @@ function PreviewContent({
   );
 }
 
-function HeightPopover({
-  current,
-  onSelect,
+function SettingsPopover({
+  currentHeight,
+  currentMaxWidth,
+  showMaxWidth,
+  onHeightChange,
+  onMaxWidthChange,
   onClose,
 }: {
-  current: number | null | undefined;
-  onSelect: (h: number | null) => void;
+  currentHeight: number | null | undefined;
+  currentMaxWidth: number | null | undefined;
+  showMaxWidth: boolean;
+  onHeightChange: (h: number | null) => void;
+  onMaxWidthChange: (w: number | null) => void;
   onClose: () => void;
 }) {
+  const [customHeight, setCustomHeight] = useState("");
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node)
+      ) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const applyCustomHeight = () => {
+    const v = Number.parseInt(customHeight, 10);
+    if (v >= 100 && v <= 2000) {
+      onHeightChange(v);
+      setCustomHeight("");
+    }
+  };
+
   return (
-    <div className="absolute right-0 bottom-full z-50 mb-1 rounded-lg border border-black/[0.06] bg-white/90 p-1 shadow-lg backdrop-blur-xl dark:border-white/[0.08] dark:bg-[rgba(15,15,25,0.9)]">
+    <div
+      ref={popoverRef}
+      className="absolute right-0 bottom-full z-50 mb-1 min-w-[140px] rounded-lg border border-black/[0.06] bg-white/90 p-1.5 shadow-lg backdrop-blur-xl dark:border-white/[0.08] dark:bg-[rgba(15,15,25,0.9)]"
+    >
+      <div className="mb-1 px-2 text-[10px] font-medium text-fg-muted">
+        高度
+      </div>
       {HEIGHT_OPTIONS.map((opt) => (
         <button
           key={opt.label}
           type="button"
-          className={`block w-full cursor-pointer rounded px-3 py-1.5 text-left text-xs ${
-            current === opt.value
+          className={`block w-full cursor-pointer rounded px-3 py-1 text-left text-xs ${
+            currentHeight === opt.value
               ? "bg-fill-brand-secondary text-fg-on-emphasis"
               : "text-fg-secondary hover:bg-fill-tertiary"
           }`}
-          onClick={() => {
-            onSelect(opt.value);
-            onClose();
-          }}
+          onClick={() => onHeightChange(opt.value)}
         >
           {opt.label}
         </button>
       ))}
+
+      {/* Custom height input */}
+      <div className="mt-1 flex items-center gap-1 px-1">
+        <input
+          type="number"
+          min={100}
+          max={2000}
+          placeholder="自定义"
+          value={customHeight}
+          onChange={(e) => setCustomHeight(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") applyCustomHeight();
+          }}
+          className="h-6 w-full min-w-0 rounded border border-border-base bg-transparent px-2 text-xs text-fg-primary outline-none focus:border-border-brand"
+        />
+        <span className="shrink-0 text-[10px] text-fg-muted">px</span>
+      </div>
+
+      {showMaxWidth && (
+        <>
+          <div className="mx-1 my-1.5 border-t border-border-base" />
+          <div className="mb-1 px-2 text-[10px] font-medium text-fg-muted">
+            最大宽度
+          </div>
+          {MAX_WIDTH_OPTIONS.map((opt) => (
+            <button
+              key={opt.label}
+              type="button"
+              className={`block w-full cursor-pointer rounded px-3 py-1 text-left text-xs ${
+                currentMaxWidth === opt.value
+                  ? "bg-fill-brand-secondary text-fg-on-emphasis"
+                  : "text-fg-secondary hover:bg-fill-tertiary"
+              }`}
+              onClick={() => onMaxWidthChange(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </>
+      )}
     </div>
   );
 }
@@ -482,6 +568,7 @@ export function AttachmentElement(props: PlateElementProps) {
   const fileType = el.detectedMime || el.fileType || "application/octet-stream";
   const fileSize = el.fileSize;
   const height = el.height;
+  const maxWidth = el.maxWidth;
   const uploadProgress = el.uploadProgress;
   const fileCategory = el.fileCategory;
   const detectedLanguage = el.detectedLanguage;
@@ -491,11 +578,31 @@ export function AttachmentElement(props: PlateElementProps) {
   const sizeLabel = formatFileSize(fileSize);
   const downloadUrl = storageKey ? getStorageUrl(storageKey) : null;
 
+  const previewKind = resolvePreviewKind(
+    fileType,
+    fileCategory,
+    isBinary,
+    fileName,
+  );
+  const showMaxWidthSetting = previewKind === "pdf" || previewKind === "office";
+
   const handleHeightChange = useCallback(
     (h: number | null) => {
       const path = editor.api.findPath(element);
       if (path) {
         editor.tf.setNodes({ height: h } as Record<string, unknown>, {
+          at: path,
+        });
+      }
+    },
+    [editor, element],
+  );
+
+  const handleMaxWidthChange = useCallback(
+    (w: number | null) => {
+      const path = editor.api.findPath(element);
+      if (path) {
+        editor.tf.setNodes({ maxWidth: w } as Record<string, unknown>, {
           at: path,
         });
       }
@@ -554,6 +661,7 @@ export function AttachmentElement(props: PlateElementProps) {
                 fileType={fileType}
                 fileName={fileName}
                 height={height}
+                maxWidth={maxWidth}
                 attachmentId={attachmentId}
                 fileCategory={fileCategory}
                 detectedLanguage={detectedLanguage}
@@ -591,23 +699,28 @@ export function AttachmentElement(props: PlateElementProps) {
               </a>
             )}
 
-            {/* Height settings */}
-            <button
-              type="button"
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100"
-              title="预览高度"
-              onClick={() => setShowHeightMenu((v) => !v)}
-            >
-              <Settings2 size={14} className="text-fg-muted" />
-            </button>
+            {/* Preview settings */}
+            <div className="relative">
+              <button
+                type="button"
+                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100"
+                title="预览设置"
+                onClick={() => setShowHeightMenu((v) => !v)}
+              >
+                <Settings2 size={14} className="text-fg-muted" />
+              </button>
 
-            {showHeightMenu && (
-              <HeightPopover
-                current={height}
-                onSelect={handleHeightChange}
-                onClose={() => setShowHeightMenu(false)}
-              />
-            )}
+              {showHeightMenu && (
+                <SettingsPopover
+                  currentHeight={height}
+                  currentMaxWidth={maxWidth}
+                  showMaxWidth={showMaxWidthSetting}
+                  onHeightChange={handleHeightChange}
+                  onMaxWidthChange={handleMaxWidthChange}
+                  onClose={() => setShowHeightMenu(false)}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
