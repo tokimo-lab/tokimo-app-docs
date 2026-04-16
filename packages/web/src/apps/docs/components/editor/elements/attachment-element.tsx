@@ -1,4 +1,3 @@
-import { useDraggable, useDropLine } from "@platejs/dnd";
 import {
   Download,
   FileWarning,
@@ -9,7 +8,14 @@ import {
 } from "lucide-react";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Component,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { ScrollGuardShield } from "@/apps/docs/hooks/use-scroll-guard";
 import { AudioPlayer } from "@/apps/viewers/audio/AudioPlayer";
 import { ImagePreview } from "@/apps/viewers/image/ImagePreview";
@@ -27,6 +33,38 @@ function formatFileSize(bytes: number | null | undefined): string {
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   const val = bytes / 1024 ** i;
   return `${val < 10 ? val.toFixed(1) : Math.round(val)} ${units[i]}`;
+}
+
+/** Error boundary that auto-retries once (handles Monaco disposal on Slate moveNodes). */
+class PreviewErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; retryCount: number }
+> {
+  state = { hasError: false, retryCount: 0 };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch() {
+    // Auto-retry once after a micro-task to let services reinitialize
+    if (this.state.retryCount < 1) {
+      requestAnimationFrame(() => {
+        this.setState((s) => ({
+          hasError: false,
+          retryCount: s.retryCount + 1,
+        }));
+      });
+    }
+  }
+  render() {
+    if (this.state.hasError && this.state.retryCount >= 1) {
+      return (
+        <div className="flex items-center justify-center py-8 text-xs text-fg-muted">
+          预览加载失败
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 const HEIGHT_OPTIONS = [
@@ -601,17 +639,149 @@ function SettingsPopover({
   );
 }
 
+// ── Custom pointer-based block drag ──────────────────────────────────
+const DRAG_THRESHOLD = 5;
+const PLACEHOLDER_CLS =
+  "attachment-drag-placeholder rounded-xl border-2 border-dashed border-fill-brand bg-fill-brand-secondary/20 pointer-events-none my-1 transition-[height] duration-200";
+
+/** Snapshot bounding rects of all direct children of the editor. */
+function snapshotEditorPositions(editorEl: Element): Map<Element, DOMRect> {
+  const map = new Map<Element, DOMRect>();
+  for (const child of editorEl.children) {
+    map.set(child, child.getBoundingClientRect());
+  }
+  return map;
+}
+
+/** FLIP-animate children that shifted between two snapshots. */
+function flipAnimateEditor(
+  editorEl: Element,
+  before: Map<Element, DOMRect>,
+): void {
+  for (const child of editorEl.children) {
+    const oldRect = before.get(child);
+    if (!oldRect) continue;
+    const newRect = child.getBoundingClientRect();
+    const dy = oldRect.top - newRect.top;
+    if (Math.abs(dy) < 1) continue;
+    const el = child as HTMLElement;
+    el.style.transition = "none";
+    el.style.transform = `translateY(${dy}px)`;
+    requestAnimationFrame(() => {
+      el.style.transition = "transform 200ms ease";
+      el.style.transform = "";
+      const cleanup = () => {
+        el.style.transition = "";
+        el.style.transform = "";
+        el.removeEventListener("transitionend", cleanup);
+      };
+      el.addEventListener("transitionend", cleanup, { once: true });
+    });
+  }
+}
+
+/** Find the Slate block index closest to clientY (skipping dragged + placeholder). */
+function findBlockInsertIndex(
+  clientY: number,
+  draggedEl: HTMLElement | null,
+): number {
+  const editorEl = document.querySelector("[data-slate-editor]");
+  if (!editorEl) return -1;
+  const blocks = editorEl.querySelectorAll(
+    ":scope > [data-slate-node='element']",
+  );
+  if (blocks.length === 0) return 0;
+  let idx = 0;
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i] as HTMLElement;
+    // Skip the element being dragged
+    if (draggedEl && block.contains(draggedEl)) continue;
+    const rect = block.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    if (clientY < mid) return idx;
+    idx++;
+  }
+  return idx;
+}
+
+/** Get or create the drag placeholder and insert/move it at given Slate block index. */
+function upsertBlockPlaceholder(
+  index: number,
+  height: number,
+  draggedEl: HTMLElement | null,
+): void {
+  const editorEl = document.querySelector("[data-slate-editor]");
+  if (!editorEl) return;
+
+  const phId = "attachment-drag-ph";
+  let ph = document.getElementById(phId);
+  if (!ph) {
+    ph = document.createElement("div");
+    ph.id = phId;
+    ph.setAttribute("contenteditable", "false");
+    ph.style.height = `${height}px`;
+    ph.className = PLACEHOLDER_CLS;
+  }
+
+  const before = snapshotEditorPositions(editorEl);
+
+  // Collect non-dragged, non-placeholder Slate block elements
+  const blocks: Element[] = [];
+  for (const child of editorEl.querySelectorAll(
+    ":scope > [data-slate-node='element']",
+  )) {
+    if (draggedEl && (child as HTMLElement).contains(draggedEl)) continue;
+    blocks.push(child);
+  }
+
+  if (index >= blocks.length) {
+    editorEl.appendChild(ph);
+  } else {
+    editorEl.insertBefore(ph, blocks[index]);
+  }
+
+  flipAnimateEditor(editorEl, before);
+}
+
+function removeBlockPlaceholder(): void {
+  document.getElementById("attachment-drag-ph")?.remove();
+}
+
+/** Count Slate block elements before the placeholder. */
+function getBlockPlaceholderIndex(draggedEl: HTMLElement | null): number {
+  const ph = document.getElementById("attachment-drag-ph");
+  if (!ph) return -1;
+  const editorEl = ph.parentElement;
+  if (!editorEl) return -1;
+  let idx = 0;
+  let sibling = editorEl.firstElementChild;
+  while (sibling && sibling !== ph) {
+    if (sibling.getAttribute("data-slate-node") === "element") {
+      if (!(draggedEl && sibling.contains(draggedEl))) {
+        idx++;
+      }
+    }
+    sibling = sibling.nextElementSibling;
+  }
+  return idx;
+}
+
 export function AttachmentElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const element = useElement();
   const el = element as unknown as AttachmentData;
   const [showHeightMenu, setShowHeightMenu] = useState(false);
-
-  // DnD: make the element draggable via title bar
-  const { isDragging, handleRef, nodeRef, previewRef } = useDraggable({
-    element,
-  });
-  const { dropLine } = useDropLine({ id: element.id as string });
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragStateRef = useRef<{
+    startX: number;
+    startY: number;
+    active: boolean;
+    ghost: HTMLElement | null;
+    offsetX: number;
+    offsetY: number;
+    lastIndex: number;
+  } | null>(null);
 
   const storageKey = el.storageKey || "";
   const fileName = el.fileName || "Unnamed file";
@@ -687,6 +857,129 @@ export function AttachmentElement(props: PlateElementProps) {
     [editor, element],
   );
 
+  // ── Pointer-based block drag ──────────────────────────────────────
+  const handleDragPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      // Only primary button
+      if (e.button !== 0) return;
+      e.preventDefault();
+      dragStateRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        active: false,
+        ghost: null,
+        offsetX: 0,
+        offsetY: 0,
+        lastIndex: -1,
+      };
+
+      const onMove = (ev: PointerEvent) => {
+        const ds = dragStateRef.current;
+        if (!ds) return;
+
+        if (!ds.active) {
+          const dx = ev.clientX - ds.startX;
+          const dy = ev.clientY - ds.startY;
+          if (Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD) return;
+
+          // Activate drag
+          ds.active = true;
+          setIsDragging(true);
+
+          // Create ghost (clone of the container)
+          const container = containerRef.current;
+          if (container) {
+            const rect = container.getBoundingClientRect();
+            ds.offsetX = ds.startX - rect.left;
+            ds.offsetY = ds.startY - rect.top;
+
+            const ghost = container.cloneNode(true) as HTMLElement;
+            ghost.id = "attachment-drag-ghost";
+            ghost.style.cssText = `
+              position: fixed; z-index: 9999; pointer-events: none;
+              width: ${rect.width}px; opacity: 0.85;
+              box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+              transform: scale(1.02); transition: opacity 150ms;
+            `;
+            ghost.style.left = `${ev.clientX - ds.offsetX}px`;
+            ghost.style.top = `${ev.clientY - ds.offsetY}px`;
+            document.body.appendChild(ghost);
+            ds.ghost = ghost;
+
+            // Insert placeholder at current position
+            const phHeight = rect.height;
+            const idx = findBlockInsertIndex(ev.clientY, container);
+            ds.lastIndex = idx;
+            upsertBlockPlaceholder(idx, phHeight, container);
+          }
+        }
+
+        // Update ghost position
+        if (ds.active && ds.ghost) {
+          ds.ghost.style.left = `${ev.clientX - ds.offsetX}px`;
+          ds.ghost.style.top = `${ev.clientY - ds.offsetY}px`;
+
+          // Update placeholder position
+          const container = containerRef.current;
+          const idx = findBlockInsertIndex(ev.clientY, container);
+          if (idx !== ds.lastIndex && idx >= 0) {
+            ds.lastIndex = idx;
+            const phHeight = container
+              ? container.getBoundingClientRect().height
+              : 120;
+            upsertBlockPlaceholder(idx, phHeight, container);
+          }
+        }
+      };
+
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+
+        const ds = dragStateRef.current;
+        dragStateRef.current = null;
+
+        if (!ds?.active) {
+          setIsDragging(false);
+          return;
+        }
+
+        // Get target index before cleanup
+        const container = containerRef.current;
+        const targetIndex = getBlockPlaceholderIndex(container);
+
+        // Remove ghost and placeholder
+        ds.ghost?.remove();
+        removeBlockPlaceholder();
+        setIsDragging(false);
+
+        // Move the Slate node
+        if (targetIndex >= 0) {
+          const fromPath = editor.api.findPath(element);
+          if (fromPath) {
+            const fromIndex = fromPath[0];
+            // Compute the actual target path
+            let toIndex = targetIndex;
+            if (fromIndex < toIndex) {
+              // Moving down: account for the removed element
+              toIndex += 1;
+            }
+            if (fromIndex !== toIndex) {
+              editor.tf.moveNodes({
+                at: fromPath,
+                to: [toIndex],
+              });
+            }
+          }
+        }
+      };
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [editor, element],
+  );
+
   // Uploading state
   if (uploadProgress != null && uploadProgress < 100) {
     return (
@@ -719,25 +1012,17 @@ export function AttachmentElement(props: PlateElementProps) {
   return (
     <PlateElement className="my-3" {...props}>
       <div
-        ref={nodeRef}
+        ref={containerRef}
         contentEditable={false}
         className={`group relative overflow-hidden rounded-lg border bg-surface-base transition-[border-color,opacity] ${
           isDragging
-            ? "border-border-brand opacity-50"
+            ? "border-border-brand opacity-30"
             : "border-border-base hover:border-border-hover"
         }`}
       >
-        {/* Drop line indicators */}
-        {dropLine === "top" && (
-          <div className="absolute top-0 right-0 left-0 z-10 h-0.5 bg-fill-brand" />
-        )}
-        {dropLine === "bottom" && (
-          <div className="absolute right-0 bottom-0 left-0 z-10 h-0.5 bg-fill-brand" />
-        )}
-
         {/* Title bar — drag handle */}
         <div
-          ref={handleRef}
+          onPointerDown={handleDragPointerDown}
           className="flex cursor-grab items-center gap-2 border-b border-border-base px-3 py-1.5 select-none active:cursor-grabbing"
         >
           <GripVertical
@@ -766,6 +1051,7 @@ export function AttachmentElement(props: PlateElementProps) {
                 rel="noopener noreferrer"
                 className="flex h-6 w-6 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100"
                 title="下载"
+                onPointerDown={(e) => e.stopPropagation()}
               >
                 <Download size={12} className="text-fg-muted" />
               </a>
@@ -778,6 +1064,7 @@ export function AttachmentElement(props: PlateElementProps) {
                 className="flex h-6 w-6 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100"
                 title="预览设置"
                 onClick={() => setShowHeightMenu((v) => !v)}
+                onPointerDown={(e) => e.stopPropagation()}
               >
                 <Settings2 size={12} className="text-fg-muted" />
               </button>
@@ -799,35 +1086,34 @@ export function AttachmentElement(props: PlateElementProps) {
         {/* Preview area */}
         {storageKey && (
           <div className="overflow-hidden">
-            <LazyViewport
-              height={getPlaceholderHeight(
-                fileType,
-                height,
-                fileCategory,
-                isBinary,
-              )}
-            >
-              <PreviewContent
-                storageKey={storageKey}
-                fileType={fileType}
-                fileName={fileName}
-                height={height}
-                maxWidth={maxWidth}
-                pdfMode={pdfMode}
-                pdfZoom={pdfZoom}
-                onPdfModeChange={handlePdfModeChange}
-                onPdfZoomChange={handlePdfZoomChange}
-                attachmentId={attachmentId}
-                fileCategory={fileCategory}
-                detectedLanguage={detectedLanguage}
-                isBinary={isBinary}
-              />
-            </LazyViewport>
+            <PreviewErrorBoundary>
+              <LazyViewport
+                height={getPlaceholderHeight(
+                  fileType,
+                  height,
+                  fileCategory,
+                  isBinary,
+                )}
+              >
+                <PreviewContent
+                  storageKey={storageKey}
+                  fileType={fileType}
+                  fileName={fileName}
+                  height={height}
+                  maxWidth={maxWidth}
+                  pdfMode={pdfMode}
+                  pdfZoom={pdfZoom}
+                  onPdfModeChange={handlePdfModeChange}
+                  onPdfZoomChange={handlePdfZoomChange}
+                  attachmentId={attachmentId}
+                  fileCategory={fileCategory}
+                  detectedLanguage={detectedLanguage}
+                  isBinary={isBinary}
+                />
+              </LazyViewport>
+            </PreviewErrorBoundary>
           </div>
         )}
-
-        {/* Drag preview ref (hidden) */}
-        <div ref={previewRef} />
       </div>
       {props.children}
     </PlateElement>
