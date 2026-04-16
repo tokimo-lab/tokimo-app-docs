@@ -39,7 +39,7 @@ export function GanttConfigPanel({ state, onClose }: GanttConfigPanelProps) {
             <div className="text-xs text-fg-muted">暂无日期字段</div>
           ) : (
             <select
-              className="w-full cursor-pointer rounded border border-border-subtle bg-surface-base px-2 py-1 text-xs text-fg-secondary outline-none focus:border-blue-500"
+              className="w-full cursor-pointer rounded border border-border-subtle bg-surface-base px-2 py-1 text-xs text-fg-secondary outline-none focus:border-[var(--accent)]"
               value={cfg?.startDateFieldId ?? ""}
               onChange={(e) =>
                 state.setGanttConfig({ startDateFieldId: e.target.value })
@@ -62,7 +62,7 @@ export function GanttConfigPanel({ state, onClose }: GanttConfigPanelProps) {
             <div className="text-xs text-fg-muted">暂无日期字段</div>
           ) : (
             <select
-              className="w-full cursor-pointer rounded border border-border-subtle bg-surface-base px-2 py-1 text-xs text-fg-secondary outline-none focus:border-blue-500"
+              className="w-full cursor-pointer rounded border border-border-subtle bg-surface-base px-2 py-1 text-xs text-fg-secondary outline-none focus:border-[var(--accent)]"
               value={cfg?.endDateFieldId ?? ""}
               onChange={(e) =>
                 state.setGanttConfig({ endDateFieldId: e.target.value })
@@ -82,7 +82,7 @@ export function GanttConfigPanel({ state, onClose }: GanttConfigPanelProps) {
         <div>
           <div className="mb-1 text-[10px] text-fg-muted">标题展示</div>
           <select
-            className="w-full cursor-pointer rounded border border-border-subtle bg-surface-base px-2 py-1 text-xs text-fg-secondary outline-none focus:border-blue-500"
+            className="w-full cursor-pointer rounded border border-border-subtle bg-surface-base px-2 py-1 text-xs text-fg-secondary outline-none focus:border-[var(--accent)]"
             value={cfg?.titleFieldId ?? ""}
             onChange={(e) =>
               state.setGanttConfig({ titleFieldId: e.target.value })
@@ -125,7 +125,7 @@ export function GanttConfigPanel({ state, onClose }: GanttConfigPanelProps) {
             className={cn(
               "relative h-5 w-9 cursor-pointer rounded-full transition-colors",
               cfg?.workdaysOnly
-                ? "bg-blue-600"
+                ? "bg-[var(--accent)]"
                 : "bg-fill-quaternary dark:bg-fill-tertiary",
             )}
             onClick={() =>

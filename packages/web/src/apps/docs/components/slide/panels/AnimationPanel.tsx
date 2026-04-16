@@ -159,7 +159,7 @@ function SliderField({
       <span className="w-12 shrink-0 text-xs text-fg-muted">{label}</span>
       <input
         type="range"
-        className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-border-subtle accent-blue-500"
+        className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-border-subtle accent-[var(--accent)]"
         min={min}
         max={max}
         step={step}
@@ -200,7 +200,7 @@ function AnimationItem({
       type="button"
       className={`flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
         selected
-          ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+          ? "bg-[var(--accent-subtle)]0/10 text-[var(--accent)]"
           : "text-fg-default hover:bg-black/5 dark:hover:bg-white/5"
       }`}
       onClick={onSelect}

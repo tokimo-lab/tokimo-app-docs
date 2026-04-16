@@ -204,7 +204,7 @@ export function SlideThumbnailPanel({
             <span
               className={`absolute left-[4px] top-[12px] w-[26px] text-center text-xs font-medium leading-3 ${
                 i === currentIndex
-                  ? "text-[rgb(20,86,240)] dark:text-blue-400"
+                  ? "text-[rgb(20,86,240)] dark:text-[var(--accent)]"
                   : "text-[rgb(100,106,115)] dark:text-neutral-400"
               }`}
             >
@@ -214,7 +214,7 @@ export function SlideThumbnailPanel({
             <div
               className={`ml-[28px] mr-[14px] rounded-[10px] border-2 p-px transition-colors ${
                 i === currentIndex
-                  ? "border-[rgb(20,86,240)] dark:border-blue-400"
+                  ? "border-[rgb(20,86,240)] dark:border-[var(--accent)]"
                   : "border-transparent hover:border-[rgba(31,35,41,0.15)] dark:hover:border-neutral-500"
               }`}
             >
@@ -360,7 +360,7 @@ const LayoutDropdown = forwardRef<HTMLDivElement, LayoutDropdownProps>(
                 className="group cursor-pointer"
                 onClick={() => onSelect(layout.elements)}
               >
-                <div className="overflow-hidden rounded border border-black/10 transition-colors group-hover:border-[rgb(20,86,240)] dark:border-neutral-600 dark:group-hover:border-blue-400">
+                <div className="overflow-hidden rounded border border-black/10 transition-colors group-hover:border-[rgb(20,86,240)] dark:border-neutral-600 dark:group-hover:border-[var(--accent)]">
                   <SlideRenderer
                     slide={{ id: layout.id, elements: layout.elements }}
                     width={LAYOUT_THUMB_W}

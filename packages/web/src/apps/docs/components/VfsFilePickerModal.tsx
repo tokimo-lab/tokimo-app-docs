@@ -39,8 +39,8 @@ function formatFileSize(bytes: number | null | undefined): string {
 
 /**
  * VfsFilePickerModal — Two-phase picker:
- *   1. Select a file system (from api.vfs.list)
- *   2. Browse directories and select a file
+ * 1. Select a file system (from api.vfs.list)
+ * 2. Browse directories and select a file
  */
 export default function VfsFilePickerModal({
   open,
@@ -153,7 +153,7 @@ function FileSystemList({
           className="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-2.5 text-left text-inherit transition-colors hover:bg-fill-tertiary"
           onClick={() => onSelect(fs)}
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]">
             <HardDrive size={18} />
           </div>
           <div className="min-w-0 flex-1">
@@ -336,7 +336,7 @@ function FileBrowser({
                       type="button"
                       className={`flex h-full w-full items-center gap-2 border-0 px-3 text-left text-sm transition-colors ${
                         selectedFile === row.entry.path
-                          ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                          ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]"
                           : "bg-transparent text-inherit hover:bg-fill-tertiary"
                       }`}
                       onClick={() => onSelectFile(row.entry.path)}

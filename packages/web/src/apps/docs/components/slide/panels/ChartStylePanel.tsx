@@ -65,7 +65,7 @@ export function ChartStylePanel({ element }: { element: SlideChartElement }) {
                 className={cn(
                   "flex cursor-pointer flex-col items-center gap-1 rounded p-2 text-xs hover:bg-black/5 dark:hover:bg-white/5",
                   element.chartType === type &&
-                    "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
+                    "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)]0/10 dark:text-[var(--accent)]",
                 )}
                 onClick={() => update({ chartType: type })}
               >
@@ -81,7 +81,7 @@ export function ChartStylePanel({ element }: { element: SlideChartElement }) {
       <div className={sectionClass}>
         <button
           type="button"
-          className="h-8 w-full cursor-pointer rounded bg-blue-500 text-xs font-medium text-white hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500"
+          className="h-8 w-full cursor-pointer rounded bg-[var(--accent-subtle)]0 text-xs font-medium text-white hover:bg-[var(--accent-hover)] dark:bg-[var(--accent)] dark:hover:bg-[var(--accent-subtle)]0"
           onClick={handleEditChart}
         >
           {t("docs.editChartData")}

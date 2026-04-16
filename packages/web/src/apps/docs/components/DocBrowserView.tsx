@@ -172,7 +172,7 @@ export function DocBrowserView({
             onClick={() => onCreateNode("notion", currentFolderId ?? undefined)}
             className="flex items-center gap-1.5 rounded-lg border border-border-subtle bg-fill-secondary px-3 py-1.5 text-sm text-fg-secondary transition-colors hover:bg-fill-tertiary"
           >
-            <FileText size={15} className="text-blue-500" />
+            <FileText size={15} className="text-[var(--accent)]" />
             新建文档
           </button>
           {viewMode === "all" && (
@@ -181,7 +181,7 @@ export function DocBrowserView({
               onClick={() => onCreateFolder(currentFolderId ?? undefined)}
               className="flex items-center gap-1.5 rounded-lg border border-border-subtle bg-fill-secondary px-3 py-1.5 text-sm text-fg-secondary transition-colors hover:bg-fill-tertiary"
             >
-              <FolderPlus size={15} className="text-yellow-500" />
+              <FolderPlus size={15} className="text-[var(--accent)]" />
               新建文件夹
             </button>
           )}

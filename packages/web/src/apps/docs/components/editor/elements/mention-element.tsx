@@ -9,7 +9,7 @@ export function MentionElement(props: PlateElementProps) {
   return (
     <PlateElement
       as="span"
-      className="inline-flex items-center gap-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-sm font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+      className="inline-flex items-center gap-0.5 rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-sm font-medium text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]"
       {...props}
     >
       <span contentEditable={false} className="select-none">

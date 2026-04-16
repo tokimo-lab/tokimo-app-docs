@@ -9,8 +9,8 @@ const VARIANT_STYLES: Record<
   { bg: string; border: string; icon: string }
 > = {
   info: {
-    bg: "bg-blue-50 dark:bg-blue-950/30",
-    border: "border-blue-200 dark:border-blue-800",
+    bg: "bg-[var(--accent-subtle)] dark:bg-[var(--accent-subtle)]",
+    border: "border-[var(--accent)]/30 dark:border-[var(--accent)]/40",
     icon: "ℹ️",
   },
   warning: {

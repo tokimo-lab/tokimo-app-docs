@@ -70,7 +70,7 @@ export default function DocsApp() {
   if (!spaces?.length) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]">
           <FileText className="h-8 w-8" />
         </div>
         <div>
@@ -84,7 +84,7 @@ export default function DocsApp() {
         <button
           type="button"
           onClick={openSettings}
-          className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)]"
         >
           <Plus className="h-4 w-4" />
           新建文档空间

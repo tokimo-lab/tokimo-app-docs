@@ -89,7 +89,7 @@ export function EquationElement(props: PlateElementProps) {
                 }
               }}
               placeholder="E = mc^2"
-              className="w-full max-w-lg resize-none rounded border border-border-base bg-surface-elevated px-3 py-2 font-mono text-sm text-fg-primary outline-none focus:border-blue-400"
+              className="w-full max-w-lg resize-none rounded border border-border-base bg-surface-elevated px-3 py-2 font-mono text-sm text-fg-primary outline-none focus:border-[var(--accent)]"
               rows={2}
             />
             <p className="text-xs text-fg-muted">⌘+Enter 确认 · Esc 取消</p>

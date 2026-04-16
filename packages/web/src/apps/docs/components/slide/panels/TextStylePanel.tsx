@@ -33,11 +33,11 @@ const labelClass = "mb-2 text-xs font-medium text-fg-muted";
 const iconBtnClass =
   "flex cursor-pointer items-center justify-center rounded p-1.5 hover:bg-black/5 dark:hover:bg-white/5";
 const activeBtnClass =
-  "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400";
+  "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)]0/10 dark:text-[var(--accent)]";
 const selectClass =
   "h-7 flex-1 cursor-pointer rounded border border-border-subtle bg-transparent px-2 text-xs text-fg-default outline-none dark:bg-neutral-800";
 const numberInputClass =
-  "h-7 w-full rounded border border-border-subtle bg-transparent px-2 text-xs text-fg-default outline-none focus:border-blue-500 dark:bg-neutral-800";
+  "h-7 w-full rounded border border-border-subtle bg-transparent px-2 text-xs text-fg-default outline-none focus:border-[var(--accent)] dark:bg-neutral-800";
 
 function useActiveTextEditor(): Editor | null {
   return useSyncExternalStore(subscribeTextEditor, getActiveTextEditor);
@@ -128,7 +128,7 @@ function SliderRow({
       <span className="w-16 shrink-0 text-xs text-fg-muted">{label}</span>
       <input
         type="range"
-        className="h-1 flex-1 cursor-pointer accent-blue-500"
+        className="h-1 flex-1 cursor-pointer accent-[var(--accent)]"
         min={min}
         max={max}
         step={step}
@@ -552,7 +552,7 @@ export function TextStylePanel({ element }: { element: SlideTextElement }) {
         <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-fg-default">
           <input
             type="checkbox"
-            className="cursor-pointer accent-blue-500"
+            className="cursor-pointer accent-[var(--accent)]"
             checked={!element.fill || element.fill === "transparent"}
             onChange={(e) => {
               update({ fill: e.target.checked ? undefined : "#ffffff" });
@@ -568,7 +568,7 @@ export function TextStylePanel({ element }: { element: SlideTextElement }) {
         <label className="mb-2 flex cursor-pointer items-center gap-2 text-xs text-fg-default">
           <input
             type="checkbox"
-            className="cursor-pointer accent-blue-500"
+            className="cursor-pointer accent-[var(--accent)]"
             checked={hasOutline}
             onChange={(e) => {
               if (e.target.checked) {

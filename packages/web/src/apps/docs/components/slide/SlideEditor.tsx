@@ -155,7 +155,7 @@ export function SlideEditor({
         <div className="mx-2 h-4 w-px bg-border-subtle" />
         <button
           type="button"
-          className="flex cursor-pointer items-center gap-1 rounded bg-blue-500 px-3 py-1 text-xs text-white transition-colors hover:bg-blue-600"
+          className="flex cursor-pointer items-center gap-1 rounded bg-[var(--accent-subtle)]0 px-3 py-1 text-xs text-white transition-colors hover:bg-[var(--accent-hover)]"
           onClick={handlePresent}
         >
           <Maximize size={14} />

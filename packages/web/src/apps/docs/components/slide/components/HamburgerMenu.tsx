@@ -125,7 +125,8 @@ export function HamburgerMenu() {
           className={cn(
             "flex cursor-pointer items-center justify-center rounded-md p-1.5",
             "hover:bg-black/5 dark:hover:bg-white/5",
-            open && "bg-blue-50 text-blue-500 dark:bg-blue-500/10",
+            open &&
+              "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)]0/10",
           )}
           onClick={() => setOpen(!open)}
           title="菜单"

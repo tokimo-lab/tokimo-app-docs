@@ -17,7 +17,7 @@ import { useCallback } from "react";
 import { createPortal } from "react-dom";
 
 const INPUT_CLASS =
-  "h-8 w-60 rounded border border-border-base bg-transparent px-2 text-sm text-fg-primary placeholder:text-fg-muted focus:border-blue-500 focus:outline-none  ";
+  "h-8 w-60 rounded border border-border-base bg-transparent px-2 text-sm text-fg-primary placeholder:text-fg-muted focus:border-[var(--accent)] focus:outline-none ";
 
 const BTN_CLASS =
   "flex size-8 items-center justify-center rounded text-fg-muted transition-colors hover:bg-fill-tertiary";
@@ -57,7 +57,7 @@ function LinkInsertPanel() {
       <button
         type="button"
         onMouseDown={handleSave}
-        className={`${BTN_CLASS} text-blue-600 dark:text-blue-400`}
+        className={`${BTN_CLASS} text-[var(--accent)]`}
         title="Save"
       >
         <svg
@@ -122,7 +122,7 @@ function LinkEditPanel() {
         <button
           type="button"
           onMouseDown={handleSave}
-          className={`${BTN_CLASS} text-blue-600 dark:text-blue-400`}
+          className={`${BTN_CLASS} text-[var(--accent)]`}
           title="Save"
         >
           <svg

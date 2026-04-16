@@ -114,7 +114,7 @@ export function WhiteboardLibraryPanel({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("docs.whiteboardLibrarySearch")}
-            className="w-full pl-8 pr-3 py-1.5 text-sm rounded-md border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none focus:border-blue-400 dark:focus:border-blue-500"
+            className="w-full pl-8 pr-3 py-1.5 text-sm rounded-md border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none focus:border-[var(--accent)] dark:focus:border-[var(--accent)]"
           />
         </div>
       </div>
@@ -154,7 +154,7 @@ export function WhiteboardLibraryPanel({
             return (
               <div
                 key={lib.id}
-                className="group rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden hover:border-blue-300 dark:hover:border-blue-600 transition-colors"
+                className="group rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden hover:border-[var(--accent)] dark:hover:border-[var(--accent)] transition-colors"
               >
                 {/* Preview image */}
                 <div className="relative aspect-[2/1] bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
@@ -197,7 +197,7 @@ export function WhiteboardLibraryPanel({
                         "flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer transition-colors",
                         isAdded
                           ? "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-                          : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50",
+                          : "bg-[var(--accent-subtle)] text-[var(--accent)] hover:bg-[var(--accent-subtle)] dark:hover:bg-[var(--accent-subtle)]",
                       )}
                       disabled={isAdded || isAdding}
                       onClick={() => handleAdd(lib.id)}

@@ -238,7 +238,7 @@ export function SpreadsheetGrid({ grid, onGridChange }: SpreadsheetGridProps) {
             {colIndices.map((ci) => (
               <th
                 key={`col-${ci}`}
-                className="h-7 border-b border-r border-neutral-200 bg-blue-50/70 text-center text-xs font-medium text-neutral-500 dark:border-neutral-600 dark:bg-blue-900/20 dark:text-neutral-400"
+                className="h-7 border-b border-r border-neutral-200 bg-[var(--accent-subtle)]/70 text-center text-xs font-medium text-neutral-500 dark:border-neutral-600 dark:bg-[var(--accent-subtle)] dark:text-neutral-400"
               >
                 {COL_LETTERS[ci] ?? String.fromCharCode(65 + ci)}
               </th>
@@ -277,7 +277,7 @@ export function SpreadsheetGrid({ grid, onGridChange }: SpreadsheetGridProps) {
                         "bg-white text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200",
                       isSelected &&
                         !isEditing &&
-                        "ring-2 ring-inset ring-blue-500",
+                        "ring-2 ring-inset ring-[var(--accent)]",
                     )}
                     onClick={() => handleCellClick(ri, ci)}
                     onDoubleClick={() => handleCellDoubleClick(ri, ci)}

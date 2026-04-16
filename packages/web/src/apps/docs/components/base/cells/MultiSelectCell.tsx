@@ -95,7 +95,7 @@ export function MultiSelectCell({
                 />
                 {opt.label}
                 {selectedIds.includes(opt.id) && (
-                  <span className="ml-auto text-blue-600">✓</span>
+                  <span className="ml-auto text-[var(--accent)]">✓</span>
                 )}
               </button>
             ))}
@@ -103,7 +103,7 @@ export function MultiSelectCell({
               !filtered.some((o) => o.label === search.trim()) && (
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm text-blue-600 hover:bg-fill-tertiary cursor-pointer"
+                  className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm text-[var(--accent)] hover:bg-fill-tertiary cursor-pointer"
                   onClick={handleCreateOption}
                 >
                   + 创建 "{search.trim()}"
@@ -116,7 +116,7 @@ export function MultiSelectCell({
       {/* biome-ignore lint/a11y/noStaticElementInteractions: grid cell double-click to edit */}
       <div className="h-full w-full cursor-pointer" onDoubleClick={onStartEdit}>
         {editing ? (
-          <div className="flex min-h-[32px] flex-wrap items-center gap-1 px-1.5 ring-2 ring-blue-500 ring-inset">
+          <div className="flex min-h-[32px] flex-wrap items-center gap-1 px-1.5 ring-2 ring-[var(--accent)] ring-inset">
             {selectedOptions.map((opt) => (
               <span
                 key={opt.id}

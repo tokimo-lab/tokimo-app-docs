@@ -1,7 +1,8 @@
 import { Dropdown, type DropdownMenuItem } from "@tokiomo/components";
-import { Folder, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { DocNode } from "../lib/doc-node";
+import { DocNodeIcon } from "./DocNodeIcon";
 
 interface FolderCardProps {
   node: DocNode;
@@ -68,10 +69,10 @@ export function FolderCard({
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: folder card */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: click container */}
       <div
-        className="group flex cursor-pointer items-center gap-2 rounded-lg border border-border-subtle bg-fill-secondary px-3 py-2.5 transition-colors hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-700 dark:hover:bg-blue-950/30"
+        className="group flex cursor-pointer items-center gap-2 rounded-lg border border-border-subtle bg-fill-secondary px-3 py-2.5 transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-subtle)] dark:hover:bg-[var(--accent-subtle)]"
         onClick={isRenaming ? undefined : onOpen}
       >
-        <Folder size={20} className="shrink-0 text-yellow-500" />
+        <DocNodeIcon node={node} size={20} />
         {isRenaming ? (
           <input
             type="text"
@@ -88,7 +89,7 @@ export function FolderCard({
                 (e.target as HTMLInputElement).blur();
               if (e.key === "Escape") setIsRenaming(false);
             }}
-            className="min-w-0 flex-1 rounded border border-blue-400 bg-transparent px-1 text-sm outline-none"
+            className="min-w-0 flex-1 rounded border border-[var(--accent)] bg-transparent px-1 text-sm outline-none"
             // biome-ignore lint/a11y/noAutofocus: rename input
             autoFocus
             onClick={(e) => e.stopPropagation()}

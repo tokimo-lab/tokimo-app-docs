@@ -91,7 +91,7 @@ export function ColorBuilder({
 
       <button
         type="button"
-        className="mt-2 flex cursor-pointer items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+        className="mt-2 flex cursor-pointer items-center gap-1 text-xs text-[var(--accent)] hover:text-[var(--accent)]"
         onClick={addRule}
       >
         <Plus size={12} />

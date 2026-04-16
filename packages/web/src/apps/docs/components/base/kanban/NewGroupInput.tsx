@@ -37,7 +37,7 @@ export function NewGroupInput({ onAdd }: NewGroupInputProps) {
   return (
     <div className="flex h-fit w-[280px] shrink-0 flex-col rounded-lg bg-fill-quaternary p-3 dark:bg-surface-secondary">
       <input
-        className="mb-2 w-full rounded border border-border-base bg-surface-base px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-500"
+        className="mb-2 w-full rounded border border-border-base bg-surface-base px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
         placeholder="请输入标题"
         value={label}
         onChange={(e) => setLabel(e.target.value)}
@@ -53,7 +53,7 @@ export function NewGroupInput({ onAdd }: NewGroupInputProps) {
           <button
             key={c}
             type="button"
-            className={`h-5 w-5 cursor-pointer rounded-full border-2 transition-all ${color === c ? "scale-110 border-blue-500" : "border-transparent hover:scale-105"}`}
+            className={`h-5 w-5 cursor-pointer rounded-full border-2 transition-all ${color === c ? "scale-110 border-[var(--accent)]" : "border-transparent hover:scale-105"}`}
             style={{ backgroundColor: c }}
             onClick={() => setColor(c)}
           />
@@ -69,7 +69,7 @@ export function NewGroupInput({ onAdd }: NewGroupInputProps) {
         </button>
         <button
           type="button"
-          className="cursor-pointer rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700"
+          className="cursor-pointer rounded bg-[var(--accent)] px-3 py-1 text-xs text-white hover:bg-[var(--accent-hover)]"
           onClick={handleSubmit}
         >
           确定

@@ -201,9 +201,9 @@ export function ChartEditDialog({
                       key={ct.type}
                       type="button"
                       className={cn(
-                        "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-md py-2 text-[11px] hover:bg-blue-50 dark:hover:bg-blue-900/20",
+                        "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-md py-2 text-[11px] hover:bg-[var(--accent-subtle)] dark:hover:bg-[var(--accent-subtle)]",
                         ct.type === chartType
-                          ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                          ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
                           : "text-neutral-600 dark:text-neutral-300",
                       )}
                       onClick={() => handleChartTypeSelect(ct.type)}
@@ -252,7 +252,7 @@ export function ChartEditDialog({
             </button>
             <button
               type="button"
-              className="cursor-pointer rounded bg-blue-500 px-4 py-1.5 text-sm text-white hover:bg-blue-600"
+              className="cursor-pointer rounded bg-[var(--accent-subtle)]0 px-4 py-1.5 text-sm text-white hover:bg-[var(--accent-hover)]"
               onClick={handleConfirm}
             >
               {t("docs.confirm")}

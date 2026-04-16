@@ -60,7 +60,7 @@ export function DocVersionHistory({
           <Clock className="size-4" />
           <span>版本历史</span>
           {versions.length > 0 && (
-            <span className="rounded-full bg-blue-100 px-1.5 text-xs text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">
+            <span className="rounded-full bg-[var(--accent-subtle)] px-1.5 text-xs text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]">
               {versions.length}
             </span>
           )}
@@ -134,7 +134,7 @@ function VersionItem({
     <div
       className={cn(
         "group cursor-pointer border-b border-border-subtle px-3 py-2.5 transition-colors hover:bg-fill-tertiary",
-        isActive && "bg-blue-50 dark:bg-blue-900/20",
+        isActive && "bg-[var(--accent-subtle)]",
       )}
       onClick={onPreview}
       onMouseEnter={() => setShowRestore(true)}
@@ -146,9 +146,7 @@ function VersionItem({
             <span
               className={cn(
                 "text-xs font-medium",
-                isActive
-                  ? "text-blue-700 dark:text-blue-400"
-                  : "text-fg-secondary",
+                isActive ? "text-[var(--accent)]" : "text-fg-secondary",
               )}
             >
               版本 {version.version}
@@ -169,7 +167,7 @@ function VersionItem({
               onRestore();
             }}
             disabled={isRestoring}
-            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-blue-600 transition-colors hover:bg-blue-100 disabled:opacity-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
+            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-[var(--accent)] transition-colors hover:bg-[var(--accent-subtle)] disabled:opacity-50 dark:text-[var(--accent)] dark:hover:bg-[var(--accent-subtle)]"
             title="恢复此版本"
           >
             <RotateCcw className="size-3" />

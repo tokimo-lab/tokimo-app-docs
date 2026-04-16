@@ -17,11 +17,8 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
-  FileCode,
   FileText,
-  Folder,
   FolderInput,
-  FolderOpen,
   FolderPlus,
   Heart,
   Pencil,
@@ -41,6 +38,7 @@ import {
   sanitizeNodeName,
   untitledI18nKey,
 } from "../lib/doc-node";
+import { DocNodeIcon } from "./DocNodeIcon";
 import type { DropPosition } from "./tree-drag-context";
 import { useTreeDrag } from "./tree-drag-context";
 
@@ -54,113 +52,13 @@ export { buildNodeTree } from "../lib/doc-node";
 function NodeIcon({
   node,
   isExpanded,
-  isActive,
   size = 15,
 }: {
   node: DocNode;
   isExpanded?: boolean;
-  isActive?: boolean;
   size?: number;
 }) {
-  if (node.type === "folder") {
-    return isExpanded ? (
-      <FolderOpen
-        size={size}
-        className="text-yellow-500 dark:text-yellow-400"
-      />
-    ) : (
-      <Folder size={size} className="text-yellow-500 dark:text-yellow-400" />
-    );
-  }
-  if (node.type === "sheet") {
-    return (
-      <Sheet
-        size={size}
-        className={cn(
-          "shrink-0",
-          isActive
-            ? "text-green-600 dark:text-green-400"
-            : "text-green-500 dark:text-green-600",
-        )}
-      />
-    );
-  }
-  if (node.type === "mind") {
-    return (
-      <BrainCircuit
-        size={size}
-        className={cn(
-          "shrink-0",
-          isActive
-            ? "text-purple-600 dark:text-purple-400"
-            : "text-purple-500 dark:text-purple-600",
-        )}
-      />
-    );
-  }
-  if (node.type === "slide") {
-    return (
-      <Presentation
-        size={size}
-        className={cn(
-          "shrink-0",
-          isActive
-            ? "text-orange-600 dark:text-orange-400"
-            : "text-orange-500 dark:text-orange-600",
-        )}
-      />
-    );
-  }
-  if (node.type === "whiteboard") {
-    return (
-      <PenTool
-        size={size}
-        className={cn(
-          "shrink-0",
-          isActive
-            ? "text-teal-600 dark:text-teal-400"
-            : "text-teal-500 dark:text-teal-600",
-        )}
-      />
-    );
-  }
-  if (node.type === "base") {
-    return (
-      <Table2
-        size={size}
-        className={cn(
-          "shrink-0",
-          isActive
-            ? "text-indigo-600 dark:text-indigo-400"
-            : "text-indigo-500 dark:text-indigo-600",
-        )}
-      />
-    );
-  }
-  if (node.type === "markdown") {
-    return (
-      <FileCode
-        size={size}
-        className={cn(
-          "shrink-0",
-          isActive
-            ? "text-emerald-600 dark:text-emerald-400"
-            : "text-emerald-500 dark:text-emerald-600",
-        )}
-      />
-    );
-  }
-  return (
-    <FileText
-      size={size}
-      className={cn(
-        "shrink-0",
-        isActive
-          ? "text-blue-500 dark:text-blue-400"
-          : "text-blue-400 dark:text-blue-500",
-      )}
-    />
-  );
+  return <DocNodeIcon node={node} isExpanded={isExpanded} size={size} />;
 }
 
 // ── NodeTreeItem — flat row for a single tree node ─────────────────────────
@@ -447,10 +345,10 @@ export function NodeTreeItem({
           className={cn(
             "group flex w-full cursor-pointer items-center gap-1 rounded-md py-1 pr-2 text-left text-sm transition-colors",
             insideMe &&
-              "ring-2 ring-inset ring-blue-400 bg-blue-50/80 dark:bg-blue-900/40",
+              "ring-2 ring-inset ring-[var(--accent)] bg-[var(--accent-subtle)]",
             !insideMe &&
               (isActive
-                ? "bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                ? "bg-[var(--accent-subtle)] font-medium text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
                 : "text-fg-secondary hover:bg-fill-tertiary"),
           )}
           style={{ paddingLeft: `${depth * 20 + 8}px` }}
@@ -473,7 +371,7 @@ export function NodeTreeItem({
 
           {/* Node icon */}
           <span className="shrink-0 text-fg-muted">
-            <NodeIcon node={node} isExpanded={isExpanded} isActive={isActive} />
+            <NodeIcon node={node} isExpanded={isExpanded} />
           </span>
 
           {/* Title or rename input */}
@@ -508,7 +406,7 @@ export function NodeTreeItem({
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="min-w-0 flex-1 rounded border border-blue-400 bg-surface-elevated px-1.5 py-0 text-sm outline-none dark:border-blue-600"
+              className="min-w-0 flex-1 rounded border border-[var(--accent)] bg-surface-elevated px-1.5 py-0 text-sm outline-none dark:border-[var(--accent)]"
             />
           ) : (
             <span className="min-w-0 flex-1 truncate">
@@ -566,7 +464,7 @@ export function NodeTreeItem({
                 >
                   <button
                     type="button"
-                    className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-blue-500"
+                    className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-[var(--accent)]"
                     title={t("docs.newDocument")}
                   >
                     <Plus size={14} />
@@ -612,13 +510,13 @@ export function ArchivedNodeRow({
       className={cn(
         "group flex w-full cursor-pointer items-center gap-2 rounded-md py-1 pr-2.5 pl-7 text-left text-sm transition-colors",
         isActive
-          ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+          ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]"
           : "text-fg-secondary hover:bg-fill-tertiary",
       )}
       onClick={onClick}
     >
       <span className="shrink-0 text-fg-muted opacity-50">
-        <NodeIcon node={node} isActive={false} />
+        <NodeIcon node={node} />
       </span>
       <span className="min-w-0 flex-1 truncate text-fg-muted">
         {node.icon ? `${node.icon} ` : ""}

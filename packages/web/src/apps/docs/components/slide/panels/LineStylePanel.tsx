@@ -26,7 +26,7 @@ function SliderRow({
       <span className="w-16 shrink-0 text-xs text-fg-muted">{label}</span>
       <input
         type="range"
-        className="h-1 flex-1 cursor-pointer accent-blue-500"
+        className="h-1 flex-1 cursor-pointer accent-[var(--accent)]"
         min={min}
         max={max}
         step={step}

@@ -173,10 +173,10 @@ export function GalleryView({ state }: GalleryViewProps) {
               onPointerDown={(e) => handlePointerDown(record.id, e)}
             >
               {isDropLeft && (
-                <div className="absolute top-0 -left-[3px] z-10 h-full w-[3px] rounded-full bg-blue-500" />
+                <div className="absolute top-0 -left-[3px] z-10 h-full w-[3px] rounded-full bg-[var(--accent-subtle)]0" />
               )}
               {isDropRight && (
-                <div className="absolute top-0 -right-[3px] z-10 h-full w-[3px] rounded-full bg-blue-500" />
+                <div className="absolute top-0 -right-[3px] z-10 h-full w-[3px] rounded-full bg-[var(--accent-subtle)]0" />
               )}
               <GalleryCard record={record} state={state} />
             </div>
@@ -194,7 +194,7 @@ export function GalleryView({ state }: GalleryViewProps) {
         createPortal(
           <div
             ref={ghostRef}
-            className="pointer-events-none fixed rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-xs text-blue-600 shadow-lg dark:bg-blue-900/40 dark:text-blue-300"
+            className="pointer-events-none fixed rounded-lg border border-[var(--accent)] bg-[var(--accent-subtle)] px-3 py-2 text-xs text-[var(--accent)] shadow-lg dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]"
             style={{ zIndex: 99999, left: 0, top: 0 }}
           >
             {dragRecordTitle}

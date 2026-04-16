@@ -425,7 +425,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 }}
                 className={`flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors cursor-pointer ${
                   s.versionHistoryOpen
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                    ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
                     : "text-fg-muted hover:bg-fill-tertiary hover:text-fg-secondary"
                 }`}
               >
@@ -465,8 +465,8 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             )}
             {/* AI edit undo bar */}
             {s.aiUndoContent && (
-              <div className="flex items-center justify-between border-b border-blue-200 bg-blue-50 px-4 py-2 text-sm dark:border-blue-800 dark:bg-blue-950/50">
-                <span className="text-blue-700 dark:text-blue-300">
+              <div className="flex items-center justify-between border-b border-[var(--accent)]/30 bg-[var(--accent-subtle)] px-4 py-2 text-sm dark:border-[var(--accent)] dark:bg-[var(--accent-subtle)]">
+                <span className="text-[var(--accent)] dark:text-[var(--accent-text)]">
                   <Sparkles size={14} className="mr-1.5 inline" />
                   AI 已修改文档{s.aiUndoSummary ? `：${s.aiUndoSummary}` : ""}
                 </span>
@@ -474,7 +474,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                   <button
                     type="button"
                     onClick={s.handleAiUndo}
-                    className="rounded px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:text-blue-300 dark:hover:bg-blue-900 cursor-pointer"
+                    className="rounded px-2 py-0.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)] dark:hover:bg-[var(--accent-subtle-hover)] cursor-pointer"
                   >
                     撤销
                   </button>

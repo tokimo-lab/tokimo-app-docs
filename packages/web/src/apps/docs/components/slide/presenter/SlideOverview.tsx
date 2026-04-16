@@ -29,8 +29,8 @@ export function SlideOverview({
           // biome-ignore lint/a11y/noStaticElementInteractions: thumbnail click navigation
           <div
             key={slide.id}
-            className={`cursor-pointer overflow-hidden rounded-lg transition-all hover:ring-2 hover:ring-blue-400 ${
-              index === currentIndex ? "ring-2 ring-blue-500" : ""
+            className={`cursor-pointer overflow-hidden rounded-lg transition-all hover:ring-2 hover:ring-[var(--accent)] ${
+              index === currentIndex ? "ring-2 ring-[var(--accent)]" : ""
             }`}
             onClick={(e) => {
               e.stopPropagation();

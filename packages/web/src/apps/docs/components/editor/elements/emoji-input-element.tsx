@@ -151,7 +151,7 @@ export function EmojiInputElement(props: PlateElementProps) {
                     title={emoji.name}
                     className={`flex size-8 items-center justify-center rounded text-xl transition-colors ${
                       idx === selectedIndex
-                        ? "bg-blue-100 dark:bg-blue-900/40"
+                        ? "bg-[var(--accent-subtle)] dark:bg-[var(--accent-subtle)]"
                         : "hover:bg-fill-tertiary"
                     }`}
                     onMouseDown={(e) => {

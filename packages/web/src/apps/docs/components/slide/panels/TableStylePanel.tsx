@@ -9,7 +9,7 @@ const labelClass = "mb-3 text-xs font-medium text-fg-muted";
 const iconBtnClass =
   "flex cursor-pointer items-center justify-center rounded p-1.5 hover:bg-black/5 dark:hover:bg-white/5";
 const numberInputClass =
-  "h-7 w-14 rounded border border-border-subtle bg-transparent px-2 text-center text-xs text-fg-default outline-none focus:border-blue-500 dark:bg-neutral-800";
+  "h-7 w-14 rounded border border-border-subtle bg-transparent px-2 text-center text-xs text-fg-default outline-none focus:border-[var(--accent)] dark:bg-neutral-800";
 
 function ColorInput({
   label,
@@ -187,7 +187,7 @@ export function TableStylePanel({ element }: { element: SlideTableElement }) {
           <label className="flex cursor-pointer items-center gap-2 text-xs text-fg-default">
             <input
               type="checkbox"
-              className="cursor-pointer accent-blue-500"
+              className="cursor-pointer accent-[var(--accent)]"
               checked={hasHeader}
               onChange={(e) => {
                 if (e.target.checked) {
@@ -208,7 +208,7 @@ export function TableStylePanel({ element }: { element: SlideTableElement }) {
           <label className="flex cursor-pointer items-center gap-2 text-xs text-fg-default">
             <input
               type="checkbox"
-              className="cursor-pointer accent-blue-500"
+              className="cursor-pointer accent-[var(--accent)]"
               checked={hasStriped}
               onChange={(e) => {
                 if (e.target.checked) {

@@ -138,12 +138,12 @@ export function LineElement({ element, selected, onSelect }: LineElementProps) {
       </svg>
       {selected && (
         <>
-          <div className="pointer-events-none absolute inset-0 border border-dashed border-blue-400" />
+          <div className="pointer-events-none absolute inset-0 border border-dashed border-[var(--accent)]" />
           {controlPoints.map((cp, i) => (
             <div
               // biome-ignore lint/suspicious/noArrayIndexKey: control points identified by index
               key={i}
-              className="pointer-events-none absolute h-2.5 w-2.5 rounded-full border border-blue-500 bg-white"
+              className="pointer-events-none absolute h-2.5 w-2.5 rounded-full border border-[var(--accent)] bg-white"
               style={{
                 left: cp[0] - minX - 5,
                 top: cp[1] - minY - 5,

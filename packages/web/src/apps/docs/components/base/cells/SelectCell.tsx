@@ -67,7 +67,7 @@ export function SelectCell({
           <div className="p-1">
             <input
               ref={inputRef}
-              className="w-full rounded border border-border-subtle bg-transparent px-2 py-1 text-sm outline-none focus:border-blue-400"
+              className="w-full rounded border border-border-subtle bg-transparent px-2 py-1 text-sm outline-none focus:border-[var(--accent)]"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => {
@@ -102,7 +102,7 @@ export function SelectCell({
               !filtered.some((o) => o.label === search.trim()) && (
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm text-blue-600 hover:bg-fill-tertiary cursor-pointer"
+                  className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm text-[var(--accent)] hover:bg-fill-tertiary cursor-pointer"
                   onClick={handleCreateOption}
                 >
                   + 创建 "{search.trim()}"

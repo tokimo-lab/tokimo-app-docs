@@ -36,7 +36,7 @@ export function CalendarToolbar({ state }: CalendarToolbarProps) {
       <div className="flex items-center gap-1">
         <button
           type="button"
-          className="flex cursor-pointer items-center gap-1 rounded px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+          className="flex cursor-pointer items-center gap-1 rounded px-2.5 py-1 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent-subtle)] dark:text-[var(--accent)] dark:hover:bg-[var(--accent-subtle)]"
           onClick={state.addRecord}
         >
           <Plus size={14} />
@@ -88,14 +88,14 @@ export function CalendarToolbar({ state }: CalendarToolbarProps) {
             className={cn(
               "flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs transition-colors",
               filterCount > 0
-                ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
                 : "text-fg-muted hover:bg-fill-tertiary",
             )}
           >
             <Filter size={14} />
             筛选
             {filterCount > 0 && (
-              <span className="rounded-full bg-blue-600 px-1.5 text-[10px] text-white">
+              <span className="rounded-full bg-[var(--accent)] px-1.5 text-[10px] text-white">
                 {filterCount}
               </span>
             )}
@@ -122,14 +122,14 @@ export function CalendarToolbar({ state }: CalendarToolbarProps) {
             className={cn(
               "flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs transition-colors",
               sortCount > 0
-                ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
                 : "text-fg-muted hover:bg-fill-tertiary",
             )}
           >
             <ArrowUpDown size={14} />
             排序
             {sortCount > 0 && (
-              <span className="rounded-full bg-blue-600 px-1.5 text-[10px] text-white">
+              <span className="rounded-full bg-[var(--accent)] px-1.5 text-[10px] text-white">
                 {sortCount}
               </span>
             )}

@@ -30,7 +30,7 @@ export function DocSidebarTagFilter({
         <Tag size={12} />
         <span>标签</span>
         {filterTags.length > 0 && (
-          <span className="ml-auto rounded-full bg-blue-100 px-1.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+          <span className="ml-auto rounded-full bg-[var(--accent-subtle)] px-1.5 text-[10px] font-semibold text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]">
             {filterTags.length}
           </span>
         )}
@@ -41,12 +41,12 @@ export function DocSidebarTagFilter({
           {filterTags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-0.5 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+              className="inline-flex items-center gap-0.5 rounded-full bg-[var(--accent-subtle)] px-2 py-0.5 text-[11px] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]"
             >
               {tag}
               <button
                 type="button"
-                className="ml-0.5 rounded-full p-0.5 hover:bg-blue-100 dark:hover:bg-blue-800/50"
+                className="ml-0.5 rounded-full p-0.5 hover:bg-[var(--accent-subtle)] dark:hover:bg-[var(--accent-subtle-hover)]"
                 onClick={() => onToggleTag(tag)}
               >
                 <X size={10} />
@@ -67,7 +67,7 @@ export function DocSidebarTagFilter({
                 className={cn(
                   "rounded-full px-2 py-0.5 text-[11px] transition-colors",
                   isActive
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                    ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]"
                     : "bg-fill-tertiary text-fg-muted hover:bg-fill-secondary",
                 )}
                 onClick={() => onToggleTag(tag)}

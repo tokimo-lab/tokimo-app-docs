@@ -25,7 +25,7 @@ export function HrElement(props: PlateElementProps) {
           <hr
             className={`border-t transition-colors ${
               selected
-                ? "border-blue-500 dark:border-blue-400"
+                ? "border-[var(--accent)] dark:border-[var(--accent)]"
                 : "border-border-base"
             }`}
           />
