@@ -173,7 +173,7 @@ export function DocEditorArea({
         </div>
       )}
       {/* Title input */}
-      <div className="mx-auto w-full max-w-3xl px-6 pt-12 pb-2">
+      <div className="mx-auto w-full max-w-5xl px-8 pt-12 pb-2">
         <input
           type="text"
           value={title}
@@ -197,7 +197,7 @@ export function DocEditorArea({
 
       {/* Tags */}
       {!readOnly && (
-        <div className="mx-auto w-full max-w-3xl px-6 pb-2">
+        <div className="mx-auto w-full max-w-5xl px-8 pb-2">
           <DocTagInput
             nodeId={doc.id}
             spaceId={spaceId}
