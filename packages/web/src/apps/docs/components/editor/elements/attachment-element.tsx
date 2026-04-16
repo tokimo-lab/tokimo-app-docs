@@ -681,20 +681,37 @@ function flipAnimateEditor(
 }
 
 /**
- * Find the target child index in editorEl for a drag at clientY.
- * The dragged element is included in the count (it's in the flow).
+ * Find the target "slot" index for a drag at clientY.
+ * Skips the dragged element in midpoint calculations to avoid oscillation.
+ * Returns the full (all-blocks) index where the dragged block should end up.
  */
-function findBlockTargetIndex(clientY: number, editorEl: Element): number {
+function findBlockTargetIndex(
+  clientY: number,
+  editorEl: Element,
+  draggedEl: HTMLElement,
+): number {
   const blocks = editorEl.querySelectorAll(
     ":scope > [data-slate-node='element']",
   );
-  if (blocks.length === 0) return 0;
+  // Build list of non-dragged blocks with their original full indices
+  const others: { el: Element; fullIdx: number }[] = [];
   for (let i = 0; i < blocks.length; i++) {
-    const rect = blocks[i].getBoundingClientRect();
-    const mid = rect.top + rect.height / 2;
-    if (clientY < mid) return i;
+    if (blocks[i] !== draggedEl) others.push({ el: blocks[i], fullIdx: i });
   }
-  return blocks.length;
+  if (others.length === 0) return 0;
+
+  // Find which gap the cursor falls into among the non-dragged blocks.
+  // Gap 0 = before others[0], gap k = after others[k-1].
+  for (let i = 0; i < others.length; i++) {
+    const rect = others[i].el.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    if (clientY < mid) {
+      // Insert before others[i] → full index = others[i].fullIdx
+      return others[i].fullIdx;
+    }
+  }
+  // After last non-dragged block
+  return others[others.length - 1].fullIdx + 1;
 }
 
 /** Move a Slate block element to a target index among its siblings, with FLIP. */
@@ -706,7 +723,6 @@ function moveSlateBlockTo(
   const blocks = editorEl.querySelectorAll(
     ":scope > [data-slate-node='element']",
   );
-  // Current index of the dragged block
   let currentIndex = -1;
   for (let i = 0; i < blocks.length; i++) {
     if (blocks[i] === slateBlock) {
@@ -718,30 +734,15 @@ function moveSlateBlockTo(
 
   const before = snapshotEditorPositions(editorEl);
 
-  // Collect non-dragged blocks in order
-  const others: Element[] = [];
-  for (let i = 0; i < blocks.length; i++) {
-    if (blocks[i] !== slateBlock) others.push(blocks[i]);
-  }
-
-  // Insert before the block at targetIndex (in the others array)
-  if (targetIndex > currentIndex) {
-    // Moving down: targetIndex in the full list, adjust for removed element
-    const refIdx = targetIndex - 1;
-    if (refIdx >= others.length) {
-      // Append after last block — find next non-block sibling or append
-      const lastBlock = others[others.length - 1];
-      if (lastBlock.nextSibling) {
-        editorEl.insertBefore(slateBlock, lastBlock.nextSibling);
-      } else {
-        editorEl.appendChild(slateBlock);
-      }
-    } else {
-      editorEl.insertBefore(slateBlock, others[refIdx].nextSibling);
-    }
+  // Reference element to insert before
+  if (targetIndex < blocks.length) {
+    // If target is the dragged block's own slot, skip (no-op guarded above)
+    const refEl = blocks[targetIndex];
+    if (refEl === slateBlock) return;
+    editorEl.insertBefore(slateBlock, refEl);
   } else {
-    // Moving up: insert before the block at targetIndex in others
-    editorEl.insertBefore(slateBlock, others[targetIndex]);
+    // Append to end
+    editorEl.appendChild(slateBlock);
   }
 
   flipAnimateEditor(editorEl, before, slateBlock);
@@ -919,7 +920,11 @@ export function AttachmentElement(props: PlateElementProps) {
           // Move the original block in the DOM (it's semi-transparent)
           const editorEl = ds.slateBlock.parentElement;
           if (editorEl) {
-            const targetIdx = findBlockTargetIndex(ev.clientY, editorEl);
+            const targetIdx = findBlockTargetIndex(
+              ev.clientY,
+              editorEl,
+              ds.slateBlock,
+            );
             moveSlateBlockTo(ds.slateBlock, targetIdx, editorEl);
           }
         }
