@@ -837,16 +837,30 @@ export function AttachmentElement(props: PlateElementProps) {
                 : "border-border-base hover:border-border-hover"
           }`}
         >
-          {/* Title bar */}
-          <div className="flex items-center gap-2 border-b border-border-base px-3 py-1.5 select-none">
-            <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+          {/* Title bar — visual focus follows block activation (like window title bar) */}
+          <div
+            className={`flex items-center gap-2 border-b px-3 py-1.5 select-none transition-colors ${
+              isActivated
+                ? "border-blue-500/30 bg-blue-50/60 dark:border-blue-400/20 dark:bg-blue-950/30"
+                : "border-border-base"
+            }`}
+          >
+            <div
+              className={`flex h-5 w-5 shrink-0 items-center justify-center transition-opacity ${isActivated ? "" : "opacity-50"}`}
+            >
               <MaterialFileIcon name={fileName} size={14} />
             </div>
-            <span className="min-w-0 flex-1 truncate text-xs font-medium text-fg-secondary">
+            <span
+              className={`min-w-0 flex-1 truncate text-xs font-medium transition-opacity ${
+                isActivated ? "text-fg-primary" : "text-fg-secondary opacity-70"
+              }`}
+            >
               {fileName}
             </span>
             {sizeLabel && (
-              <span className="shrink-0 text-[10px] text-fg-muted">
+              <span
+                className={`shrink-0 text-[10px] transition-opacity ${isActivated ? "text-fg-muted" : "text-fg-muted opacity-50"}`}
+              >
                 {sizeLabel}
               </span>
             )}

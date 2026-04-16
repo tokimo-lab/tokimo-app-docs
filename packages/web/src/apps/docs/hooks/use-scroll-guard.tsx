@@ -88,6 +88,20 @@ export function useBlockFocus(blockKey: string | undefined) {
     return () => observer.disconnect();
   }, [isActivated, blockKey, ctx]);
 
+  // Auto-deactivate when clicking outside the block
+  useEffect(() => {
+    if (!isActivated || !observeRef.current) return;
+    const el = observeRef.current;
+    const handlePointerDown = (e: PointerEvent) => {
+      if (!el.contains(e.target as Node)) {
+        if (blockKey) ctx?.deactivate(blockKey);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () =>
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+  }, [isActivated, blockKey, ctx]);
+
   return { isActivated, activate, deactivate, observeRef };
 }
 
