@@ -148,7 +148,7 @@ function HeightPopover({
   onClose: () => void;
 }) {
   return (
-    <div className="absolute right-0 bottom-full z-50 mb-1 rounded-lg border border-border-base bg-surface-overlay p-1 shadow-lg">
+    <div className="absolute right-0 bottom-full z-50 mb-1 rounded-lg border border-black/[0.06] bg-white/90 p-1 shadow-lg backdrop-blur-xl dark:border-white/[0.08] dark:bg-[rgba(15,15,25,0.9)]">
       {HEIGHT_OPTIONS.map((opt) => (
         <button
           key={opt.label}
