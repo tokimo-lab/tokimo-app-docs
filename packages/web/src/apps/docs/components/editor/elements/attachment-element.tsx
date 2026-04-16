@@ -419,17 +419,19 @@ function PreviewContent({
 
   if (kind === "pdf") {
     return (
-      <div style={{ height: height ? `${height}px` : "400px" }}>
-        <PdfEmbed
-          src={url}
-          title={fileName}
-          maxWidth={maxWidth ?? undefined}
-          mode={pdfMode}
-          onModeChange={onPdfModeChange}
-          zoom={pdfZoom}
-          onZoomChange={onPdfZoomChange}
-        />
-      </div>
+      <ScrollGuardShield>
+        <div style={{ height: height ? `${height}px` : "400px" }}>
+          <PdfEmbed
+            src={url}
+            title={fileName}
+            maxWidth={maxWidth ?? undefined}
+            mode={pdfMode}
+            onModeChange={onPdfModeChange}
+            zoom={pdfZoom}
+            onZoomChange={onPdfZoomChange}
+          />
+        </div>
+      </ScrollGuardShield>
     );
   }
 
