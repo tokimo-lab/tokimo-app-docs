@@ -575,7 +575,7 @@ function EditorContent({
   localUserName?: string;
 }) {
   const content = (
-    <div className="relative w-full px-3 py-8">
+    <div className="relative w-full pl-[18px] pr-3 py-8">
       <PlateContent
         className="doc-editor-content min-h-[200px] outline-none [&_[data-slate-placeholder]]:!text-fg-muted [&_[data-slate-placeholder]]:!opacity-100 dark:[&_[data-slate-placeholder]]:!text-fg-muted"
         placeholder={placeholder}

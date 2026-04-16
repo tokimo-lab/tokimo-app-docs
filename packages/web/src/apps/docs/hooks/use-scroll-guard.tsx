@@ -1,4 +1,10 @@
-import { createContext, useContext, useEffect, useRef } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+} from "react";
 
 /**
  * Tracks whether the parent scroll container is actively scrolling.
@@ -46,4 +52,34 @@ export function useScrollGuard(): React.RefObject<boolean> {
   const ref = useContext(ScrollGuardContext);
   const fallback = useRef(false);
   return ref ?? fallback;
+}
+
+/**
+ * Wrapper that blocks wheel events from reaching children while the parent
+ * scroll container is actively scrolling. Useful for Monaco, iframe-based
+ * viewers, and any component with internal scroll that can't consume the
+ * ScrollGuardContext directly.
+ */
+export function ScrollGuardShield({ children }: { children: ReactNode }) {
+  const guardRef = useScrollGuard();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (guardRef.current) {
+        e.stopPropagation();
+      }
+    };
+    // Capture phase so we intercept before children handle the event
+    el.addEventListener("wheel", handler, { capture: true });
+    return () => el.removeEventListener("wheel", handler, { capture: true });
+  }, [guardRef]);
+
+  return (
+    <div ref={containerRef} className="h-full w-full">
+      {children}
+    </div>
+  );
 }

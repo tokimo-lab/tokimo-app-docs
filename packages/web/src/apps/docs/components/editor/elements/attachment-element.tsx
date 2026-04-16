@@ -2,6 +2,7 @@ import { Download, Paperclip, Settings2 } from "lucide-react";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
 import { useCallback, useState } from "react";
+import { ScrollGuardShield } from "@/apps/docs/hooks/use-scroll-guard";
 import { AudioPlayer } from "@/apps/viewers/audio/AudioPlayer";
 import { ImagePreview } from "@/apps/viewers/image/ImagePreview";
 import { PdfEmbed } from "@/apps/viewers/pdf/PdfEmbed";
@@ -121,7 +122,9 @@ function PreviewContent({
   if (isTextType(fileType)) {
     return (
       <div style={{ height: height ? `${height}px` : "300px" }}>
-        <MonacoTextEditor readOnlyUrl={url} fileName={fileName} />
+        <ScrollGuardShield>
+          <MonacoTextEditor readOnlyUrl={url} fileName={fileName} />
+        </ScrollGuardShield>
       </div>
     );
   }
