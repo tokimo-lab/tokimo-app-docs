@@ -25,6 +25,7 @@ import { VideoPreview } from "@/apps/viewers/video/VideoPreview";
 import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
 import { rustUrl } from "@/lib/rust-api-runtime";
 import { MaterialFileIcon } from "@/shared/components/icons";
+import { useBlockDrag } from "../hooks/use-block-drag";
 
 function formatFileSize(bytes: number | null | undefined): string {
   if (bytes == null) return "";
@@ -639,145 +640,13 @@ function SettingsPopover({
   );
 }
 
-// ── Custom pointer-based block drag ──────────────────────────────────
-const DRAG_THRESHOLD = 5;
-
-/** Snapshot bounding rects of all direct children of the editor. */
-function snapshotEditorPositions(editorEl: Element): Map<Element, DOMRect> {
-  const map = new Map<Element, DOMRect>();
-  for (const child of editorEl.children) {
-    map.set(child, child.getBoundingClientRect());
-  }
-  return map;
-}
-
-/** FLIP-animate children that shifted between two snapshots. */
-function flipAnimateEditor(
-  editorEl: Element,
-  before: Map<Element, DOMRect>,
-  skipEl?: Element,
-): void {
-  for (const child of editorEl.children) {
-    if (child === skipEl) continue;
-    const oldRect = before.get(child);
-    if (!oldRect) continue;
-    const newRect = child.getBoundingClientRect();
-    const dy = oldRect.top - newRect.top;
-    if (Math.abs(dy) < 1) continue;
-    const el = child as HTMLElement;
-    el.style.transition = "none";
-    el.style.transform = `translateY(${dy}px)`;
-    requestAnimationFrame(() => {
-      el.style.transition = "transform 200ms ease";
-      el.style.transform = "";
-      const cleanup = () => {
-        el.style.transition = "";
-        el.style.transform = "";
-        el.removeEventListener("transitionend", cleanup);
-      };
-      el.addEventListener("transitionend", cleanup, { once: true });
-    });
-  }
-}
-
-/**
- * Find the target "slot" index for a drag at clientY.
- * Skips the dragged element in midpoint calculations to avoid oscillation.
- * Returns the full (all-blocks) index where the dragged block should end up.
- */
-function findBlockTargetIndex(
-  clientY: number,
-  editorEl: Element,
-  draggedEl: HTMLElement,
-): number {
-  const blocks = editorEl.querySelectorAll(
-    ":scope > [data-slate-node='element']",
-  );
-  // Build list of non-dragged blocks with their original full indices
-  const others: { el: Element; fullIdx: number }[] = [];
-  for (let i = 0; i < blocks.length; i++) {
-    if (blocks[i] !== draggedEl) others.push({ el: blocks[i], fullIdx: i });
-  }
-  if (others.length === 0) return 0;
-
-  // Find which gap the cursor falls into among the non-dragged blocks.
-  // Gap 0 = before others[0], gap k = after others[k-1].
-  for (let i = 0; i < others.length; i++) {
-    const rect = others[i].el.getBoundingClientRect();
-    const mid = rect.top + rect.height / 2;
-    if (clientY < mid) {
-      // Insert before others[i] → full index = others[i].fullIdx
-      return others[i].fullIdx;
-    }
-  }
-  // After last non-dragged block
-  return others[others.length - 1].fullIdx + 1;
-}
-
-/** Move a Slate block element to a target index among its siblings, with FLIP. */
-function moveSlateBlockTo(
-  slateBlock: HTMLElement,
-  targetIndex: number,
-  editorEl: Element,
-): void {
-  const blocks = editorEl.querySelectorAll(
-    ":scope > [data-slate-node='element']",
-  );
-  let currentIndex = -1;
-  for (let i = 0; i < blocks.length; i++) {
-    if (blocks[i] === slateBlock) {
-      currentIndex = i;
-      break;
-    }
-  }
-  if (currentIndex === -1 || currentIndex === targetIndex) return;
-
-  const before = snapshotEditorPositions(editorEl);
-
-  // Reference element to insert before
-  if (targetIndex < blocks.length) {
-    // If target is the dragged block's own slot, skip (no-op guarded above)
-    const refEl = blocks[targetIndex];
-    if (refEl === slateBlock) return;
-    editorEl.insertBefore(slateBlock, refEl);
-  } else {
-    // Append to end
-    editorEl.appendChild(slateBlock);
-  }
-
-  flipAnimateEditor(editorEl, before, slateBlock);
-}
-
-/** Get the current DOM index of a Slate block among its siblings. */
-function getSlateBlockDomIndex(slateBlock: HTMLElement): number {
-  const editorEl = slateBlock.parentElement;
-  if (!editorEl) return -1;
-  const blocks = editorEl.querySelectorAll(
-    ":scope > [data-slate-node='element']",
-  );
-  for (let i = 0; i < blocks.length; i++) {
-    if (blocks[i] === slateBlock) return i;
-  }
-  return -1;
-}
-
 export function AttachmentElement(props: PlateElementProps) {
   const editor = useEditorRef();
   const element = useElement();
   const el = element as unknown as AttachmentData;
   const [showHeightMenu, setShowHeightMenu] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const dragStateRef = useRef<{
-    startX: number;
-    startY: number;
-    active: boolean;
-    ghost: HTMLElement | null;
-    slateBlock: HTMLElement | null;
-    offsetX: number;
-    offsetY: number;
-    fromIndex: number;
-  } | null>(null);
+  const { isDragging, handleDragPointerDown } = useBlockDrag(containerRef);
 
   const storageKey = el.storageKey || "";
   const fileName = el.fileName || "Unnamed file";
@@ -849,129 +718,6 @@ export function AttachmentElement(props: PlateElementProps) {
           at: path,
         });
       }
-    },
-    [editor, element],
-  );
-
-  // ── Pointer-based block drag ──────────────────────────────────────
-  const handleDragPointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      if (e.button !== 0) return;
-      // Don't hijack clicks on interactive elements (buttons, links, inputs)
-      const target = e.target as HTMLElement;
-      if (target.closest("button, a, input, select, textarea")) return;
-      e.preventDefault();
-      dragStateRef.current = {
-        startX: e.clientX,
-        startY: e.clientY,
-        active: false,
-        ghost: null,
-        slateBlock: null,
-        offsetX: 0,
-        offsetY: 0,
-        fromIndex: -1,
-      };
-
-      const onMove = (ev: PointerEvent) => {
-        const ds = dragStateRef.current;
-        if (!ds) return;
-
-        if (!ds.active) {
-          const dx = ev.clientX - ds.startX;
-          const dy = ev.clientY - ds.startY;
-          if (Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD) return;
-
-          // Activate drag
-          ds.active = true;
-          setIsDragging(true);
-
-          const container = containerRef.current;
-          if (!container) return;
-
-          // Find the Slate block element (data-slate-node="element")
-          const slateBlock = container.closest(
-            "[data-slate-node='element']",
-          ) as HTMLElement | null;
-          if (!slateBlock) return;
-          ds.slateBlock = slateBlock;
-          ds.fromIndex = getSlateBlockDomIndex(slateBlock);
-
-          // Create ghost (clone of the container, follows cursor)
-          const rect = container.getBoundingClientRect();
-          ds.offsetX = ds.startX - rect.left;
-          ds.offsetY = ds.startY - rect.top;
-
-          const ghost = container.cloneNode(true) as HTMLElement;
-          ghost.id = "attachment-drag-ghost";
-          ghost.style.cssText = `
-            position: fixed; z-index: 9999; pointer-events: none;
-            width: ${rect.width}px; opacity: 0.85;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-            transform: scale(1.02); transition: opacity 150ms;
-          `;
-          ghost.style.left = `${ev.clientX - ds.offsetX}px`;
-          ghost.style.top = `${ev.clientY - ds.offsetY}px`;
-          document.body.appendChild(ghost);
-          ds.ghost = ghost;
-        }
-
-        // Update ghost position
-        if (ds.active && ds.ghost && ds.slateBlock) {
-          ds.ghost.style.left = `${ev.clientX - ds.offsetX}px`;
-          ds.ghost.style.top = `${ev.clientY - ds.offsetY}px`;
-
-          // Move the original block in the DOM (it's semi-transparent)
-          const editorEl = ds.slateBlock.parentElement;
-          if (editorEl) {
-            const targetIdx = findBlockTargetIndex(
-              ev.clientY,
-              editorEl,
-              ds.slateBlock,
-            );
-            moveSlateBlockTo(ds.slateBlock, targetIdx, editorEl);
-          }
-        }
-      };
-
-      const onUp = () => {
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
-
-        const ds = dragStateRef.current;
-        dragStateRef.current = null;
-
-        if (!ds?.active) {
-          setIsDragging(false);
-          return;
-        }
-
-        // Get the block's current DOM index (where it was moved to)
-        const newDomIndex = ds.slateBlock
-          ? getSlateBlockDomIndex(ds.slateBlock)
-          : -1;
-
-        // Remove ghost
-        ds.ghost?.remove();
-        setIsDragging(false);
-
-        // Sync Slate state with the new DOM position
-        if (newDomIndex >= 0 && ds.fromIndex >= 0) {
-          const fromPath = editor.api.findPath(element);
-          if (fromPath) {
-            const fromIndex = fromPath[0];
-            if (fromIndex !== newDomIndex) {
-              // DOM already reflects the final position, so toIndex = newDomIndex
-              editor.tf.moveNodes({
-                at: fromPath,
-                to: [newDomIndex],
-              });
-            }
-          }
-        }
-      };
-
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
     },
     [editor, element],
   );

@@ -3,6 +3,8 @@ import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useThemeCore } from "@/system/appearance/ThemeContext";
+import { BlockDragHandle } from "../components/BlockDragHandle";
+import { useBlockDrag } from "../hooks/use-block-drag";
 
 mermaid.initialize({ startOnLoad: false, theme: "default" });
 
@@ -68,6 +70,8 @@ export function MermaidElement(props: PlateElementProps) {
   const [editing, setEditing] = useState(!code);
   const [draft, setDraft] = useState(code);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { isDragging, handleDragPointerDown } = useBlockDrag(containerRef);
 
   const commitEdit = useCallback(() => {
     const path = editor.api.findPath(element);
@@ -84,11 +88,17 @@ export function MermaidElement(props: PlateElementProps) {
   }, [editing]);
 
   return (
-    <PlateElement
-      className="group my-4 rounded border border-border-base bg-surface-base p-4"
-      {...props}
-    >
-      <div contentEditable={false} className="select-none">
+    <PlateElement className="my-4" {...props}>
+      <div
+        ref={containerRef}
+        contentEditable={false}
+        className={`group relative rounded border border-border-base bg-surface-base p-4 pt-0 transition-opacity select-none ${isDragging ? "opacity-30" : ""}`}
+      >
+        <BlockDragHandle
+          label="图表"
+          isDragging={isDragging}
+          onPointerDown={handleDragPointerDown}
+        />
         {editing ? (
           <div className="flex flex-col gap-3">
             <textarea
@@ -122,7 +132,7 @@ export function MermaidElement(props: PlateElementProps) {
                   e.preventDefault();
                   commitEdit();
                 }}
-                className="rounded bg-blue-500 px-3 py-1 text-xs font-medium text-white hover:bg-blue-600"
+                className="cursor-pointer rounded bg-blue-500 px-3 py-1 text-xs font-medium text-white hover:bg-blue-600"
               >
                 确认 (⌘+Enter)
               </button>
@@ -133,7 +143,7 @@ export function MermaidElement(props: PlateElementProps) {
                   setDraft(code);
                   setEditing(false);
                 }}
-                className="rounded bg-fill-tertiary dark:bg-white/[0.10] px-3 py-1 text-xs font-medium text-fg-muted hover:bg-black/[0.08] dark:hover:bg-white/[0.08]"
+                className="cursor-pointer rounded bg-fill-tertiary px-3 py-1 text-xs font-medium text-fg-muted hover:bg-black/[0.08] dark:bg-white/[0.10] dark:hover:bg-white/[0.08]"
               >
                 取消 (Esc)
               </button>

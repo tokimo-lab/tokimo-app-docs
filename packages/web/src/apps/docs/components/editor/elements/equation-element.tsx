@@ -2,6 +2,8 @@ import katex from "katex";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BlockDragHandle } from "../components/BlockDragHandle";
+import { useBlockDrag } from "../hooks/use-block-drag";
 
 function KatexRenderer({
   tex,
@@ -40,6 +42,8 @@ export function EquationElement(props: PlateElementProps) {
   const [editing, setEditing] = useState(!tex);
   const [draft, setDraft] = useState(tex);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { isDragging, handleDragPointerDown } = useBlockDrag(containerRef);
 
   const commitEdit = useCallback(() => {
     const path = editor.api.findPath(element);
@@ -56,8 +60,17 @@ export function EquationElement(props: PlateElementProps) {
   }, [editing]);
 
   return (
-    <PlateElement className="group my-4 rounded bg-surface-base p-4" {...props}>
-      <div contentEditable={false} className="select-none">
+    <PlateElement className="my-4" {...props}>
+      <div
+        ref={containerRef}
+        contentEditable={false}
+        className={`group relative rounded bg-surface-base p-4 pt-0 transition-opacity select-none ${isDragging ? "opacity-30" : ""}`}
+      >
+        <BlockDragHandle
+          label="公式"
+          isDragging={isDragging}
+          onPointerDown={handleDragPointerDown}
+        />
         {editing ? (
           <div className="flex flex-col items-center gap-2">
             <textarea

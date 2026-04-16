@@ -1,7 +1,9 @@
 import { ExternalLink } from "lucide-react";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { BlockDragHandle } from "../components/BlockDragHandle";
+import { useBlockDrag } from "../hooks/use-block-drag";
 
 function safeHostname(url: string): string {
   try {
@@ -28,6 +30,8 @@ export function BookmarkElement(props: PlateElementProps) {
 
   const [editing, setEditing] = useState(!url);
   const [draft, setDraft] = useState(url);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { isDragging, handleDragPointerDown } = useBlockDrag(containerRef);
 
   const handleSave = useCallback(() => {
     if (draft.trim()) {
@@ -71,33 +75,43 @@ export function BookmarkElement(props: PlateElementProps) {
 
   return (
     <PlateElement className="my-3" {...props}>
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
+      <div
+        ref={containerRef}
         contentEditable={false}
-        className="group flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 no-underline transition-colors hover:border-border-hover hover:bg-fill-tertiary  "
-        onDoubleClick={(e) => {
-          e.preventDefault();
-          setDraft(url);
-          setEditing(true);
-        }}
+        className={`group relative transition-opacity ${isDragging ? "opacity-30" : ""}`}
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-fill-tertiary dark:bg-white/[0.10]">
-          <ExternalLink size={14} className="text-fg-muted" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-fg-secondary">
-            {title || url}
-          </p>
-          {description && (
-            <p className="mt-0.5 line-clamp-1 text-xs text-fg-muted">
-              {description}
+        <BlockDragHandle
+          label="书签"
+          isDragging={isDragging}
+          onPointerDown={handleDragPointerDown}
+        />
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 no-underline transition-colors hover:border-border-hover hover:bg-fill-tertiary  "
+          onDoubleClick={(e) => {
+            e.preventDefault();
+            setDraft(url);
+            setEditing(true);
+          }}
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-fill-tertiary dark:bg-white/[0.10]">
+            <ExternalLink size={14} className="text-fg-muted" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-fg-secondary">
+              {title || url}
             </p>
-          )}
-          <p className="mt-0.5 text-xs text-fg-muted">{hostname}</p>
-        </div>
-      </a>
+            {description && (
+              <p className="mt-0.5 line-clamp-1 text-xs text-fg-muted">
+                {description}
+              </p>
+            )}
+            <p className="mt-0.5 text-xs text-fg-muted">{hostname}</p>
+          </div>
+        </a>
+      </div>
       {props.children}
     </PlateElement>
   );

@@ -1,5 +1,8 @@
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useElement } from "platejs/react";
+import { useRef } from "react";
+import { BlockDragHandle } from "../components/BlockDragHandle";
+import { useBlockDrag } from "../hooks/use-block-drag";
 
 const VARIANT_STYLES: Record<
   string,
@@ -27,17 +30,37 @@ const VARIANT_STYLES: Record<
   },
 };
 
+const VARIANT_LABELS: Record<string, string> = {
+  info: "提示",
+  warning: "警告",
+  tip: "技巧",
+  danger: "危险",
+};
+
 export function CalloutElement(props: PlateElementProps) {
   const element = useElement();
   const variant =
     ((element as Record<string, unknown>).variant as string) || "info";
   const style = VARIANT_STYLES[variant] || VARIANT_STYLES.info;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { isDragging, handleDragPointerDown } = useBlockDrag(containerRef);
 
   return (
     <PlateElement
-      className={`my-3 flex gap-2 rounded-lg border p-4 ${style.bg} ${style.border}`}
+      className={`group relative my-3 flex gap-2 rounded-lg border p-4 pt-8 transition-opacity ${style.bg} ${style.border} ${isDragging ? "opacity-30" : ""}`}
       {...props}
     >
+      <div
+        ref={containerRef}
+        contentEditable={false}
+        className="absolute top-0 right-0 left-0 z-10"
+      >
+        <BlockDragHandle
+          label={VARIANT_LABELS[variant] || "提示"}
+          isDragging={isDragging}
+          onPointerDown={handleDragPointerDown}
+        />
+      </div>
       <span className="shrink-0 select-none text-lg" contentEditable={false}>
         {((element as Record<string, unknown>).icon as string) || style.icon}
       </span>
