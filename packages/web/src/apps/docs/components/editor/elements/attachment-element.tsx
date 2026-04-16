@@ -1,6 +1,8 @@
+import { useDraggable, useDropLine } from "@platejs/dnd";
 import {
   Download,
   FileWarning,
+  GripVertical,
   Loader2,
   Paperclip,
   Settings2,
@@ -605,6 +607,12 @@ export function AttachmentElement(props: PlateElementProps) {
   const el = element as unknown as AttachmentData;
   const [showHeightMenu, setShowHeightMenu] = useState(false);
 
+  // DnD: make the element draggable via title bar
+  const { isDragging, handleRef, nodeRef, previewRef } = useDraggable({
+    element,
+  });
+  const { dropLine } = useDropLine({ id: element.id as string });
+
   const storageKey = el.storageKey || "";
   const fileName = el.fileName || "Unnamed file";
   // Prefer backend-detected MIME over browser-provided MIME
@@ -711,9 +719,83 @@ export function AttachmentElement(props: PlateElementProps) {
   return (
     <PlateElement className="my-3" {...props}>
       <div
+        ref={nodeRef}
         contentEditable={false}
-        className="group overflow-hidden rounded-lg border border-border-base bg-surface-base transition-colors hover:border-border-hover"
+        className={`group relative overflow-hidden rounded-lg border bg-surface-base transition-[border-color,opacity] ${
+          isDragging
+            ? "border-border-brand opacity-50"
+            : "border-border-base hover:border-border-hover"
+        }`}
       >
+        {/* Drop line indicators */}
+        {dropLine === "top" && (
+          <div className="absolute top-0 right-0 left-0 z-10 h-0.5 bg-fill-brand" />
+        )}
+        {dropLine === "bottom" && (
+          <div className="absolute right-0 bottom-0 left-0 z-10 h-0.5 bg-fill-brand" />
+        )}
+
+        {/* Title bar — drag handle */}
+        <div
+          ref={handleRef}
+          className="flex cursor-grab items-center gap-2 border-b border-border-base px-3 py-1.5 select-none active:cursor-grabbing"
+        >
+          <GripVertical
+            size={14}
+            className="shrink-0 text-fg-muted opacity-0 transition-opacity group-hover:opacity-100"
+          />
+          <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+            <MaterialFileIcon name={fileName} size={14} />
+          </div>
+          <span className="min-w-0 flex-1 truncate text-xs font-medium text-fg-secondary">
+            {fileName}
+          </span>
+          {sizeLabel && (
+            <span className="shrink-0 text-[10px] text-fg-muted">
+              {sizeLabel}
+            </span>
+          )}
+
+          <div className="relative flex shrink-0 items-center gap-0.5">
+            {/* Download */}
+            {downloadUrl && (
+              <a
+                href={downloadUrl}
+                download={fileName}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-6 w-6 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100"
+                title="下载"
+              >
+                <Download size={12} className="text-fg-muted" />
+              </a>
+            )}
+
+            {/* Preview settings */}
+            <div className="relative">
+              <button
+                type="button"
+                className="flex h-6 w-6 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100"
+                title="预览设置"
+                onClick={() => setShowHeightMenu((v) => !v)}
+              >
+                <Settings2 size={12} className="text-fg-muted" />
+              </button>
+
+              {showHeightMenu && (
+                <SettingsPopover
+                  currentHeight={height}
+                  currentMaxWidth={maxWidth}
+                  showMaxWidth={showMaxWidthSetting}
+                  onHeightChange={handleHeightChange}
+                  onMaxWidthChange={handleMaxWidthChange}
+                  onClose={() => setShowHeightMenu(false)}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Preview area */}
         {storageKey && (
           <div className="overflow-hidden">
@@ -744,58 +826,8 @@ export function AttachmentElement(props: PlateElementProps) {
           </div>
         )}
 
-        {/* Info bar */}
-        <div className="flex items-center gap-3 border-t border-border-base px-4 py-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-fill-tertiary dark:bg-white/[0.10]">
-            <MaterialFileIcon name={fileName} size={18} />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-fg-primary">
-              {fileName}
-            </p>
-            {sizeLabel && <p className="text-xs text-fg-muted">{sizeLabel}</p>}
-          </div>
-
-          <div className="relative flex items-center gap-1">
-            {/* Download */}
-            {downloadUrl && (
-              <a
-                href={downloadUrl}
-                download={fileName}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100"
-                title="下载"
-              >
-                <Download size={14} className="text-fg-muted" />
-              </a>
-            )}
-
-            {/* Preview settings */}
-            <div className="relative">
-              <button
-                type="button"
-                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100"
-                title="预览设置"
-                onClick={() => setShowHeightMenu((v) => !v)}
-              >
-                <Settings2 size={14} className="text-fg-muted" />
-              </button>
-
-              {showHeightMenu && (
-                <SettingsPopover
-                  currentHeight={height}
-                  currentMaxWidth={maxWidth}
-                  showMaxWidth={showMaxWidthSetting}
-                  onHeightChange={handleHeightChange}
-                  onMaxWidthChange={handleMaxWidthChange}
-                  onClose={() => setShowHeightMenu(false)}
-                />
-              )}
-            </div>
-          </div>
-        </div>
+        {/* Drag preview ref (hidden) */}
+        <div ref={previewRef} />
       </div>
       {props.children}
     </PlateElement>
