@@ -1,4 +1,5 @@
 import { Spin } from "@tokiomo/components";
+import { Paperclip } from "lucide-react";
 import type { Value } from "platejs";
 import type { MutableRefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -45,6 +46,8 @@ export function DocEditorArea({
   const { user } = useAuth();
   const [title, setTitle] = useState(doc.title);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const dragCounterRef = useRef(0);
 
   // Viewport scroll persistence
   const {
@@ -85,6 +88,33 @@ export function DocEditorArea({
     saveViewport({ scrollTop: scrollRef.current.scrollTop });
   }, [saveViewport]);
 
+  const handleDragEnter = useCallback(
+    (e: React.DragEvent) => {
+      if (readOnly || !onDropFiles) return;
+      if (e.dataTransfer.types.includes("Files")) {
+        e.preventDefault();
+        dragCounterRef.current += 1;
+        if (dragCounterRef.current === 1) {
+          setIsDraggingFile(true);
+        }
+      }
+    },
+    [readOnly, onDropFiles],
+  );
+
+  const handleDragLeave = useCallback(
+    (e: React.DragEvent) => {
+      if (readOnly || !onDropFiles) return;
+      e.preventDefault();
+      dragCounterRef.current -= 1;
+      if (dragCounterRef.current <= 0) {
+        dragCounterRef.current = 0;
+        setIsDraggingFile(false);
+      }
+    },
+    [readOnly, onDropFiles],
+  );
+
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
       if (readOnly || !onDropFiles) return;
@@ -99,6 +129,8 @@ export function DocEditorArea({
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       if (readOnly || !onDropFiles) return;
+      dragCounterRef.current = 0;
+      setIsDraggingFile(false);
       const files = Array.from(e.dataTransfer.files);
       if (files.length > 0) {
         e.preventDefault();
@@ -122,11 +154,24 @@ export function DocEditorArea({
     <div
       ref={scrollRef}
       role="presentation"
-      className="flex h-full flex-col overflow-y-auto"
+      className="relative flex h-full flex-col overflow-y-auto"
       onScroll={handleScroll}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
       onDragOverCapture={handleDragOver}
       onDropCapture={handleDrop}
     >
+      {/* Drag-drop overlay */}
+      {isDraggingFile && (
+        <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-fill-brand bg-fill-brand-secondary/20">
+          <div className="flex items-center gap-2 rounded-lg bg-surface-elevated px-4 py-3 shadow-lg">
+            <Paperclip size={18} className="text-fill-brand" />
+            <span className="text-sm font-medium text-fg-primary">
+              松开以添加附件
+            </span>
+          </div>
+        </div>
+      )}
       {/* Title input */}
       <div className="mx-auto w-full max-w-3xl px-6 pt-12 pb-2">
         <input
