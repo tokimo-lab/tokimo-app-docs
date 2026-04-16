@@ -48,6 +48,7 @@ export function DocEditorArea({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const dragCounterRef = useRef(0);
+  const [dragY, setDragY] = useState(0);
 
   // Viewport scroll persistence
   const {
@@ -121,6 +122,10 @@ export function DocEditorArea({
       if (e.dataTransfer.types.includes("Files")) {
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
+        if (scrollRef.current) {
+          const rect = scrollRef.current.getBoundingClientRect();
+          setDragY(e.clientY - rect.top + scrollRef.current.scrollTop);
+        }
       }
     },
     [readOnly, onDropFiles],
@@ -163,12 +168,17 @@ export function DocEditorArea({
     >
       {/* Drag-drop overlay */}
       {isDraggingFile && (
-        <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-fill-brand bg-fill-brand-secondary/20">
-          <div className="flex items-center gap-2 rounded-lg bg-surface-elevated px-4 py-3 shadow-lg">
-            <Paperclip size={18} className="text-fill-brand" />
-            <span className="text-sm font-medium text-fg-primary">
-              松开以添加附件
-            </span>
+        <div className="pointer-events-none absolute inset-0 z-50 border-2 border-dashed border-fill-brand bg-fill-brand-secondary/20">
+          <div
+            className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2"
+            style={{ top: dragY }}
+          >
+            <div className="flex items-center gap-2 rounded-lg bg-surface-elevated px-4 py-3 shadow-lg">
+              <Paperclip size={18} className="text-fill-brand" />
+              <span className="text-sm font-medium text-fg-primary">
+                松开以添加附件
+              </span>
+            </div>
           </div>
         </div>
       )}
