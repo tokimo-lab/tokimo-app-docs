@@ -180,7 +180,7 @@ export function useBlockDrag(containerRef: RefObject<HTMLElement | null>): {
           ghost.id = "block-drag-ghost";
           ghost.style.cssText = `
             position: fixed; z-index: 9999; pointer-events: none;
-            width: ${rect.width}px; opacity: 0.85;
+            width: ${rect.width}px; opacity: 0.85; margin: 0;
             box-shadow: 0 8px 32px rgba(0,0,0,0.18);
             transform: scale(1.02); transition: opacity 150ms;
           `;
