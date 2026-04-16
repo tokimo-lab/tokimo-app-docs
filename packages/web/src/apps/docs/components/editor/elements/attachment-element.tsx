@@ -857,6 +857,9 @@ export function AttachmentElement(props: PlateElementProps) {
   const handleDragPointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (e.button !== 0) return;
+      // Don't hijack clicks on interactive elements (buttons, links, inputs)
+      const target = e.target as HTMLElement;
+      if (target.closest("button, a, input, select, textarea")) return;
       e.preventDefault();
       dragStateRef.current = {
         startX: e.clientX,
