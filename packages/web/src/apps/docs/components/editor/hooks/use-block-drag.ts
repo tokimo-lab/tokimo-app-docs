@@ -190,7 +190,7 @@ export function useBlockDrag(containerRef: RefObject<HTMLElement | null>): {
             position: fixed; z-index: 9999; pointer-events: none;
             width: ${rect.width}px; opacity: 0.85; margin: 0;
             box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-            transform: scale(1.02); transition: opacity 150ms;
+            transition: opacity 150ms;
           `;
           ghost.style.left = `${ev.clientX - ds.offsetX}px`;
           ghost.style.top = `${ev.clientY - ds.offsetY}px`;
