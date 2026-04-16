@@ -12,9 +12,11 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { ScrollGuardShield } from "@/apps/docs/hooks/use-scroll-guard";
 import { AudioPlayer } from "@/apps/viewers/audio/AudioPlayer";
 import { ImagePreview } from "@/apps/viewers/image/ImagePreview";
@@ -542,6 +544,7 @@ function SettingsPopover({
   onHeightChange,
   onMaxWidthChange,
   onClose,
+  anchorRef,
 }: {
   currentHeight: number | null | undefined;
   currentMaxWidth: number | null | undefined;
@@ -549,9 +552,35 @@ function SettingsPopover({
   onHeightChange: (h: number | null) => void;
   onMaxWidthChange: (w: number | null) => void;
   onClose: () => void;
+  anchorRef: React.RefObject<HTMLButtonElement | null>;
 }) {
   const [customHeight, setCustomHeight] = useState("");
   const popoverRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  // Position the popover above the anchor button
+  useLayoutEffect(() => {
+    const anchor = anchorRef.current;
+    if (!anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    setPos({ top: rect.top, left: rect.right });
+  }, [anchorRef]);
+
+  // Reposition on scroll/resize
+  useEffect(() => {
+    const anchor = anchorRef.current;
+    if (!anchor) return;
+    const update = () => {
+      const rect = anchor.getBoundingClientRect();
+      setPos({ top: rect.top, left: rect.right });
+    };
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [anchorRef]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -574,10 +603,26 @@ function SettingsPopover({
     }
   };
 
-  return (
+  if (!pos) return null;
+
+  return createPortal(
     <div
       ref={popoverRef}
-      className="absolute right-0 bottom-full z-50 mb-1 min-w-[140px] rounded-lg border border-black/[0.06] bg-white/90 p-1.5 shadow-lg backdrop-blur-xl dark:border-white/[0.08] dark:bg-[rgba(15,15,25,0.9)]"
+      role="menu"
+      style={{
+        position: "fixed",
+        top: pos.top,
+        left: pos.left,
+        transform: "translate(-100%, -100%)",
+      }}
+      className="z-[9999] min-w-[140px] rounded-lg border border-black/[0.06] bg-white/90 p-1.5 shadow-lg backdrop-blur-xl dark:border-white/[0.08] dark:bg-[rgba(15,15,25,0.9)]"
+      onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        if (!(e.target instanceof HTMLInputElement)) {
+          e.preventDefault();
+        }
+      }}
     >
       <div className="mb-1 px-2 text-[10px] font-medium text-fg-muted">
         高度
@@ -636,7 +681,8 @@ function SettingsPopover({
           ))}
         </>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -646,6 +692,7 @@ export function AttachmentElement(props: PlateElementProps) {
   const el = element as unknown as AttachmentData;
   const [showHeightMenu, setShowHeightMenu] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const settingsBtnRef = useRef<HTMLButtonElement>(null);
   const { isDragging, handleDragPointerDown } = useBlockDrag(containerRef);
 
   const storageKey = el.storageKey || "";
@@ -805,6 +852,7 @@ export function AttachmentElement(props: PlateElementProps) {
               {/* Preview settings */}
               <div className="relative">
                 <button
+                  ref={settingsBtnRef}
                   type="button"
                   className="flex h-6 w-6 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-fill-tertiary group-hover/block:opacity-100"
                   title="预览设置"
@@ -816,6 +864,7 @@ export function AttachmentElement(props: PlateElementProps) {
 
                 {showHeightMenu && (
                   <SettingsPopover
+                    anchorRef={settingsBtnRef}
                     currentHeight={height}
                     currentMaxWidth={maxWidth}
                     showMaxWidth={showMaxWidthSetting}

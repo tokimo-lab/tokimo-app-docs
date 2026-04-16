@@ -123,6 +123,7 @@ interface DragState {
   offsetX: number;
   offsetY: number;
   fromIndex: number;
+  lastClientY: number;
 }
 
 export function useBlockDrag(containerRef: RefObject<HTMLElement | null>): {
@@ -147,6 +148,7 @@ export function useBlockDrag(containerRef: RefObject<HTMLElement | null>): {
         offsetX: 0,
         offsetY: 0,
         fromIndex: -1,
+        lastClientY: e.clientY,
       };
 
       const onMove = (ev: PointerEvent) => {
@@ -209,10 +211,17 @@ export function useBlockDrag(containerRef: RefObject<HTMLElement | null>): {
           ds.ghost.style.left = `${ev.clientX - ds.offsetX}px`;
           ds.ghost.style.top = `${ev.clientY - ds.offsetY}px`;
 
+          // Use ghost center when dragging down, mouse position when dragging up
+          const movingDown = ev.clientY > ds.lastClientY;
+          const ghostTop = ev.clientY - ds.offsetY;
+          const ghostMidY = ghostTop + ds.ghost.offsetHeight / 2;
+          const referenceY = movingDown ? ghostMidY : ev.clientY;
+          ds.lastClientY = ev.clientY;
+
           const editorEl = ds.slateBlock.parentElement;
           if (editorEl) {
             const targetIdx = findBlockTargetIndex(
-              ev.clientY,
+              referenceY,
               editorEl,
               ds.slateBlock,
             );
