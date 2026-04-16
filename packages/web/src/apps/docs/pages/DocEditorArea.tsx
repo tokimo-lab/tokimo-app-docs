@@ -7,6 +7,10 @@ import { useTranslation } from "react-i18next";
 import { DocTagInput } from "@/apps/docs/components/DocTagInput";
 import { DocEditor, type DocEditorHandle } from "@/apps/docs/components/editor";
 import { useDocViewport } from "@/apps/docs/hooks/use-doc-viewport";
+import {
+  ScrollGuardContext,
+  useScrollGuardProvider,
+} from "@/apps/docs/hooks/use-scroll-guard";
 import { untitledI18nKey } from "@/apps/docs/lib/doc-node";
 import type { DocNodeOutput } from "@/generated/rust-api";
 import { useAuth } from "@/system/auth/useAuth";
@@ -49,6 +53,7 @@ export function DocEditorArea({
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const dragCounterRef = useRef(0);
   const [dragY, setDragY] = useState(0);
+  const { scrollingRef, onScroll: onScrollGuard } = useScrollGuardProvider();
 
   // Viewport scroll persistence
   const {
@@ -85,9 +90,10 @@ export function DocEditorArea({
 
   // ── Track scroll changes ───────────────────────────────────────────
   const handleScroll = useCallback(() => {
+    onScrollGuard();
     if (!scrollRef.current) return;
     saveViewport({ scrollTop: scrollRef.current.scrollTop });
-  }, [saveViewport]);
+  }, [saveViewport, onScrollGuard]);
 
   const handleDragEnter = useCallback(
     (e: React.DragEvent) => {
@@ -155,85 +161,87 @@ export function DocEditorArea({
   }
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: file drop target for attachment upload
-    <div
-      ref={scrollRef}
-      role="presentation"
-      className="relative flex h-full flex-col overflow-y-auto"
-      onScroll={handleScroll}
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDragOverCapture={handleDragOver}
-      onDropCapture={handleDrop}
-    >
-      {/* Drag-drop overlay */}
-      {isDraggingFile && (
-        <div className="pointer-events-none absolute inset-0 z-50 border-2 border-dashed border-fill-brand bg-fill-brand-secondary/20">
-          <div
-            className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2"
-            style={{ top: dragY }}
-          >
-            <div className="flex items-center gap-2 rounded-lg bg-surface-elevated px-4 py-3 shadow-lg">
-              <Paperclip size={18} className="text-fill-brand" />
-              <span className="text-sm font-medium text-fg-primary">
-                松开以添加附件
-              </span>
+    <ScrollGuardContext value={scrollingRef}>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: file drop target for attachment upload */}
+      <div
+        ref={scrollRef}
+        role="presentation"
+        className="relative flex h-full flex-col overflow-y-auto"
+        onScroll={handleScroll}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOverCapture={handleDragOver}
+        onDropCapture={handleDrop}
+      >
+        {/* Drag-drop overlay */}
+        {isDraggingFile && (
+          <div className="pointer-events-none absolute inset-0 z-50 border-2 border-dashed border-fill-brand bg-fill-brand-secondary/20">
+            <div
+              className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2"
+              style={{ top: dragY }}
+            >
+              <div className="flex items-center gap-2 rounded-lg bg-surface-elevated px-4 py-3 shadow-lg">
+                <Paperclip size={18} className="text-fill-brand" />
+                <span className="text-sm font-medium text-fg-primary">
+                  松开以添加附件
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      {/* Title input */}
-      <div className="w-full px-3 pt-12 pb-2">
-        <input
-          type="text"
-          value={title}
-          readOnly={readOnly}
-          onChange={(e) => setTitle(e.target.value)}
-          onBlur={() => {
-            if (!readOnly && title !== doc.title) {
-              onTitleChange(title);
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              (e.target as HTMLInputElement).blur();
-            }
-          }}
-          className="w-full border-none bg-transparent text-4xl font-bold text-fg-primary outline-none placeholder:text-fg-muted  "
-          placeholder={t(untitledI18nKey(doc.type))}
-        />
-      </div>
-
-      {/* Tags */}
-      {!readOnly && (
-        <div className="w-full px-3 pb-2">
-          <DocTagInput
-            nodeId={doc.id}
-            spaceId={spaceId}
-            tags={doc.tags}
-            onChange={onTagsChange}
+        )}
+        {/* Title input */}
+        <div className="w-full px-3 pt-12 pb-2">
+          <input
+            type="text"
+            value={title}
+            readOnly={readOnly}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={() => {
+              if (!readOnly && title !== doc.title) {
+                onTitleChange(title);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+            className="w-full border-none bg-transparent text-4xl font-bold text-fg-primary outline-none placeholder:text-fg-muted  "
+            placeholder={t(untitledI18nKey(doc.type))}
           />
         </div>
-      )}
 
-      {/* Plate editor */}
-      <div className="flex-1">
-        <DocEditor
-          key={readOnly ? `preview-${doc.id}` : doc.id}
-          value={doc.content as Value | null}
-          onChange={readOnly ? () => {} : onContentChange}
-          editorRef={readOnly ? undefined : editorRef}
-          onAddComment={readOnly ? undefined : onAddComment}
-          onOpenAi={readOnly ? undefined : onOpenAi}
-          onAiAction={readOnly ? undefined : onAiAction}
-          onInsertVfsFile={readOnly ? undefined : onInsertVfsFile}
-          onAttachmentUpload={readOnly ? undefined : onAttachmentUpload}
-          readOnly={readOnly}
-          nodeId={readOnly ? undefined : doc.id}
-          userName={user?.name}
-        />
+        {/* Tags */}
+        {!readOnly && (
+          <div className="w-full px-3 pb-2">
+            <DocTagInput
+              nodeId={doc.id}
+              spaceId={spaceId}
+              tags={doc.tags}
+              onChange={onTagsChange}
+            />
+          </div>
+        )}
+
+        {/* Plate editor */}
+        <div className="flex-1">
+          <DocEditor
+            key={readOnly ? `preview-${doc.id}` : doc.id}
+            value={doc.content as Value | null}
+            onChange={readOnly ? () => {} : onContentChange}
+            editorRef={readOnly ? undefined : editorRef}
+            onAddComment={readOnly ? undefined : onAddComment}
+            onOpenAi={readOnly ? undefined : onOpenAi}
+            onAiAction={readOnly ? undefined : onAiAction}
+            onInsertVfsFile={readOnly ? undefined : onInsertVfsFile}
+            onAttachmentUpload={readOnly ? undefined : onAttachmentUpload}
+            readOnly={readOnly}
+            nodeId={readOnly ? undefined : doc.id}
+            userName={user?.name}
+          />
+        </div>
       </div>
-    </div>
+    </ScrollGuardContext>
   );
 }
