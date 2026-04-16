@@ -54,6 +54,7 @@ interface AttachmentData {
   height?: number | null;
   maxWidth?: number | null;
   pdfMode?: string | null;
+  pdfZoom?: number | null;
   /** Upload progress 0-100, present only while uploading */
   uploadProgress?: number;
   /** Detection fields from backend */
@@ -291,6 +292,8 @@ function OfficePreview({
   maxWidth,
   pdfMode,
   onPdfModeChange,
+  pdfZoom,
+  onPdfZoomChange,
 }: {
   attachmentId: string;
   fileName: string;
@@ -298,6 +301,8 @@ function OfficePreview({
   maxWidth?: number | null;
   pdfMode?: PdfViewMode;
   onPdfModeChange?: (mode: PdfViewMode) => void;
+  pdfZoom?: number;
+  onPdfZoomChange?: (zoom: number) => void;
 }) {
   const [state, setState] = useState<{
     status: "loading" | "ready" | "error";
@@ -359,6 +364,8 @@ function OfficePreview({
         maxWidth={maxWidth ?? undefined}
         mode={pdfMode}
         onModeChange={onPdfModeChange}
+        zoom={pdfZoom}
+        onZoomChange={onPdfZoomChange}
       />
     </div>
   );
@@ -371,7 +378,9 @@ function PreviewContent({
   height,
   maxWidth,
   pdfMode,
+  pdfZoom,
   onPdfModeChange,
+  onPdfZoomChange,
   attachmentId,
   fileCategory,
   detectedLanguage,
@@ -383,7 +392,9 @@ function PreviewContent({
   height: number | null | undefined;
   maxWidth?: number | null;
   pdfMode?: PdfViewMode;
+  pdfZoom?: number;
   onPdfModeChange?: (mode: PdfViewMode) => void;
+  onPdfZoomChange?: (zoom: number) => void;
   attachmentId?: string;
   fileCategory?: string;
   detectedLanguage?: string;
@@ -415,6 +426,8 @@ function PreviewContent({
           maxWidth={maxWidth ?? undefined}
           mode={pdfMode}
           onModeChange={onPdfModeChange}
+          zoom={pdfZoom}
+          onZoomChange={onPdfZoomChange}
         />
       </div>
     );
@@ -460,6 +473,8 @@ function PreviewContent({
           maxWidth={maxWidth}
           pdfMode={pdfMode}
           onPdfModeChange={onPdfModeChange}
+          pdfZoom={pdfZoom}
+          onPdfZoomChange={onPdfZoomChange}
         />
       </ScrollGuardShield>
     );
@@ -596,6 +611,7 @@ export function AttachmentElement(props: PlateElementProps) {
   const height = el.height;
   const maxWidth = el.maxWidth;
   const pdfMode = (el.pdfMode as PdfViewMode) || "scroll";
+  const pdfZoom = (el.pdfZoom as number) || 1;
   const uploadProgress = el.uploadProgress;
   const fileCategory = el.fileCategory;
   const detectedLanguage = el.detectedLanguage;
@@ -642,6 +658,18 @@ export function AttachmentElement(props: PlateElementProps) {
       const path = editor.api.findPath(element);
       if (path) {
         editor.tf.setNodes({ pdfMode: m } as Record<string, unknown>, {
+          at: path,
+        });
+      }
+    },
+    [editor, element],
+  );
+
+  const handlePdfZoomChange = useCallback(
+    (z: number) => {
+      const path = editor.api.findPath(element);
+      if (path) {
+        editor.tf.setNodes({ pdfZoom: z } as Record<string, unknown>, {
           at: path,
         });
       }
@@ -702,7 +730,9 @@ export function AttachmentElement(props: PlateElementProps) {
                 height={height}
                 maxWidth={maxWidth}
                 pdfMode={pdfMode}
+                pdfZoom={pdfZoom}
                 onPdfModeChange={handlePdfModeChange}
+                onPdfZoomChange={handlePdfZoomChange}
                 attachmentId={attachmentId}
                 fileCategory={fileCategory}
                 detectedLanguage={detectedLanguage}
