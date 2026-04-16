@@ -8,8 +8,12 @@ use std::sync::Arc;
 use tracing::{debug, error};
 use uuid::Uuid;
 
+use tokimo_filetype_detector::detect_buffer;
+
 use crate::apps::docs::models::DocNodeAttachmentOutput;
-use crate::apps::docs::repos::attachment_repo::AttachmentRepo;
+use crate::apps::docs::repos::attachment_repo::{AttachmentRepo, CreateAttachmentParams};
+use crate::apps::docs::services::preview_service;
+use crate::error::OptionExt;
 use crate::handlers::user::AuthUser;
 use crate::handlers::{err_resp, ok, ok_empty};
 use crate::services::storage::UploadOptions;
@@ -103,13 +107,23 @@ pub async fn upload_attachment(
         .into_response();
     }
 
+    // Detect file type from content
+    let file_info = detect_buffer(&data, Some(&file_name));
+
     match AttachmentRepo::create(
         &state.db,
-        node_id,
-        &storage_key,
-        &file_name,
-        &content_type,
-        file_size,
+        CreateAttachmentParams {
+            node_id,
+            storage_key: storage_key.clone(),
+            file_name,
+            file_type: content_type,
+            file_size,
+            is_binary: Some(file_info.is_binary),
+            detected_mime: Some(file_info.mime),
+            file_category: Some(file_info.category.as_str().to_string()),
+            text_encoding: file_info.encoding,
+            detected_language: file_info.language,
+        },
     )
     .await
     {
@@ -166,6 +180,70 @@ pub async fn delete_attachment(
         Err(e) => {
             err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("Delete failed: {e}"))
                 .into_response()
+        }
+    }
+}
+
+/// GET /api/apps/docs/attachments/{id}/preview
+///
+/// Returns a URL to a PDF preview of the attachment.
+/// For Office documents, converts via Gotenberg and caches the result.
+pub async fn preview_attachment(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+    AuthUser(_auth): AuthUser,
+) -> Response {
+    // 1. Look up attachment
+    let record = match AttachmentRepo::get_by_id(&state.db, id).await {
+        Ok(opt) => match opt.not_found("Attachment not found") {
+            Ok(r) => r,
+            Err(e) => {
+                return err_resp::<()>(StatusCode::NOT_FOUND, format!("{e}")).into_response()
+            }
+        },
+        Err(e) => {
+            return err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("{e}"))
+                .into_response()
+        }
+    };
+
+    let id_str = id.to_string();
+
+    // 2. Check cache
+    if let Some(url) = preview_service::get_cached_preview(&state.storage, &id_str).await {
+        return ok(serde_json::json!({ "url": url })).into_response();
+    }
+
+    // 3. Check Gotenberg is configured
+    let gotenberg_url = match &state.gotenberg_url {
+        Some(url) => url.clone(),
+        None => {
+            return err_resp::<()>(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "Preview service not configured".into(),
+            )
+            .into_response()
+        }
+    };
+
+    // 4. Convert via Gotenberg and cache
+    match preview_service::convert_and_cache(
+        &state.storage,
+        &gotenberg_url,
+        &id_str,
+        &record.storage_key,
+        &record.file_name,
+    )
+    .await
+    {
+        Ok(url) => ok(serde_json::json!({ "url": url })).into_response(),
+        Err(e) => {
+            error!("Preview conversion failed for attachment {id}: {e}");
+            err_resp::<()>(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Preview failed: {e}"),
+            )
+            .into_response()
         }
     }
 }
