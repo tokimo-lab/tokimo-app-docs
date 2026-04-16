@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use bytes::Bytes;
@@ -11,16 +12,22 @@ use crate::services::storage::StorageProvider;
 /// - `notion` docs: converted via `tokimo-plate-markdown` with smart splitting
 /// - `markdown` docs: content written as-is
 /// - Other types: skipped
+///
+/// Attachments are NOT copied — instead a `.attachments.json` manifest maps
+/// virtual filenames to their original storage keys. The VFS driver uses this
+/// manifest to serve attachment reads directly from the source location.
 pub struct DocMarkdownSyncService;
 
 /// S3 key prefix for all docs markdown files.
 const S3_PREFIX: &str = "docs-md";
 
+/// Hidden manifest file that maps attachment filenames → source storage keys.
+/// Stored alongside markdown files so the VFS driver can serve attachments
+/// without duplicating data.
+pub const ATTACHMENTS_MANIFEST: &str = ".attachments.json";
+
 impl DocMarkdownSyncService {
     /// Sync a single node's markdown representation to S3.
-    ///
-    /// Called asynchronously after a document save. Errors are logged, not propagated
-    /// to the save path.
     pub async fn sync_node(
         storage: &dyn StorageProvider,
         space: &doc_spaces::Model,
@@ -33,11 +40,11 @@ impl DocMarkdownSyncService {
         match node.r#type.as_str() {
             "notion" => Self::sync_notion_node(storage, slug, node).await,
             "markdown" => Self::sync_markdown_node(storage, slug, node).await,
-            _ => Ok(()), // Other types are not synced
+            _ => Ok(()),
         }
     }
 
-    /// Sync a notion (Plate JSON) document: convert → split → upload.
+    /// Sync a notion (Plate JSON) document: convert → split → upload manifest.
     async fn sync_notion_node(
         storage: &dyn StorageProvider,
         slug: &str,
@@ -50,9 +57,10 @@ impl DocMarkdownSyncService {
 
         let attachments = tokimo_plate_markdown::extract_attachments(content);
         let title_safe = sanitize_path_component(&node.title);
+        let has_attachments = !attachments.is_empty();
 
-        if result.sections.len() <= 1 && attachments.is_empty() {
-            // Simple document: store as flat .md file
+        if result.sections.len() <= 1 && !has_attachments {
+            // Simple document without attachments: flat .md file
             let md = result
                 .sections
                 .first()
@@ -62,34 +70,71 @@ impl DocMarkdownSyncService {
             let key = format!("{S3_PREFIX}/{slug}/{title_safe}.md");
             storage.upload(&key, Bytes::from(md.to_owned()), None).await?;
         } else {
-            // Complex document: store as directory with sections + attachments
+            // Directory-based document: sections + attachment manifest
             let base = format!("{S3_PREFIX}/{slug}/{title_safe}");
 
+            // Rewrite attachment URLs once to get deduplicated filenames
+            let (_, deduped) = if has_attachments {
+                tokimo_plate_markdown::rewrite_attachment_urls("", &attachments)
+            } else {
+                (String::new(), Vec::new())
+            };
+
             if let Some(ref preamble) = result.preamble {
+                let md = if has_attachments {
+                    let (rewritten, _) =
+                        tokimo_plate_markdown::rewrite_attachment_urls(preamble, &attachments);
+                    rewritten
+                } else {
+                    preamble.clone()
+                };
                 storage
-                    .upload(&format!("{base}/README.md"), Bytes::from(preamble.clone()), None)
+                    .upload(&format!("{base}/README.md"), Bytes::from(md), None)
                     .await?;
             }
 
             for section in &result.sections {
+                let md = if has_attachments {
+                    let (rewritten, _) = tokimo_plate_markdown::rewrite_attachment_urls(
+                        &section.markdown,
+                        &attachments,
+                    );
+                    rewritten
+                } else {
+                    section.markdown.clone()
+                };
                 storage
                     .upload(
                         &format!("{base}/{}", section.filename),
-                        Bytes::from(section.markdown.clone()),
+                        Bytes::from(md),
                         None,
                     )
                     .await?;
             }
 
-            // Log attachment references for now — actual attachment copy
-            // requires resolving storage URLs, which will be implemented when
-            // we integrate with the VFS layer.
-            if !attachments.is_empty() {
-                tracing::debug!(
-                    "Node {} has {} attachments to sync (not yet copied)",
-                    node.id,
-                    attachments.len()
-                );
+            // Write attachment manifest instead of copying files.
+            // Maps: { "cos正太体型.dat": "docs/attachments/{space_id}/{uuid}.dat", ... }
+            if !deduped.is_empty() {
+                let manifest: HashMap<&str, &str> = deduped
+                    .iter()
+                    .filter_map(|att| {
+                        let source_key = att.url.strip_prefix("/storage/")?;
+                        if source_key.is_empty() {
+                            return None;
+                        }
+                        Some((att.filename.as_str(), source_key))
+                    })
+                    .collect();
+
+                let manifest_json = serde_json::to_string_pretty(&manifest)
+                    .map_err(|e| format!("manifest serialize failed: {e}"))?;
+                storage
+                    .upload(
+                        &format!("{base}/{ATTACHMENTS_MANIFEST}"),
+                        Bytes::from(manifest_json),
+                        None,
+                    )
+                    .await?;
             }
         }
 
