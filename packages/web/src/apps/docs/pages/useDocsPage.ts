@@ -486,8 +486,9 @@ export function useDocsPage(spaceId: string) {
           nodeId,
           file,
           onProgress: (percent) => {
-            // Update progress on the placeholder block
+            // Update progress on the placeholder block (search whole doc)
             for (const [_node, path] of editor.api.nodes({
+              at: [],
               match: (n: TElement) =>
                 (n as unknown as Record<string, unknown>).attachmentId ===
                 placeholderId,
@@ -503,6 +504,7 @@ export function useDocsPage(spaceId: string) {
 
         // Replace placeholder with final data
         for (const [_node, path] of editor.api.nodes({
+          at: [],
           match: (n: TElement) =>
             (n as unknown as Record<string, unknown>).attachmentId ===
             placeholderId,
@@ -523,6 +525,7 @@ export function useDocsPage(spaceId: string) {
       } catch (err) {
         // Remove failed placeholder
         for (const [_node, path] of editor.api.nodes({
+          at: [],
           match: (n: TElement) =>
             (n as unknown as Record<string, unknown>).attachmentId ===
             placeholderId,

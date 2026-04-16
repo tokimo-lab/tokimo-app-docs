@@ -39,12 +39,15 @@ function upsertPlaceholder(index: number): void {
   if (!editorEl) return;
 
   let ph = document.getElementById(PLACEHOLDER_ID);
+  const isNew = !ph;
   if (!ph) {
     ph = document.createElement("div");
     ph.id = PLACEHOLDER_ID;
     ph.setAttribute("contenteditable", "false");
-    ph.style.height = `${PLACEHOLDER_HEIGHT}px`;
-    ph.style.transition = "all 200ms ease";
+    ph.style.overflow = "hidden";
+    ph.style.transition = "height 200ms ease, opacity 200ms ease";
+    ph.style.height = "0px";
+    ph.style.opacity = "0";
     ph.className =
       "rounded-xl border-2 border-dashed border-fill-brand bg-fill-brand-secondary/20 flex items-center justify-center pointer-events-none my-1";
     // Inner badge
@@ -63,6 +66,16 @@ function upsertPlaceholder(index: number): void {
     editorEl.appendChild(ph);
   } else {
     editorEl.insertBefore(ph, blocks[index]);
+  }
+
+  // Animate height expand on first insert
+  if (isNew) {
+    requestAnimationFrame(() => {
+      if (ph) {
+        ph.style.height = `${PLACEHOLDER_HEIGHT}px`;
+        ph.style.opacity = "1";
+      }
+    });
   }
 }
 
