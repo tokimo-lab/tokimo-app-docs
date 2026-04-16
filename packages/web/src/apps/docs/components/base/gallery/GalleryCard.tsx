@@ -158,7 +158,7 @@ function GalleryFieldValue({ field, value }: { field: Field; value: unknown }) {
         <div className="flex items-center gap-1">
           <div className="h-1 w-16 rounded-full bg-fill-tertiary">
             <div
-              className="h-full rounded-full bg-blue-500"
+              className="h-full rounded-full bg-[var(--accent-subtle)]0"
               style={{ width: `${pct}%` }}
             />
           </div>

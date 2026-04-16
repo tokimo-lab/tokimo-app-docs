@@ -168,7 +168,7 @@ function ViewTab({
           className={cn(
             "flex cursor-pointer items-center gap-1.5 border-b-2 px-3 py-2 text-xs transition-colors",
             isActive
-              ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+              ? "border-[var(--accent)] text-[var(--accent)] dark:border-[var(--accent)] dark:text-[var(--accent)]"
               : "border-transparent text-fg-muted hover:text-fg-secondary",
           )}
           onClick={onSelect}

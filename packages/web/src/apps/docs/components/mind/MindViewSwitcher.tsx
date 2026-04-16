@@ -63,7 +63,7 @@ function MindMapIcon({ className }: { className?: string }) {
 const BTN_BASE =
   "cursor-pointer p-1.5 transition-colors flex items-center justify-center";
 const BTN_ACTIVE =
-  "bg-blue-500/20 text-blue-500 dark:bg-blue-500/25 dark:text-blue-400";
+  "bg-[var(--accent-subtle)]0/20 text-[var(--accent)] dark:bg-[var(--accent-subtle)]0/25 dark:text-[var(--accent)]";
 const BTN_INACTIVE =
   "text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300";
 

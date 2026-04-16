@@ -63,7 +63,7 @@ function MarkButton({ markKey, icon, title }: MarkButtonProps) {
       onMouseDown={handleMouseDown}
       className={`flex size-8 items-center justify-center rounded transition-colors ${
         isActive
-          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+          ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]"
           : "text-fg-muted hover:bg-fill-tertiary"
       }`}
     >
@@ -145,7 +145,7 @@ function TurnIntoDropdown() {
               }}
               className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors ${
                 currentType === type
-                  ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                  ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]"
                   : "text-fg-secondary hover:bg-fill-tertiary "
               }`}
             >

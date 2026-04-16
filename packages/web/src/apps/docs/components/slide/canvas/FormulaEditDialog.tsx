@@ -148,7 +148,7 @@ export function FormulaEditDialog({
                 className={cn(
                   "cursor-pointer px-4 py-2 text-sm transition-colors",
                   rightTab === "symbols"
-                    ? "border-b-2 border-blue-500 font-medium text-blue-600 dark:text-blue-400"
+                    ? "border-b-2 border-[var(--accent)] font-medium text-[var(--accent)]"
                     : "text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200",
                 )}
                 onClick={() => setRightTab("symbols")}
@@ -160,7 +160,7 @@ export function FormulaEditDialog({
                 className={cn(
                   "cursor-pointer px-4 py-2 text-sm transition-colors",
                   rightTab === "presets"
-                    ? "border-b-2 border-blue-500 font-medium text-blue-600 dark:text-blue-400"
+                    ? "border-b-2 border-[var(--accent)] font-medium text-[var(--accent)]"
                     : "text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200",
                 )}
                 onClick={() => setRightTab("presets")}
@@ -199,7 +199,7 @@ export function FormulaEditDialog({
             </button>
             <button
               type="button"
-              className="cursor-pointer rounded bg-blue-500 px-4 py-1.5 text-sm text-white hover:bg-blue-600"
+              className="cursor-pointer rounded bg-[var(--accent-subtle)]0 px-4 py-1.5 text-sm text-white hover:bg-[var(--accent-hover)]"
               onClick={() => onClose()}
             >
               {t("docs.confirm")}
@@ -242,7 +242,7 @@ function SymbolPanel({
             className={cn(
               "cursor-pointer rounded-t px-2.5 py-1 text-xs transition-colors",
               activeType === cat.type
-                ? "bg-blue-50 font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                ? "bg-[var(--accent-subtle)] font-medium text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
                 : "text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-700",
             )}
             onClick={() => onTabChange(cat.type)}
@@ -258,7 +258,7 @@ function SymbolPanel({
           <button
             key={`${activeCategory.type}-${sym.latex}`}
             type="button"
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-neutral-200 bg-white text-sm hover:border-blue-400 hover:bg-blue-50 dark:border-neutral-600 dark:bg-neutral-700 dark:hover:border-blue-400 dark:hover:bg-blue-900/30"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-neutral-200 bg-white text-sm hover:border-[var(--accent)] hover:bg-[var(--accent-subtle)] dark:border-neutral-600 dark:bg-neutral-700 dark:hover:border-[var(--accent)] dark:hover:bg-[var(--accent-subtle)]"
             title={sym.latex}
             onClick={() => onInsert(sym.latex)}
             // biome-ignore lint/security/noDangerouslySetInnerHtml: KaTeX symbol
@@ -286,7 +286,7 @@ function PresetPanel({ onSelect, t }: PresetPanelProps) {
         <button
           key={f.label}
           type="button"
-          className="cursor-pointer rounded border border-neutral-200 bg-white p-2 text-left transition-colors hover:border-blue-400 hover:bg-blue-50 dark:border-neutral-600 dark:bg-neutral-700 dark:hover:border-blue-400 dark:hover:bg-blue-900/30"
+          className="cursor-pointer rounded border border-neutral-200 bg-white p-2 text-left transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-subtle)] dark:border-neutral-600 dark:bg-neutral-700 dark:hover:border-[var(--accent)] dark:hover:bg-[var(--accent-subtle)]"
           onClick={() => onSelect(f.latex)}
         >
           <div

@@ -46,7 +46,8 @@ export function KanbanColumn({
       data-group-id={group.id}
       className={cn(
         "flex h-full w-[280px] shrink-0 flex-col rounded-lg bg-fill-quaternary dark:bg-surface-secondary transition-colors",
-        isDragOver && "ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-950/30",
+        isDragOver &&
+          "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)] dark:bg-[var(--accent-subtle)]",
       )}
     >
       {/* Column header */}
@@ -117,7 +118,7 @@ export function KanbanColumn({
       {/* Add record button */}
       <button
         type="button"
-        className="flex cursor-pointer items-center gap-1 px-3 py-2 text-xs text-fg-muted hover:text-blue-600"
+        className="flex cursor-pointer items-center gap-1 px-3 py-2 text-xs text-fg-muted hover:text-[var(--accent)]"
         onClick={handleAddRecord}
       >
         <Plus size={14} />

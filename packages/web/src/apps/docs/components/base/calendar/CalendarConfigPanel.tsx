@@ -48,7 +48,7 @@ export function CalendarConfigPanel({
                 className={cn(
                   "flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors",
                   f.id === dateFieldId
-                    ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                    ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
                     : "text-fg-secondary hover:bg-fill-tertiary",
                 )}
                 onClick={() => {

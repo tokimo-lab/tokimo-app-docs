@@ -84,7 +84,7 @@ function DesignTab() {
               type="button"
               className={
                 activeLayoutId === layout.id
-                  ? "flex cursor-pointer flex-col items-center rounded-md border-2 border-blue-500 bg-blue-50 p-1.5 transition-colors hover:bg-black/5 dark:bg-blue-500/10 dark:hover:bg-white/5"
+                  ? "flex cursor-pointer flex-col items-center rounded-md border-2 border-[var(--accent)] bg-[var(--accent-subtle)] p-1.5 transition-colors hover:bg-black/5 dark:bg-[var(--accent-subtle)]0/10 dark:hover:bg-white/5"
                   : "flex cursor-pointer flex-col items-center rounded-md border-2 border-border-subtle p-1.5 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
               }
               onClick={() => handleApplyLayout(layout.id)}

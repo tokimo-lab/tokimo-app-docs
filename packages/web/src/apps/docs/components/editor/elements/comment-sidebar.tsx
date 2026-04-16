@@ -255,13 +255,13 @@ function CommentThread({
               }
             }}
             placeholder="输入回复…"
-            className="flex-1 rounded border border-border-base bg-transparent px-2 py-1 text-xs text-fg-primary outline-none placeholder:text-fg-muted focus:border-blue-400 dark:focus:border-blue-500"
+            className="flex-1 rounded border border-border-base bg-transparent px-2 py-1 text-xs text-fg-primary outline-none placeholder:text-fg-muted focus:border-[var(--accent)] dark:focus:border-[var(--accent)]"
           />
           <button
             type="button"
             onClick={handleReply}
             disabled={!replyText.trim() || createMutation.isPending}
-            className="rounded bg-blue-500 px-2 py-1 text-xs text-white transition-colors hover:bg-blue-600 disabled:opacity-50"
+            className="rounded bg-[var(--accent-subtle)]0 px-2 py-1 text-xs text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50"
           >
             发送
           </button>

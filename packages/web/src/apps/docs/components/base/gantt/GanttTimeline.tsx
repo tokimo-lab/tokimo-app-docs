@@ -75,7 +75,7 @@ export const GanttTimeline = forwardRef<HTMLDivElement, GanttTimelineProps>(
                       weekend
                         ? "bg-fill-quaternary/30 text-fg-muted dark:bg-fill-quaternary/20"
                         : "text-fg-secondary",
-                      isToday && "font-bold text-blue-600 dark:text-blue-400",
+                      isToday && "font-bold text-[var(--accent)]",
                     )}
                     style={{ width: colWidth }}
                   >
@@ -250,7 +250,7 @@ function GanttRowLane({
           }}
         >
           <div className="absolute inset-0 hidden items-center justify-center group-hover/lane:flex">
-            <span className="flex items-center gap-1 rounded border border-dashed border-border-subtle px-2 py-0.5 text-[11px] text-fg-muted hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400">
+            <span className="flex items-center gap-1 rounded border border-dashed border-border-subtle px-2 py-0.5 text-[11px] text-fg-muted hover:border-[var(--accent)] hover:text-[var(--accent)] dark:hover:text-[var(--accent)]">
               <Plus size={12} />
               设置时间
             </span>

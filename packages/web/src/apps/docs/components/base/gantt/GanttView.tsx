@@ -172,7 +172,7 @@ export function GanttView({ state }: GanttViewProps) {
               className={cn(
                 "cursor-pointer px-2 py-0.5 transition-colors",
                 ganttConfig?.timeScale === scale
-                  ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                  ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
                   : "text-fg-muted hover:bg-fill-tertiary",
               )}
               onClick={() => state.setGanttConfig({ timeScale: scale })}

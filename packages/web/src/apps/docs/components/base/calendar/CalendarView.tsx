@@ -62,8 +62,8 @@ export function CalendarView({ state }: CalendarViewProps) {
         padding: 2px 8px;
         border-radius: 4px;
         font-size: 10px;
-        background: rgba(59, 130, 246, 0.15);
-        color: #3b82f6;
+        background: var(--accent-subtle);
+        color: var(--accent);
         white-space: nowrap;
         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         opacity: 0;
@@ -243,7 +243,7 @@ export function CalendarView({ state }: CalendarViewProps) {
               className={cn(
                 "cursor-pointer px-2 py-0.5 transition-colors",
                 activeView?.calendarConfig?.viewMode === mode
-                  ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                  ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
                   : "text-fg-muted hover:bg-fill-tertiary",
               )}
               onClick={() => state.setCalendarViewMode(mode)}

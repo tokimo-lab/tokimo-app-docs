@@ -34,7 +34,7 @@ export function CalendarDayCell({
       className={cn(
         "group/cell flex min-h-0 flex-col border-r border-border-subtle p-1 last:border-r-0",
         !day.isCurrentMonth && "bg-fill-quaternary/30",
-        isDropTarget && "bg-blue-50 dark:bg-blue-900/20",
+        isDropTarget && "bg-[var(--accent-subtle)]",
       )}
     >
       {/* Date number */}
@@ -43,7 +43,7 @@ export function CalendarDayCell({
           className={cn(
             "inline-flex h-5 w-5 items-center justify-center rounded-full text-xs",
             day.isToday
-              ? "bg-blue-600 font-medium text-white"
+              ? "bg-[var(--accent)] font-medium text-white"
               : day.isCurrentMonth
                 ? "text-fg-primary"
                 : "text-fg-disabled",

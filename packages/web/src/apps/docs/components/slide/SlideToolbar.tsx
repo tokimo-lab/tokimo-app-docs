@@ -167,7 +167,8 @@ export function SlideToolbar() {
     cn(
       "flex cursor-pointer flex-col items-center justify-center gap-0.5 rounded-md px-3 py-1.5 min-w-[44px]",
       "hover:bg-black/5 dark:hover:bg-white/5",
-      active && "bg-blue-50 text-blue-500 dark:bg-blue-500/10",
+      active &&
+        "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)]0/10",
     );
 
   const handleAddTable = useCallback(
@@ -208,7 +209,7 @@ export function SlideToolbar() {
         className={cn(
           "cursor-pointer rounded p-1.5 hover:bg-black/5 dark:hover:bg-white/5",
           formatPainterMode !== "off" &&
-            "bg-blue-50 text-blue-500 dark:bg-blue-500/10",
+            "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)]0/10",
         )}
         title={
           formatPainterMode === "persistent"

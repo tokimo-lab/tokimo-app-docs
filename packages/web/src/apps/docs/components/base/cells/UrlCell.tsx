@@ -44,7 +44,7 @@ export function UrlCell({
             href={str}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 underline hover:text-blue-800 dark:text-blue-400"
+            className="text-[var(--accent)] underline hover:text-[var(--accent-hover)] dark:text-[var(--accent)]"
             onClick={(e) => e.stopPropagation()}
           >
             {str}
@@ -58,7 +58,7 @@ export function UrlCell({
     <input
       ref={inputRef}
       type="url"
-      className="h-full w-full border-none bg-transparent px-2 text-sm outline-none ring-2 ring-blue-500 ring-inset"
+      className="h-full w-full border-none bg-transparent px-2 text-sm outline-none ring-2 ring-[var(--accent)] ring-inset"
       value={draft}
       placeholder="https://..."
       onChange={(e) => setDraft(e.target.value)}

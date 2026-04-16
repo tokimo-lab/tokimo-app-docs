@@ -95,7 +95,7 @@ export function FormEditView({ state }: FormEditViewProps) {
           <div className="flex gap-2">
             <button
               type="button"
-              className="cursor-pointer text-xs text-blue-600 hover:underline"
+              className="cursor-pointer text-xs text-[var(--accent)] hover:underline"
               onClick={() =>
                 state.setFormConfig({
                   visibleFieldIds: fields.map((f) => f.id),
@@ -106,7 +106,7 @@ export function FormEditView({ state }: FormEditViewProps) {
             </button>
             <button
               type="button"
-              className="cursor-pointer text-xs text-blue-600 hover:underline"
+              className="cursor-pointer text-xs text-[var(--accent)] hover:underline"
               onClick={() =>
                 state.setFormConfig({
                   visibleFieldIds: [],
@@ -170,7 +170,7 @@ export function FormEditView({ state }: FormEditViewProps) {
       {/* Right: Form preview */}
       <div className="flex-1 overflow-y-auto bg-fill-tertiary">
         {/* Blue decorative header */}
-        <div className="relative h-40 overflow-hidden bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600">
+        <div className="relative h-40 overflow-hidden bg-gradient-to-r from-[var(--accent)] via-[var(--accent)] to-[var(--accent-hover)]">
           <div className="absolute inset-0">
             <svg
               className="h-full w-full opacity-20"
@@ -274,7 +274,7 @@ function FormFieldRow({
           <div
             className={cn(
               "h-4 w-7 rounded-full transition-colors",
-              isRequired ? "bg-blue-500" : "bg-fill-secondary",
+              isRequired ? "bg-[var(--accent-subtle)]0" : "bg-fill-secondary",
             )}
           >
             <div

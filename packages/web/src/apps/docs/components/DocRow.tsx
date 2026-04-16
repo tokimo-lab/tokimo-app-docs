@@ -1,7 +1,6 @@
 import { cn, Dropdown, type DropdownMenuItem } from "@tokiomo/components";
 import {
   Copy,
-  FileText,
   Folder,
   Heart,
   MoreHorizontal,
@@ -14,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { useDateFormat } from "@/system";
 import type { DocNode } from "../lib/doc-node";
 import { untitledI18nKey } from "../lib/doc-node";
+import { DocNodeIcon } from "./DocNodeIcon";
 
 function formatWordCount(count: number): string {
   if (count >= 10000) return `${(count / 10000).toFixed(1)}万字`;
@@ -126,13 +126,9 @@ export function DocRow({
       >
         {/* Icon + Title */}
         <div className="flex flex-1 items-center gap-2 overflow-hidden">
-          <FileText
-            size={16}
-            className={cn(
-              "shrink-0",
-              isTrash ? "text-fg-muted" : "text-blue-500",
-            )}
-          />
+          <span className={cn("shrink-0", isTrash && "opacity-50 grayscale")}>
+            <DocNodeIcon node={node} size={16} />
+          </span>
           <span
             className={cn(
               "truncate text-sm",

@@ -49,10 +49,10 @@ const BTN =
 const BTN_CLR =
   "text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300";
 const BTN_ACTIVE =
-  "bg-blue-500/20 text-blue-500 dark:bg-blue-500/25 dark:text-blue-400";
+  "bg-[var(--accent-subtle)]0/20 text-[var(--accent)] dark:bg-[var(--accent-subtle)]0/25 dark:text-[var(--accent)]";
 const BTN_DISABLED = "text-gray-300 dark:text-gray-600 cursor-default";
 const SEL =
-  "bg-blue-500/20 text-blue-500 dark:bg-blue-500/25 dark:text-blue-400";
+  "bg-[var(--accent-subtle)]0/20 text-[var(--accent)] dark:bg-[var(--accent-subtle)]0/25 dark:text-[var(--accent)]";
 const UNSEL =
   "text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300";
 

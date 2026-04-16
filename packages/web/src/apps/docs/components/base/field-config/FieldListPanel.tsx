@@ -112,7 +112,7 @@ export function FieldListPanel({
       <div className="border-t border-border-subtle px-2 py-2">
         <button
           type="button"
-          className="flex w-full cursor-pointer items-center gap-1.5 rounded px-2 py-1.5 text-xs text-blue-600 hover:bg-fill-tertiary dark:text-blue-400"
+          className="flex w-full cursor-pointer items-center gap-1.5 rounded px-2 py-1.5 text-xs text-[var(--accent)] hover:bg-fill-tertiary dark:text-[var(--accent)]"
           onClick={onAddNew}
         >
           <Plus size={14} />

@@ -77,7 +77,7 @@ export function FormFillView({ state }: FormFillViewProps) {
           <p className="mb-6 text-sm text-fg-muted">你的回答已成功记录</p>
           <button
             type="button"
-            className="cursor-pointer rounded-lg bg-blue-500 px-6 py-2 text-sm text-white hover:bg-blue-600"
+            className="cursor-pointer rounded-lg bg-[var(--accent-subtle)]0 px-6 py-2 text-sm text-white hover:bg-[var(--accent-hover)]"
             onClick={handleReset}
           >
             再次填写
@@ -90,7 +90,7 @@ export function FormFillView({ state }: FormFillViewProps) {
   return (
     <div className="h-full overflow-y-auto bg-fill-tertiary">
       {/* Blue decorative header */}
-      <div className="relative h-40 overflow-hidden bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600">
+      <div className="relative h-40 overflow-hidden bg-gradient-to-r from-[var(--accent)] via-[var(--accent)] to-[var(--accent-hover)]">
         <div className="absolute inset-0">
           <svg
             className="h-full w-full opacity-20"
@@ -134,7 +134,7 @@ export function FormFillView({ state }: FormFillViewProps) {
 
         <button
           type="button"
-          className="mt-8 w-full cursor-pointer rounded-lg bg-blue-500 py-2.5 text-sm font-medium text-white hover:bg-blue-600"
+          className="mt-8 w-full cursor-pointer rounded-lg bg-[var(--accent-subtle)]0 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)]"
           onClick={handleSubmit}
         >
           提交
@@ -177,7 +177,7 @@ function renderInput(
 ) {
   const borderClass = hasError
     ? "border-red-400 focus:ring-red-200"
-    : "border-border-subtle focus:ring-blue-200";
+    : "border-border-subtle focus:ring-[var(--accent)]/40";
 
   switch (field.type) {
     case "text":
@@ -321,7 +321,7 @@ function MultiSelectInput({
               type="button"
               className={`cursor-pointer rounded-full px-3 py-1 text-xs transition-colors ${
                 isSelected
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                  ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]"
                   : "bg-fill-tertiary text-fg-secondary hover:bg-fill-secondary"
               }`}
               onClick={() => {

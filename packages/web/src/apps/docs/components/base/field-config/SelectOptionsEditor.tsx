@@ -74,7 +74,7 @@ export function SelectOptionsEditor({
               if (el) inputRefs.current.set(opt.id, el);
               else inputRefs.current.delete(opt.id);
             }}
-            className="min-w-0 flex-1 rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-1.5 py-1 text-xs outline-none focus:ring-1 focus:ring-blue-500"
+            className="min-w-0 flex-1 rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-1.5 py-1 text-xs outline-none focus:ring-1 focus:ring-[var(--accent)]"
             value={opt.label}
             onChange={(e) => handleLabelChange(opt.id, e.target.value)}
             placeholder="选项名称"
@@ -92,7 +92,7 @@ export function SelectOptionsEditor({
       ))}
       <button
         type="button"
-        className="mt-1 flex cursor-pointer items-center gap-1 rounded px-1 py-1 text-xs text-blue-600 hover:bg-fill-tertiary dark:text-blue-400"
+        className="mt-1 flex cursor-pointer items-center gap-1 rounded px-1 py-1 text-xs text-[var(--accent)] hover:bg-fill-tertiary dark:text-[var(--accent)]"
         onClick={handleAdd}
       >
         + {addLabel}

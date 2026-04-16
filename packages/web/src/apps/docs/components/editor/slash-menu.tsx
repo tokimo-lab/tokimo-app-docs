@@ -735,7 +735,7 @@ export function SlashInputElement(props: PlateElementProps) {
 
   return (
     <PlateElement {...props} as="span" className="inline">
-      <span className="text-blue-600 dark:text-blue-400">/</span>
+      <span className="text-[var(--accent)]">/</span>
       <span
         ref={inputRef}
         role="combobox"
@@ -747,7 +747,7 @@ export function SlashInputElement(props: PlateElementProps) {
         onInput={handleInput}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
-        className="inline text-blue-600 outline-none dark:text-blue-400"
+        className="inline text-[var(--accent)] outline-none dark:text-[var(--accent)]"
         data-slate-editor={false}
       />
       {props.children}
@@ -779,7 +779,7 @@ export function SlashInputElement(props: PlateElementProps) {
                         data-selected={isSelected}
                         className={`flex w-full items-center gap-3 px-3 py-1.5 text-left text-sm transition-colors ${
                           isSelected
-                            ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                            ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]"
                             : "text-fg-secondary hover:bg-fill-tertiary /50"
                         }`}
                         onMouseDown={(e) => {

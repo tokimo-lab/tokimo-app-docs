@@ -36,7 +36,7 @@ export function TocElement(props: PlateElementProps) {
               <button
                 key={h.id}
                 type="button"
-                className="cursor-pointer text-left text-sm text-blue-600 hover:underline dark:text-blue-400"
+                className="cursor-pointer text-left text-sm text-[var(--accent)] hover:underline dark:text-[var(--accent)]"
                 style={{ paddingLeft: `${(h.depth - 1) * 16}px` }}
                 onClick={() => {
                   const el = document.getElementById(h.id);

@@ -237,7 +237,7 @@ function FieldValueDisplay({
       type={
         field.type === "number" || field.type === "currency" ? "number" : "text"
       }
-      className="w-full rounded border border-border-subtle bg-surface-base px-2 py-1 text-xs text-fg-primary outline-none focus:border-blue-400"
+      className="w-full rounded border border-border-subtle bg-surface-base px-2 py-1 text-xs text-fg-primary outline-none focus:border-[var(--accent)]"
       value={strVal}
       onChange={(e) => {
         const v =

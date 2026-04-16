@@ -77,7 +77,7 @@ export function FieldEditorPanel({
               className={cn(
                 "flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors",
                 field.type === ft
-                  ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                  ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
                   : "text-fg-secondary hover:bg-fill-tertiary",
               )}
               onClick={() => {
@@ -114,7 +114,7 @@ export function FieldEditorPanel({
         {/* Field name */}
         <div className="mb-1 text-xs text-fg-muted">字段名称</div>
         <input
-          className="mb-3 w-full rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-blue-500"
+          className="mb-3 w-full rounded border border-black/[0.06] dark:border-white/[0.08] bg-fill-tertiary dark:bg-white/[0.08] px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
           value={field.name}
           onChange={(e) => onUpdate({ name: e.target.value })}
         />
@@ -143,7 +143,7 @@ export function FieldEditorPanel({
       <div className="border-t border-border-subtle px-3 py-2">
         <button
           type="button"
-          className="w-full cursor-pointer rounded bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700"
+          className="w-full cursor-pointer rounded bg-[var(--accent)] px-3 py-1.5 text-xs text-white hover:bg-[var(--accent-hover)]"
           onClick={onBack}
         >
           完成
@@ -298,7 +298,7 @@ function ConfigDropdown({
                 type="button"
                 className={cn(
                   "flex w-full cursor-pointer items-center px-2 py-1.5 text-left text-xs hover:bg-fill-tertiary",
-                  selected === opt.key && "text-blue-600 dark:text-blue-400",
+                  selected === opt.key && "text-[var(--accent)]",
                 )}
                 onClick={() => {
                   setSelected(opt.key);
@@ -307,9 +307,7 @@ function ConfigDropdown({
               >
                 {opt.label}
                 {selected === opt.key && (
-                  <span className="ml-auto text-blue-600 dark:text-blue-400">
-                    ✓
-                  </span>
+                  <span className="ml-auto text-[var(--accent)]">✓</span>
                 )}
               </button>
             ))}

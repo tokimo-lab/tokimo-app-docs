@@ -549,7 +549,7 @@ export function SlideCanvas({ slide, zoom }: SlideCanvasProps) {
         {groupBoundingBoxes.map((box) => (
           <div
             key={`group-${box.groupId}`}
-            className="pointer-events-none absolute border-2 border-dashed border-blue-400"
+            className="pointer-events-none absolute border-2 border-dashed border-[var(--accent)]"
             style={{
               left: box.left - 4,
               top: box.top - 4,

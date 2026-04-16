@@ -833,7 +833,7 @@ export function AttachmentElement(props: PlateElementProps) {
             isDragging
               ? "border-border-brand"
               : isActivated
-                ? "border-blue-500 dark:border-blue-400"
+                ? "border-[var(--accent)] dark:border-[var(--accent)]"
                 : "border-border-base hover:border-border-hover"
           }`}
         >
@@ -841,7 +841,7 @@ export function AttachmentElement(props: PlateElementProps) {
           <div
             className={`flex items-center gap-2 border-b px-3 py-1.5 select-none transition-colors ${
               isActivated
-                ? "border-blue-500/30 bg-blue-50/60 dark:border-blue-400/20 dark:bg-blue-950/30"
+                ? "border-[var(--accent)]/30 bg-[var(--accent-subtle)]/60 dark:border-[var(--accent)]/20 dark:bg-[var(--accent-subtle)]"
                 : "border-border-base"
             }`}
           >

@@ -117,7 +117,7 @@ export function MermaidElement(props: PlateElementProps) {
                 }
               }}
               placeholder={"graph TD\n  A[开始] --> B[结束]"}
-              className="w-full resize-none rounded border border-border-base bg-surface-elevated px-3 py-2 font-mono text-sm text-fg-primary outline-none focus:border-blue-400"
+              className="w-full resize-none rounded border border-border-base bg-surface-elevated px-3 py-2 font-mono text-sm text-fg-primary outline-none focus:border-[var(--accent)]"
               rows={6}
             />
             {draft && (
@@ -132,7 +132,7 @@ export function MermaidElement(props: PlateElementProps) {
                   e.preventDefault();
                   commitEdit();
                 }}
-                className="cursor-pointer rounded bg-blue-500 px-3 py-1 text-xs font-medium text-white hover:bg-blue-600"
+                className="cursor-pointer rounded bg-[var(--accent-subtle)]0 px-3 py-1 text-xs font-medium text-white hover:bg-[var(--accent-hover)]"
               >
                 确认 (⌘+Enter)
               </button>

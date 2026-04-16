@@ -16,7 +16,7 @@ export function PanelTabs({ tabs, activeTab, onTabChange }: PanelTabsProps) {
           className={cn(
             "flex flex-1 cursor-pointer items-center justify-center py-2.5 text-sm transition-colors",
             activeTab === tab.key
-              ? "border-b-2 border-blue-500 font-medium text-blue-500"
+              ? "border-b-2 border-[var(--accent)] font-medium text-[var(--accent)]"
               : "text-fg-muted hover:text-fg-default",
           )}
           onClick={() => onTabChange(tab.key)}

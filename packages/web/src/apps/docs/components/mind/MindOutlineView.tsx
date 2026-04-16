@@ -202,7 +202,9 @@ function RootHeading({
       contentEditable
       suppressContentEditableWarning
       className={`mb-6 text-2xl font-bold outline-none ${
-        isDark ? "text-white caret-blue-400" : "text-gray-900 caret-blue-600"
+        isDark
+          ? "text-white caret-[var(--accent)]"
+          : "text-gray-900 caret-[var(--accent)]"
       }`}
       onBlur={handleBlur}
       onKeyDown={(e) => {
@@ -368,8 +370,8 @@ function OutlineItem({
           suppressContentEditableWarning
           className={`min-w-[40px] flex-1 rounded px-1 py-0.5 text-sm leading-6 outline-none transition-colors ${
             isDark
-              ? "text-gray-200 caret-blue-400 hover:bg-white/5 focus:bg-white/5"
-              : "text-gray-800 caret-blue-600 hover:bg-gray-50 focus:bg-blue-50/50"
+              ? "text-gray-200 caret-[var(--accent)] hover:bg-white/5 focus:bg-white/5"
+              : "text-gray-800 caret-[var(--accent)] hover:bg-gray-50 focus:bg-[var(--accent-subtle)]/50"
           }`}
           onBlur={commitText}
           onKeyDown={handleKeyDown}

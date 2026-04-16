@@ -46,7 +46,7 @@ export function GanttRecordList({
                 )}
               </button>
               <span
-                className="inline-block h-2 w-2 rounded-full bg-blue-500"
+                className="inline-block h-2 w-2 rounded-full bg-[var(--accent-subtle)]0"
                 aria-hidden
               />
               <span className="truncate text-xs font-medium text-fg-primary">
@@ -78,7 +78,7 @@ export function GanttRecordList({
       <div className="px-2 py-1.5">
         <button
           type="button"
-          className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+          className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-[var(--accent)] hover:bg-[var(--accent-subtle)] dark:text-[var(--accent)] dark:hover:bg-[var(--accent-subtle)]"
           onClick={onAddRecord}
         >
           <Plus size={14} />

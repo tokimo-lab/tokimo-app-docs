@@ -22,7 +22,7 @@ export function FormView({ state }: FormViewProps) {
           className={cn(
             "cursor-pointer rounded-md px-3 py-1 text-sm transition-colors",
             mode === "edit"
-              ? "bg-blue-50 font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+              ? "bg-[var(--accent-subtle)] font-medium text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
               : "text-fg-secondary hover:bg-fill-tertiary",
           )}
           onClick={() => setMode("edit")}
@@ -34,7 +34,7 @@ export function FormView({ state }: FormViewProps) {
           className={cn(
             "cursor-pointer rounded-md px-3 py-1 text-sm transition-colors",
             mode === "fill"
-              ? "bg-blue-50 font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+              ? "bg-[var(--accent-subtle)] font-medium text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
               : "text-fg-secondary hover:bg-fill-tertiary",
           )}
           onClick={() => setMode("fill")}

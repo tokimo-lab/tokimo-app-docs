@@ -304,7 +304,7 @@ export function SearchReplace() {
           onChange={(e) => setSearchText(e.target.value)}
           onKeyDown={handleInputKeyDown}
           placeholder="搜索..."
-          className="flex-1 rounded border border-border-subtle bg-transparent px-2 py-1 text-xs outline-none focus:border-blue-400"
+          className="flex-1 rounded border border-border-subtle bg-transparent px-2 py-1 text-xs outline-none focus:border-[var(--accent)]"
         />
         <button
           type="button"
@@ -335,7 +335,7 @@ export function SearchReplace() {
             onChange={(e) => setReplaceText(e.target.value)}
             onKeyDown={handleInputKeyDown}
             placeholder="替换..."
-            className="flex-1 rounded border border-border-subtle bg-transparent px-2 py-1 text-xs outline-none focus:border-blue-400"
+            className="flex-1 rounded border border-border-subtle bg-transparent px-2 py-1 text-xs outline-none focus:border-[var(--accent)]"
           />
           <button
             type="button"

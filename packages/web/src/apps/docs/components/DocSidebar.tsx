@@ -320,7 +320,7 @@ export function DocSidebar({
               className={cn(
                 "flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
                 isActive
-                  ? "bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                  ? "bg-[var(--accent-subtle)] font-medium text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
                   : "text-fg-secondary hover:bg-fill-tertiary",
               )}
               onClick={() => onSetTab(item.key)}
@@ -328,9 +328,7 @@ export function DocSidebar({
               <Icon
                 size={16}
                 className={cn(
-                  isActive
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-fg-muted",
+                  isActive ? "text-[var(--accent)]" : "text-fg-muted",
                 )}
               />
               {item.label}
@@ -403,7 +401,7 @@ export function DocSidebar({
           >
             <button
               type="button"
-              className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-blue-600 dark:hover:text-blue-400"
+              className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-[var(--accent)] dark:hover:text-[var(--accent)]"
               title={t("docs.newDocument")}
             >
               <Plus size={14} />

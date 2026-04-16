@@ -5,7 +5,7 @@ import { useSlideStore } from "../use-slide-store";
 const sectionClass = "border-b border-border-subtle px-4 py-3";
 const labelClass = "mb-3 text-xs font-medium text-fg-muted";
 const numberInputClass =
-  "h-7 w-full rounded border border-border-subtle bg-transparent px-2 text-xs text-fg-default outline-none focus:border-blue-500 dark:bg-neutral-800";
+  "h-7 w-full rounded border border-border-subtle bg-transparent px-2 text-xs text-fg-default outline-none focus:border-[var(--accent)] dark:bg-neutral-800";
 
 export function LatexStylePanel({ element }: { element: SlideLatexElement }) {
   const { t } = useTranslation();
@@ -31,7 +31,7 @@ export function LatexStylePanel({ element }: { element: SlideLatexElement }) {
       <div className={sectionClass}>
         <button
           type="button"
-          className="h-8 w-full cursor-pointer rounded bg-blue-500 text-xs font-medium text-white hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500"
+          className="h-8 w-full cursor-pointer rounded bg-[var(--accent-subtle)]0 text-xs font-medium text-white hover:bg-[var(--accent-hover)] dark:bg-[var(--accent)] dark:hover:bg-[var(--accent-subtle)]0"
           onClick={handleEditFormula}
         >
           {t("docs.editFormula")}

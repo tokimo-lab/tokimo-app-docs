@@ -78,7 +78,7 @@ export function TransitionPanel() {
               className={cn(
                 "flex cursor-pointer flex-col items-center gap-1 rounded-md border-2 p-2 transition-colors",
                 transition.type === opt.type
-                  ? "border-blue-500 bg-blue-50 text-blue-500 dark:bg-blue-500/10"
+                  ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)]0/10"
                   : "border-border-subtle text-fg-muted hover:bg-black/5 dark:hover:bg-white/5",
               )}
               onClick={() => handleTypeChange(opt.type)}
@@ -96,7 +96,7 @@ export function TransitionPanel() {
         <div className="flex items-center gap-2">
           <input
             type="range"
-            className="h-1.5 flex-1 cursor-pointer accent-blue-500"
+            className="h-1.5 flex-1 cursor-pointer accent-[var(--accent)]"
             min={0.3}
             max={3}
             step={0.1}

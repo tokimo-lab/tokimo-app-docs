@@ -149,7 +149,7 @@ export function DocNodeTipPanel({
           {isFolder ? (
             <Folder size={16} className="shrink-0 text-yellow-500" />
           ) : (
-            <FileText size={16} className="shrink-0 text-blue-500" />
+            <FileText size={16} className="shrink-0 text-[var(--accent)]" />
           )}
           <span className="min-w-0 flex-1 truncate text-sm font-medium text-fg-primary">
             {node.icon ? `${node.icon} ` : ""}

@@ -14,7 +14,7 @@ export function LinkElement({
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="cursor-pointer text-blue-600 underline decoration-blue-400/50 underline-offset-2 transition-colors hover:text-blue-800 hover:decoration-blue-600 dark:text-blue-400 dark:decoration-blue-400/40 dark:hover:text-blue-300"
+        className="cursor-pointer text-[var(--accent)] underline decoration-[var(--accent)]/50 underline-offset-2 transition-colors hover:text-[var(--accent-hover)] hover:decoration-[var(--accent)] dark:text-[var(--accent)] dark:decoration-[var(--accent)]/40 dark:hover:text-[var(--accent-text)]"
       >
         {children}
       </a>

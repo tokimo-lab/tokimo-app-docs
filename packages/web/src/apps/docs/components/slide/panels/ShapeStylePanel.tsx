@@ -31,7 +31,7 @@ function SliderRow({
       <span className="w-16 shrink-0 text-xs text-fg-muted">{label}</span>
       <input
         type="range"
-        className="h-1 flex-1 cursor-pointer accent-blue-500"
+        className="h-1 flex-1 cursor-pointer accent-[var(--accent)]"
         min={min}
         max={max}
         step={step}
@@ -115,7 +115,7 @@ export function ShapeStylePanel({ element }: { element: SlideShapeElement }) {
             <input
               type="radio"
               name={`fill-mode-${element.id}`}
-              className="cursor-pointer accent-blue-500"
+              className="cursor-pointer accent-[var(--accent)]"
               checked={!useGradient}
               onChange={() => update({ gradient: undefined })}
             />
@@ -125,7 +125,7 @@ export function ShapeStylePanel({ element }: { element: SlideShapeElement }) {
             <input
               type="radio"
               name={`fill-mode-${element.id}`}
-              className="cursor-pointer accent-blue-500"
+              className="cursor-pointer accent-[var(--accent)]"
               checked={useGradient}
               onChange={() => update({ gradient: DEFAULT_GRADIENT })}
             />
@@ -216,7 +216,7 @@ export function ShapeStylePanel({ element }: { element: SlideShapeElement }) {
             {gradient.colors.length < 5 && (
               <button
                 type="button"
-                className="cursor-pointer text-xs text-blue-500 hover:underline"
+                className="cursor-pointer text-xs text-[var(--accent)] hover:underline"
                 onClick={() => {
                   const colors = [
                     ...gradient.colors,
@@ -238,7 +238,7 @@ export function ShapeStylePanel({ element }: { element: SlideShapeElement }) {
         <label className="mb-2 flex cursor-pointer items-center gap-2 text-xs text-fg-default">
           <input
             type="checkbox"
-            className="cursor-pointer accent-blue-500"
+            className="cursor-pointer accent-[var(--accent)]"
             checked={hasOutline}
             onChange={(e) => {
               if (e.target.checked) {
@@ -297,7 +297,7 @@ export function ShapeStylePanel({ element }: { element: SlideShapeElement }) {
         <label className="mb-2 flex cursor-pointer items-center gap-2 text-xs text-fg-default">
           <input
             type="checkbox"
-            className="cursor-pointer accent-blue-500"
+            className="cursor-pointer accent-[var(--accent)]"
             checked={hasShadow}
             onChange={(e) => {
               if (e.target.checked) {
@@ -374,7 +374,7 @@ export function ShapeStylePanel({ element }: { element: SlideShapeElement }) {
         <label className="mb-2 flex cursor-pointer items-center gap-2 text-xs text-fg-default">
           <input
             type="checkbox"
-            className="cursor-pointer accent-blue-500"
+            className="cursor-pointer accent-[var(--accent)]"
             checked={hasText}
             onChange={(e) => {
               if (e.target.checked) {
@@ -392,7 +392,7 @@ export function ShapeStylePanel({ element }: { element: SlideShapeElement }) {
               <span className="w-16 shrink-0 text-xs text-fg-muted">内容</span>
               <input
                 type="text"
-                className="h-7 flex-1 rounded border border-border-subtle bg-transparent px-2 text-xs text-fg-default outline-none focus:border-blue-500 dark:bg-neutral-800"
+                className="h-7 flex-1 rounded border border-border-subtle bg-transparent px-2 text-xs text-fg-default outline-none focus:border-[var(--accent)] dark:bg-neutral-800"
                 value={text.content}
                 onChange={(e) =>
                   update({ text: { ...text, content: e.target.value } })
@@ -403,7 +403,7 @@ export function ShapeStylePanel({ element }: { element: SlideShapeElement }) {
               <span className="w-16 shrink-0 text-xs text-fg-muted">字体</span>
               <input
                 type="text"
-                className="h-7 flex-1 rounded border border-border-subtle bg-transparent px-2 text-xs text-fg-default outline-none focus:border-blue-500 dark:bg-neutral-800"
+                className="h-7 flex-1 rounded border border-border-subtle bg-transparent px-2 text-xs text-fg-default outline-none focus:border-[var(--accent)] dark:bg-neutral-800"
                 value={text.defaultFontName}
                 onChange={(e) =>
                   update({

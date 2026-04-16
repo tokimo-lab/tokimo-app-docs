@@ -31,7 +31,7 @@ function NumericInput({
       <span className="w-5 text-xs font-medium text-fg-muted">{label}</span>
       <input
         type="number"
-        className="h-7 w-full rounded border border-border-subtle bg-transparent px-2 text-xs text-fg-default outline-none focus:border-blue-500 dark:bg-neutral-800"
+        className="h-7 w-full rounded border border-border-subtle bg-transparent px-2 text-xs text-fg-default outline-none focus:border-[var(--accent)] dark:bg-neutral-800"
         value={Math.round(value)}
         step={1}
         onChange={(e) => onChange(Number(e.target.value))}
@@ -327,7 +327,7 @@ export function PositionPanel() {
           <div className="flex items-center gap-2">
             <input
               type="number"
-              className="h-7 w-20 rounded border border-border-subtle bg-transparent px-2 text-xs text-fg-default outline-none focus:border-blue-500 dark:bg-neutral-800"
+              className="h-7 w-20 rounded border border-border-subtle bg-transparent px-2 text-xs text-fg-default outline-none focus:border-[var(--accent)] dark:bg-neutral-800"
               value={Math.round(rotate)}
               step={1}
               onChange={(e) => handleUpdate("rotate", Number(e.target.value))}
@@ -360,7 +360,7 @@ export function PositionPanel() {
             type="button"
             className={cn(
               "flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors hover:bg-black/5 dark:hover:bg-white/5",
-              isLocked && "text-blue-500",
+              isLocked && "text-[var(--accent)]",
             )}
             onClick={() => handleUpdate("lock", !isLocked)}
           >

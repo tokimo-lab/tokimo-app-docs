@@ -47,7 +47,7 @@ export function DateCell({
     <input
       ref={inputRef}
       type="date"
-      className="h-full w-full border-none bg-transparent px-2 text-sm outline-none ring-2 ring-blue-500 ring-inset"
+      className="h-full w-full border-none bg-transparent px-2 text-sm outline-none ring-2 ring-[var(--accent)] ring-inset"
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={commit}

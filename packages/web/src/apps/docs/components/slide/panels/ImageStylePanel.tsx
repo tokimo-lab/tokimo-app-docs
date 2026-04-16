@@ -30,7 +30,7 @@ function SliderRow({
       <span className="w-16 shrink-0 text-xs text-fg-muted">{label}</span>
       <input
         type="range"
-        className="h-1 flex-1 cursor-pointer accent-blue-500"
+        className="h-1 flex-1 cursor-pointer accent-[var(--accent)]"
         min={min}
         max={max}
         step={step}
@@ -94,7 +94,8 @@ export function ImageStylePanel({ element }: { element: SlideImageElement }) {
             type="button"
             className={cn(
               iconBtnClass,
-              element.flipH && "bg-blue-500/10 text-blue-500",
+              element.flipH &&
+                "bg-[var(--accent-subtle)]0/10 text-[var(--accent)]",
             )}
             title="水平翻转"
             onClick={() => update({ flipH: !element.flipH })}
@@ -105,7 +106,8 @@ export function ImageStylePanel({ element }: { element: SlideImageElement }) {
             type="button"
             className={cn(
               iconBtnClass,
-              element.flipV && "bg-blue-500/10 text-blue-500",
+              element.flipV &&
+                "bg-[var(--accent-subtle)]0/10 text-[var(--accent)]",
             )}
             title="垂直翻转"
             onClick={() => update({ flipV: !element.flipV })}
@@ -135,7 +137,7 @@ export function ImageStylePanel({ element }: { element: SlideImageElement }) {
         <label className="mb-2 flex cursor-pointer items-center gap-2 text-xs text-fg-default">
           <input
             type="checkbox"
-            className="cursor-pointer accent-blue-500"
+            className="cursor-pointer accent-[var(--accent)]"
             checked={hasOutline}
             onChange={(e) => {
               if (e.target.checked) {
@@ -194,7 +196,7 @@ export function ImageStylePanel({ element }: { element: SlideImageElement }) {
         <label className="mb-2 flex cursor-pointer items-center gap-2 text-xs text-fg-default">
           <input
             type="checkbox"
-            className="cursor-pointer accent-blue-500"
+            className="cursor-pointer accent-[var(--accent)]"
             checked={hasShadow}
             onChange={(e) => {
               if (e.target.checked) {
@@ -270,7 +272,7 @@ export function ImageStylePanel({ element }: { element: SlideImageElement }) {
         <label className="flex cursor-pointer items-center gap-2 text-xs text-fg-default">
           <input
             type="checkbox"
-            className="cursor-pointer accent-blue-500"
+            className="cursor-pointer accent-[var(--accent)]"
             checked={element.fixedRatio}
             onChange={(e) => update({ fixedRatio: e.target.checked })}
           />
