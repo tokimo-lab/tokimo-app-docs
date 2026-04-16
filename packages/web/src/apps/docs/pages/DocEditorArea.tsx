@@ -17,6 +17,40 @@ import { useAuth } from "@/system/auth/useAuth";
 const PLACEHOLDER_HEIGHT = 120;
 const PLACEHOLDER_ID = "doc-drag-placeholder";
 
+/** Collect bounding rects of all direct children (slate blocks + placeholder). */
+function snapshotPositions(editorEl: Element): Map<Element, DOMRect> {
+  const map = new Map<Element, DOMRect>();
+  for (const child of editorEl.children) {
+    map.set(child, child.getBoundingClientRect());
+  }
+  return map;
+}
+
+/** FLIP-animate children that moved between two snapshots. */
+function flipAnimate(editorEl: Element, before: Map<Element, DOMRect>): void {
+  for (const child of editorEl.children) {
+    const oldRect = before.get(child);
+    if (!oldRect) continue;
+    const newRect = child.getBoundingClientRect();
+    const dy = oldRect.top - newRect.top;
+    if (Math.abs(dy) < 1) continue;
+    const el = child as HTMLElement;
+    el.style.transition = "none";
+    el.style.transform = `translateY(${dy}px)`;
+    requestAnimationFrame(() => {
+      el.style.transition = "transform 200ms ease";
+      el.style.transform = "";
+      // Clean up after animation
+      const cleanup = () => {
+        el.style.transition = "";
+        el.style.transform = "";
+        el.removeEventListener("transitionend", cleanup);
+      };
+      el.addEventListener("transitionend", cleanup, { once: true });
+    });
+  }
+}
+
 /** Find the Slate block index closest to the given clientY. */
 function findInsertIndex(clientY: number): number {
   const editorEl = document.querySelector("[data-slate-editor]");
@@ -39,18 +73,13 @@ function upsertPlaceholder(index: number): void {
   if (!editorEl) return;
 
   let ph = document.getElementById(PLACEHOLDER_ID);
-  const isNew = !ph;
   if (!ph) {
     ph = document.createElement("div");
     ph.id = PLACEHOLDER_ID;
     ph.setAttribute("contenteditable", "false");
-    ph.style.overflow = "hidden";
-    ph.style.transition = "height 200ms ease, opacity 200ms ease";
-    ph.style.height = "0px";
-    ph.style.opacity = "0";
+    ph.style.height = `${PLACEHOLDER_HEIGHT}px`;
     ph.className =
       "rounded-xl border-2 border-dashed border-fill-brand bg-fill-brand-secondary/20 flex items-center justify-center pointer-events-none my-1";
-    // Inner badge
     const badge = document.createElement("div");
     badge.className =
       "flex items-center gap-2 rounded-lg bg-surface-elevated px-4 py-3 shadow-lg";
@@ -58,6 +87,9 @@ function upsertPlaceholder(index: number): void {
       '<span class="text-sm font-medium text-fg-primary">松开以添加附件</span>';
     ph.appendChild(badge);
   }
+
+  // Snapshot positions before DOM mutation for FLIP animation
+  const before = snapshotPositions(editorEl);
 
   const blocks = editorEl.querySelectorAll(
     ":scope > [data-slate-node='element']",
@@ -68,15 +100,8 @@ function upsertPlaceholder(index: number): void {
     editorEl.insertBefore(ph, blocks[index]);
   }
 
-  // Animate height expand on first insert
-  if (isNew) {
-    requestAnimationFrame(() => {
-      if (ph) {
-        ph.style.height = `${PLACEHOLDER_HEIGHT}px`;
-        ph.style.opacity = "1";
-      }
-    });
-  }
+  // FLIP: animate blocks that shifted due to placeholder move
+  flipAnimate(editorEl, before);
 }
 
 /** Remove the placeholder from the DOM. */
