@@ -72,13 +72,70 @@ function isAudioType(mime: string): boolean {
   return mime.startsWith("audio/");
 }
 
-function isTextType(mime: string): boolean {
-  return (
+function isTextType(mime: string, fileName?: string): boolean {
+  if (
     mime.startsWith("text/") ||
     mime === "application/json" ||
     mime === "application/xml" ||
     mime === "application/javascript"
-  );
+  ) {
+    return true;
+  }
+  // Extension-based fallback for files with generic MIME
+  if (fileName && mime === "application/octet-stream") {
+    const ext = fileName.split(".").pop()?.toLowerCase();
+    const textExts = new Set([
+      "log",
+      "lua",
+      "sh",
+      "bash",
+      "zsh",
+      "fish",
+      "ps1",
+      "bat",
+      "cmd",
+      "ini",
+      "cfg",
+      "conf",
+      "env",
+      "properties",
+      "toml",
+      "yaml",
+      "yml",
+      "csv",
+      "tsv",
+      "sql",
+      "graphql",
+      "gql",
+      "proto",
+      "tf",
+      "hcl",
+      "r",
+      "rmd",
+      "dart",
+      "scala",
+      "zig",
+      "nim",
+      "ex",
+      "exs",
+      "erl",
+      "hs",
+      "ml",
+      "clj",
+      "cljs",
+      "pl",
+      "pm",
+      "vue",
+      "svelte",
+      "dockerfile",
+      "makefile",
+      "cmake",
+      "gitignore",
+      "editorconfig",
+    ]);
+    if (ext && textExts.has(ext)) return true;
+  }
+  return false;
 }
 
 /** Check if a file is an office document that can be previewed via Gotenberg */
@@ -91,6 +148,18 @@ function isOfficeType(category?: string, mime?: string): boolean {
     // Exclude PDF since we handle it natively
     if (mime === "application/pdf") return false;
     return true;
+  }
+  // Fallback: check MIME for legacy Office types (e.g. when category is "binary")
+  if (mime) {
+    const officeMimes = [
+      "application/msword",
+      "application/vnd.ms-excel",
+      "application/vnd.ms-powerpoint",
+      "application/rtf",
+      "application/vnd.openxmlformats-officedocument.",
+      "application/vnd.oasis.opendocument.",
+    ];
+    if (officeMimes.some((prefix) => mime.startsWith(prefix))) return true;
   }
   return false;
 }
@@ -109,6 +178,7 @@ function resolvePreviewKind(
   fileType: string,
   fileCategory?: string,
   isBinary?: boolean,
+  fileName?: string,
 ): PreviewKind {
   // Use fileCategory from detector when available
   if (fileCategory) {
@@ -130,7 +200,8 @@ function resolvePreviewKind(
   if (isPdfType(fileType)) return "pdf";
   if (isVideoType(fileType)) return "video";
   if (isAudioType(fileType)) return "audio";
-  if (isTextType(fileType)) return "text";
+  if (isTextType(fileType, fileName)) return "text";
+  if (isOfficeType(undefined, fileType)) return "office";
   if (isBinary === false) return "text";
 
   // PDF check (category=document but caught above via MIME)
@@ -290,7 +361,7 @@ function PreviewContent({
 }) {
   const url = getStorageUrl(storageKey);
   const style = height ? { height: `${height}px` } : undefined;
-  const kind = resolvePreviewKind(fileType, fileCategory, isBinary);
+  const kind = resolvePreviewKind(fileType, fileCategory, isBinary, fileName);
 
   if (kind === "image") {
     return (
@@ -407,7 +478,8 @@ export function AttachmentElement(props: PlateElementProps) {
 
   const storageKey = el.storageKey || "";
   const fileName = el.fileName || "Unnamed file";
-  const fileType = el.fileType || "application/octet-stream";
+  // Prefer backend-detected MIME over browser-provided MIME
+  const fileType = el.detectedMime || el.fileType || "application/octet-stream";
   const fileSize = el.fileSize;
   const height = el.height;
   const uploadProgress = el.uploadProgress;
