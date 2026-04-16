@@ -457,24 +457,29 @@ export function useDocsPage(spaceId: string) {
   }, []);
 
   const uploadAndInsertAttachment = useCallback(
-    async (file: File) => {
+    async (file: File, insertAt?: number) => {
       const editor = editorRef.current;
       const nodeId = stateRef.current.selectedDocId;
       if (!editor || !nodeId) return;
 
       // Insert placeholder block with upload progress
       const placeholderId = crypto.randomUUID();
-      editor.tf.insertNodes({
-        type: "attachment",
-        attachmentId: placeholderId,
-        storageKey: "",
-        fileName: file.name,
-        fileType: file.type || "application/octet-stream",
-        fileSize: file.size,
-        height: null,
-        uploadProgress: 0,
-        children: [{ text: "" }],
-      } as unknown as TElement);
+      const insertOpts =
+        insertAt != null ? { at: [insertAt] as [number] } : undefined;
+      editor.tf.insertNodes(
+        {
+          type: "attachment",
+          attachmentId: placeholderId,
+          storageKey: "",
+          fileName: file.name,
+          fileType: file.type || "application/octet-stream",
+          fileSize: file.size,
+          height: null,
+          uploadProgress: 0,
+          children: [{ text: "" }],
+        } as unknown as TElement,
+        insertOpts,
+      );
 
       try {
         const result = await docAttachmentApi.upload.mutate({

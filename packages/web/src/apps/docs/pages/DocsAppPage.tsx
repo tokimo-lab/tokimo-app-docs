@@ -519,9 +519,9 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 onAiAction={s.handleAiAction}
                 onInsertVfsFile={s.handleInsertVfsFile}
                 onAttachmentUpload={s.handleAttachmentUpload}
-                onDropFiles={(files) => {
+                onDropFiles={(files, insertAt) => {
                   for (const file of files) {
-                    s.uploadAndInsertAttachment(file);
+                    s.uploadAndInsertAttachment(file, insertAt);
                   }
                 }}
               />

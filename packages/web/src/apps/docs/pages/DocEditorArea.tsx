@@ -1,5 +1,4 @@
 import { Spin } from "@tokiomo/components";
-import { Paperclip } from "lucide-react";
 import type { Value } from "platejs";
 import type { MutableRefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -14,6 +13,78 @@ import {
 import { untitledI18nKey } from "@/apps/docs/lib/doc-node";
 import type { DocNodeOutput } from "@/generated/rust-api";
 import { useAuth } from "@/system/auth/useAuth";
+
+const PLACEHOLDER_HEIGHT = 120;
+const PLACEHOLDER_ID = "doc-drag-placeholder";
+
+/** Find the Slate block index closest to the given clientY. */
+function findInsertIndex(clientY: number): number {
+  const editorEl = document.querySelector("[data-slate-editor]");
+  if (!editorEl) return -1;
+  const blocks = editorEl.querySelectorAll(
+    ":scope > [data-slate-node='element']",
+  );
+  if (blocks.length === 0) return 0;
+  for (let i = 0; i < blocks.length; i++) {
+    const rect = blocks[i].getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    if (clientY < mid) return i;
+  }
+  return blocks.length;
+}
+
+/** Ensure a placeholder DOM element exists inside the Slate editor at `index`. */
+function upsertPlaceholder(index: number): void {
+  const editorEl = document.querySelector("[data-slate-editor]");
+  if (!editorEl) return;
+
+  let ph = document.getElementById(PLACEHOLDER_ID);
+  if (!ph) {
+    ph = document.createElement("div");
+    ph.id = PLACEHOLDER_ID;
+    ph.setAttribute("contenteditable", "false");
+    ph.style.height = `${PLACEHOLDER_HEIGHT}px`;
+    ph.style.transition = "all 200ms ease";
+    ph.className =
+      "rounded-xl border-2 border-dashed border-fill-brand bg-fill-brand-secondary/20 flex items-center justify-center pointer-events-none my-1";
+    // Inner badge
+    const badge = document.createElement("div");
+    badge.className =
+      "flex items-center gap-2 rounded-lg bg-surface-elevated px-4 py-3 shadow-lg";
+    badge.innerHTML =
+      '<span class="text-sm font-medium text-fg-primary">松开以添加附件</span>';
+    ph.appendChild(badge);
+  }
+
+  const blocks = editorEl.querySelectorAll(
+    ":scope > [data-slate-node='element']",
+  );
+  if (index >= blocks.length) {
+    editorEl.appendChild(ph);
+  } else {
+    editorEl.insertBefore(ph, blocks[index]);
+  }
+}
+
+/** Remove the placeholder from the DOM. */
+function removePlaceholder(): void {
+  document.getElementById(PLACEHOLDER_ID)?.remove();
+}
+
+/** Get the current placeholder index (count of slate blocks before it). */
+function getPlaceholderIndex(): number {
+  const ph = document.getElementById(PLACEHOLDER_ID);
+  if (!ph) return -1;
+  const editorEl = ph.parentElement;
+  if (!editorEl) return -1;
+  let idx = 0;
+  let sibling = editorEl.firstElementChild;
+  while (sibling && sibling !== ph) {
+    if (sibling.getAttribute("data-slate-node") === "element") idx++;
+    sibling = sibling.nextElementSibling;
+  }
+  return idx;
+}
 
 export function DocEditorArea({
   doc,
@@ -43,7 +114,7 @@ export function DocEditorArea({
   onAiAction?: (actionId: string) => void;
   onInsertVfsFile?: () => void;
   onAttachmentUpload?: () => void;
-  onDropFiles?: (files: File[]) => void;
+  onDropFiles?: (files: File[], insertAt?: number) => void;
   readOnly?: boolean;
 }) {
   const { t } = useTranslation();
@@ -52,7 +123,7 @@ export function DocEditorArea({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const dragCounterRef = useRef(0);
-  const [dragY, setDragY] = useState(0);
+  const dragIndexRef = useRef(-1);
   const { scrollingRef, onScroll: onScrollGuard } = useScrollGuardProvider();
 
   // Viewport scroll persistence
@@ -95,6 +166,21 @@ export function DocEditorArea({
     saveViewport({ scrollTop: scrollRef.current.scrollTop });
   }, [saveViewport, onScrollGuard]);
 
+  // ── Add transition to editor blocks while dragging ────────────────
+  useEffect(() => {
+    const editorEl = document.querySelector("[data-slate-editor]");
+    if (!editorEl) return;
+    if (isDraggingFile) {
+      editorEl.classList.add("doc-drag-active");
+    } else {
+      editorEl.classList.remove("doc-drag-active");
+      removePlaceholder();
+    }
+    return () => {
+      editorEl.classList.remove("doc-drag-active");
+    };
+  }, [isDraggingFile]);
+
   const handleDragEnter = useCallback(
     (e: React.DragEvent) => {
       if (readOnly || !onDropFiles) return;
@@ -117,6 +203,8 @@ export function DocEditorArea({
       if (dragCounterRef.current <= 0) {
         dragCounterRef.current = 0;
         setIsDraggingFile(false);
+        removePlaceholder();
+        dragIndexRef.current = -1;
       }
     },
     [readOnly, onDropFiles],
@@ -128,9 +216,10 @@ export function DocEditorArea({
       if (e.dataTransfer.types.includes("Files")) {
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
-        if (scrollRef.current) {
-          const rect = scrollRef.current.getBoundingClientRect();
-          setDragY(e.clientY - rect.top + scrollRef.current.scrollTop);
+        const idx = findInsertIndex(e.clientY);
+        if (idx !== dragIndexRef.current) {
+          dragIndexRef.current = idx;
+          upsertPlaceholder(idx);
         }
       }
     },
@@ -141,12 +230,15 @@ export function DocEditorArea({
     (e: React.DragEvent) => {
       if (readOnly || !onDropFiles) return;
       dragCounterRef.current = 0;
+      const insertAt = getPlaceholderIndex();
+      removePlaceholder();
       setIsDraggingFile(false);
+      dragIndexRef.current = -1;
       const files = Array.from(e.dataTransfer.files);
       if (files.length > 0) {
         e.preventDefault();
         e.stopPropagation();
-        onDropFiles(files);
+        onDropFiles(files, insertAt >= 0 ? insertAt : undefined);
       }
     },
     [readOnly, onDropFiles],
@@ -173,32 +265,6 @@ export function DocEditorArea({
         onDragOverCapture={handleDragOver}
         onDropCapture={handleDrop}
       >
-        {/* Drag-drop overlay */}
-        {isDraggingFile &&
-          (() => {
-            const scrollEl = scrollRef.current;
-            const maxTop = scrollEl
-              ? scrollEl.scrollTop + scrollEl.clientHeight - 200
-              : Number.MAX_SAFE_INTEGER;
-            const zoneTop = Math.max(0, Math.min(dragY - 100, maxTop));
-            return (
-              <div className="pointer-events-none absolute inset-0 z-50">
-                <div
-                  className="absolute right-4 left-4 rounded-xl border-2 border-dashed border-fill-brand bg-fill-brand-secondary/20"
-                  style={{ top: zoneTop, height: 200 }}
-                >
-                  <div className="flex h-full items-center justify-center">
-                    <div className="flex items-center gap-2 rounded-lg bg-surface-elevated px-4 py-3 shadow-lg">
-                      <Paperclip size={18} className="text-fill-brand" />
-                      <span className="text-sm font-medium text-fg-primary">
-                        松开以添加附件
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
         {/* Title input */}
         <div className="w-full pl-[28px] pr-3 pt-6 pb-2">
           <input
