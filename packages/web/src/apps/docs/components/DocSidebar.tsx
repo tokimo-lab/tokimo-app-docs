@@ -276,7 +276,15 @@ export function DocSidebar({
     <div className="flex w-64 shrink-0 flex-col border-r border-border-base bg-surface-base/50">
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex items-center gap-1 px-3 py-2">
-        <div className="flex-1" />
+        <div className="min-w-0 flex-1">
+          <Input
+            size="small"
+            placeholder="搜索文档…"
+            prefix={<Search size={14} className="text-fg-muted" />}
+            value={search}
+            onChange={(e) => onSetSearch(e.target.value)}
+          />
+        </div>
         <Dropdown
           menu={{ items: sortMenuItems }}
           trigger={["click"]}
@@ -284,7 +292,7 @@ export function DocSidebar({
         >
           <button
             type="button"
-            className="rounded p-1 text-fg-muted hover:bg-fill-tertiary"
+            className="shrink-0 rounded p-1 text-fg-muted hover:bg-fill-tertiary"
             title="排序"
           >
             <ArrowUpDown size={14} />
@@ -292,23 +300,12 @@ export function DocSidebar({
         </Dropdown>
         <button
           type="button"
-          className="rounded p-1 text-fg-muted hover:bg-fill-tertiary"
+          className="shrink-0 rounded p-1 text-fg-muted hover:bg-fill-tertiary"
           onClick={onToggleCollapsed}
           title="收起侧栏"
         >
           <PanelLeftClose size={14} />
         </button>
-      </div>
-
-      {/* ── Search ──────────────────────────────────────────── */}
-      <div className="px-3 pb-2">
-        <Input
-          size="small"
-          placeholder="搜索文档…"
-          prefix={<Search size={14} className="text-fg-muted" />}
-          value={search}
-          onChange={(e) => onSetSearch(e.target.value)}
-        />
       </div>
 
       {/* ── Nav items ───────────────────────────────────────── */}
