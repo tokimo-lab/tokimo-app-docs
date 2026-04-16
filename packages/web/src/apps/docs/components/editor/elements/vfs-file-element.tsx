@@ -4,7 +4,7 @@ import { PlateElement, useElement } from "platejs/react";
 import { useRef } from "react";
 import { rustUrl } from "@/lib/rust-api-runtime";
 import { MaterialFileIcon } from "@/shared/components/icons";
-import { BlockDragHandle } from "../components/BlockDragHandle";
+import { BlockToolbar } from "../components/BlockToolbar";
 import { useBlockDrag } from "../hooks/use-block-drag";
 
 function formatFileSize(bytes: number | null | undefined): string {
@@ -55,15 +55,15 @@ export function VfsFileElement(props: PlateElementProps) {
   return (
     <PlateElement className="my-3" {...props}>
       <div
-        ref={containerRef}
         contentEditable={false}
-        className={`group relative transition-opacity ${isDragging ? "opacity-30" : ""}`}
+        className={`group/block relative transition-opacity ${isDragging ? "opacity-30" : ""}`}
       >
-        <BlockDragHandle
-          label="文件引用"
-          isDragging={isDragging}
-          onPointerDown={handleDragPointerDown}
-        />
+        <div ref={containerRef}>
+          <BlockToolbar
+            isDragging={isDragging}
+            onPointerDown={handleDragPointerDown}
+          />
+        </div>
         <div className="flex items-center gap-3 rounded-lg border border-border-base bg-surface-base px-4 py-3 transition-colors hover:border-border-hover hover:bg-fill-tertiary  ">
           {/* File icon */}
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-fill-tertiary dark:bg-white/[0.10]">
@@ -93,7 +93,7 @@ export function VfsFileElement(props: PlateElementProps) {
               href={fileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100 "
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md opacity-0 transition-opacity hover:bg-fill-tertiary group-hover/block:opacity-100 "
               title="Open file"
             >
               <ExternalLink size={14} className="text-fg-muted" />

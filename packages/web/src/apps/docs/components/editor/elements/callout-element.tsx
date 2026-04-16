@@ -1,7 +1,7 @@
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useElement } from "platejs/react";
 import { useRef } from "react";
-import { BlockDragHandle } from "../components/BlockDragHandle";
+import { BlockToolbar } from "../components/BlockToolbar";
 import { useBlockDrag } from "../hooks/use-block-drag";
 
 const VARIANT_STYLES: Record<
@@ -30,13 +30,6 @@ const VARIANT_STYLES: Record<
   },
 };
 
-const VARIANT_LABELS: Record<string, string> = {
-  info: "提示",
-  warning: "警告",
-  tip: "技巧",
-  danger: "危险",
-};
-
 export function CalloutElement(props: PlateElementProps) {
   const element = useElement();
   const variant =
@@ -47,16 +40,11 @@ export function CalloutElement(props: PlateElementProps) {
 
   return (
     <PlateElement
-      className={`group relative my-3 flex gap-2 rounded-lg border p-4 pt-8 transition-opacity ${style.bg} ${style.border} ${isDragging ? "opacity-30" : ""}`}
+      className={`group/block relative my-3 flex gap-2 rounded-lg border p-4 transition-opacity ${style.bg} ${style.border} ${isDragging ? "opacity-30" : ""}`}
       {...props}
     >
-      <div
-        ref={containerRef}
-        contentEditable={false}
-        className="absolute top-0 right-0 left-0 z-10"
-      >
-        <BlockDragHandle
-          label={VARIANT_LABELS[variant] || "提示"}
+      <div ref={containerRef} contentEditable={false}>
+        <BlockToolbar
           isDragging={isDragging}
           onPointerDown={handleDragPointerDown}
         />

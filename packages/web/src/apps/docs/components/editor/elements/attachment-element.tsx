@@ -1,7 +1,6 @@
 import {
   Download,
   FileWarning,
-  GripVertical,
   Loader2,
   Paperclip,
   Settings2,
@@ -25,6 +24,7 @@ import { VideoPreview } from "@/apps/viewers/video/VideoPreview";
 import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
 import { rustUrl } from "@/lib/rust-api-runtime";
 import { MaterialFileIcon } from "@/shared/components/icons";
+import { BlockToolbar } from "../components/BlockToolbar";
 import { useBlockDrag } from "../hooks/use-block-drag";
 
 function formatFileSize(bytes: number | null | undefined): string {
@@ -754,108 +754,112 @@ export function AttachmentElement(props: PlateElementProps) {
   return (
     <PlateElement className="my-3" {...props}>
       <div
-        ref={containerRef}
         contentEditable={false}
-        className={`group relative overflow-hidden rounded-lg border bg-surface-base transition-[border-color,opacity] ${
-          isDragging
-            ? "border-border-brand opacity-30"
-            : "border-border-base hover:border-border-hover"
+        className={`group/block relative transition-[border-color,opacity] ${
+          isDragging ? "opacity-30" : ""
         }`}
       >
-        {/* Title bar — drag handle */}
-        <div
-          onPointerDown={handleDragPointerDown}
-          className="flex cursor-grab items-center gap-2 border-b border-border-base px-3 py-1.5 select-none active:cursor-grabbing"
-        >
-          <GripVertical
-            size={14}
-            className="shrink-0 text-fg-muted opacity-0 transition-opacity group-hover:opacity-100"
+        <div ref={containerRef}>
+          <BlockToolbar
+            isDragging={isDragging}
+            onPointerDown={handleDragPointerDown}
           />
-          <div className="flex h-5 w-5 shrink-0 items-center justify-center">
-            <MaterialFileIcon name={fileName} size={14} />
-          </div>
-          <span className="min-w-0 flex-1 truncate text-xs font-medium text-fg-secondary">
-            {fileName}
-          </span>
-          {sizeLabel && (
-            <span className="shrink-0 text-[10px] text-fg-muted">
-              {sizeLabel}
+        </div>
+        <div
+          className={`overflow-hidden rounded-lg border bg-surface-base ${
+            isDragging
+              ? "border-border-brand"
+              : "border-border-base hover:border-border-hover"
+          }`}
+        >
+          {/* Title bar */}
+          <div className="flex items-center gap-2 border-b border-border-base px-3 py-1.5 select-none">
+            <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+              <MaterialFileIcon name={fileName} size={14} />
+            </div>
+            <span className="min-w-0 flex-1 truncate text-xs font-medium text-fg-secondary">
+              {fileName}
             </span>
-          )}
-
-          <div className="relative flex shrink-0 items-center gap-0.5">
-            {/* Download */}
-            {downloadUrl && (
-              <a
-                href={downloadUrl}
-                download={fileName}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-6 w-6 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100"
-                title="下载"
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                <Download size={12} className="text-fg-muted" />
-              </a>
+            {sizeLabel && (
+              <span className="shrink-0 text-[10px] text-fg-muted">
+                {sizeLabel}
+              </span>
             )}
 
-            {/* Preview settings */}
-            <div className="relative">
-              <button
-                type="button"
-                className="flex h-6 w-6 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100"
-                title="预览设置"
-                onClick={() => setShowHeightMenu((v) => !v)}
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                <Settings2 size={12} className="text-fg-muted" />
-              </button>
-
-              {showHeightMenu && (
-                <SettingsPopover
-                  currentHeight={height}
-                  currentMaxWidth={maxWidth}
-                  showMaxWidth={showMaxWidthSetting}
-                  onHeightChange={handleHeightChange}
-                  onMaxWidthChange={handleMaxWidthChange}
-                  onClose={() => setShowHeightMenu(false)}
-                />
+            <div className="relative flex shrink-0 items-center gap-0.5">
+              {/* Download */}
+              {downloadUrl && (
+                <a
+                  href={downloadUrl}
+                  download={fileName}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-6 w-6 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-fill-tertiary group-hover/block:opacity-100"
+                  title="下载"
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <Download size={12} className="text-fg-muted" />
+                </a>
               )}
+
+              {/* Preview settings */}
+              <div className="relative">
+                <button
+                  type="button"
+                  className="flex h-6 w-6 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-fill-tertiary group-hover/block:opacity-100"
+                  title="预览设置"
+                  onClick={() => setShowHeightMenu((v) => !v)}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <Settings2 size={12} className="text-fg-muted" />
+                </button>
+
+                {showHeightMenu && (
+                  <SettingsPopover
+                    currentHeight={height}
+                    currentMaxWidth={maxWidth}
+                    showMaxWidth={showMaxWidthSetting}
+                    onHeightChange={handleHeightChange}
+                    onMaxWidthChange={handleMaxWidthChange}
+                    onClose={() => setShowHeightMenu(false)}
+                  />
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Preview area */}
-        {storageKey && (
-          <div className="overflow-hidden">
-            <PreviewErrorBoundary>
-              <LazyViewport
-                height={getPlaceholderHeight(
-                  fileType,
-                  height,
-                  fileCategory,
-                  isBinary,
-                )}
-              >
-                <PreviewContent
-                  storageKey={storageKey}
-                  fileType={fileType}
-                  fileName={fileName}
-                  height={height}
-                  maxWidth={maxWidth}
-                  pdfMode={pdfMode}
-                  pdfZoom={pdfZoom}
-                  onPdfModeChange={handlePdfModeChange}
-                  onPdfZoomChange={handlePdfZoomChange}
-                  attachmentId={attachmentId}
-                  fileCategory={fileCategory}
-                  detectedLanguage={detectedLanguage}
-                  isBinary={isBinary}
-                />
-              </LazyViewport>
-            </PreviewErrorBoundary>
-          </div>
-        )}
+          {/* Preview area */}
+          {storageKey && (
+            <div className="overflow-hidden">
+              <PreviewErrorBoundary>
+                <LazyViewport
+                  height={getPlaceholderHeight(
+                    fileType,
+                    height,
+                    fileCategory,
+                    isBinary,
+                  )}
+                >
+                  <PreviewContent
+                    storageKey={storageKey}
+                    fileType={fileType}
+                    fileName={fileName}
+                    height={height}
+                    maxWidth={maxWidth}
+                    pdfMode={pdfMode}
+                    pdfZoom={pdfZoom}
+                    onPdfModeChange={handlePdfModeChange}
+                    onPdfZoomChange={handlePdfZoomChange}
+                    attachmentId={attachmentId}
+                    fileCategory={fileCategory}
+                    detectedLanguage={detectedLanguage}
+                    isBinary={isBinary}
+                  />
+                </LazyViewport>
+              </PreviewErrorBoundary>
+            </div>
+          )}
+        </div>
       </div>
       {props.children}
     </PlateElement>

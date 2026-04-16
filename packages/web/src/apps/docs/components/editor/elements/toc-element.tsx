@@ -2,7 +2,7 @@ import { useTocElementState } from "@platejs/toc/react";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement } from "platejs/react";
 import { useRef } from "react";
-import { BlockDragHandle } from "../components/BlockDragHandle";
+import { BlockToolbar } from "../components/BlockToolbar";
 import { useBlockDrag } from "../hooks/use-block-drag";
 
 export function TocElement(props: PlateElementProps) {
@@ -14,15 +14,15 @@ export function TocElement(props: PlateElementProps) {
   return (
     <PlateElement className="my-4" {...props}>
       <div
-        ref={containerRef}
         contentEditable={false}
-        className={`group relative rounded-lg border border-border-base p-4 pt-0 transition-opacity select-none ${isDragging ? "opacity-30" : ""}`}
+        className={`group/block relative rounded-lg border border-border-base p-4 transition-opacity select-none ${isDragging ? "opacity-30" : ""}`}
       >
-        <BlockDragHandle
-          label="目录"
-          isDragging={isDragging}
-          onPointerDown={handleDragPointerDown}
-        />
+        <div ref={containerRef}>
+          <BlockToolbar
+            isDragging={isDragging}
+            onPointerDown={handleDragPointerDown}
+          />
+        </div>
         <div className="mb-2 text-xs font-semibold text-fg-muted uppercase">
           Table of Contents
         </div>

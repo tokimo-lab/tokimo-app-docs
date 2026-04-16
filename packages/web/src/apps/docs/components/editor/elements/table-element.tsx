@@ -1,7 +1,7 @@
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement } from "platejs/react";
 import { useRef } from "react";
-import { BlockDragHandle } from "../components/BlockDragHandle";
+import { BlockToolbar } from "../components/BlockToolbar";
 import { useBlockDrag } from "../hooks/use-block-drag";
 
 export function TableElement({ children, ...props }: PlateElementProps) {
@@ -10,16 +10,11 @@ export function TableElement({ children, ...props }: PlateElementProps) {
 
   return (
     <PlateElement
-      className={`group relative my-4 transition-opacity ${isDragging ? "opacity-30" : ""}`}
+      className={`group/block relative my-4 transition-opacity ${isDragging ? "opacity-30" : ""}`}
       {...props}
     >
-      <div
-        ref={containerRef}
-        contentEditable={false}
-        className="absolute -top-1 right-0 left-0 z-10"
-      >
-        <BlockDragHandle
-          label="表格"
+      <div ref={containerRef} contentEditable={false}>
+        <BlockToolbar
           isDragging={isDragging}
           onPointerDown={handleDragPointerDown}
         />

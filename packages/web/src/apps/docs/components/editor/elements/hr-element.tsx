@@ -1,7 +1,7 @@
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useSelected } from "platejs/react";
 import { useRef } from "react";
-import { BlockDragHandle } from "../components/BlockDragHandle";
+import { BlockToolbar } from "../components/BlockToolbar";
 import { useBlockDrag } from "../hooks/use-block-drag";
 
 export function HrElement(props: PlateElementProps) {
@@ -12,15 +12,15 @@ export function HrElement(props: PlateElementProps) {
   return (
     <PlateElement {...props}>
       <div
-        ref={containerRef}
         contentEditable={false}
-        className={`group relative transition-opacity ${isDragging ? "opacity-30" : ""}`}
+        className={`group/block relative transition-opacity ${isDragging ? "opacity-30" : ""}`}
       >
-        <BlockDragHandle
-          label="分隔线"
-          isDragging={isDragging}
-          onPointerDown={handleDragPointerDown}
-        />
+        <div ref={containerRef}>
+          <BlockToolbar
+            isDragging={isDragging}
+            onPointerDown={handleDragPointerDown}
+          />
+        </div>
         <div className="py-4">
           <hr
             className={`border-t transition-colors ${

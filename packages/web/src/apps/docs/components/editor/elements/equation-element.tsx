@@ -2,7 +2,7 @@ import katex from "katex";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BlockDragHandle } from "../components/BlockDragHandle";
+import { BlockToolbar } from "../components/BlockToolbar";
 import { useBlockDrag } from "../hooks/use-block-drag";
 
 function KatexRenderer({
@@ -62,15 +62,15 @@ export function EquationElement(props: PlateElementProps) {
   return (
     <PlateElement className="my-4" {...props}>
       <div
-        ref={containerRef}
         contentEditable={false}
-        className={`group relative rounded bg-surface-base p-4 pt-0 transition-opacity select-none ${isDragging ? "opacity-30" : ""}`}
+        className={`group/block relative rounded bg-surface-base p-4 transition-opacity select-none ${isDragging ? "opacity-30" : ""}`}
       >
-        <BlockDragHandle
-          label="公式"
-          isDragging={isDragging}
-          onPointerDown={handleDragPointerDown}
-        />
+        <div ref={containerRef}>
+          <BlockToolbar
+            isDragging={isDragging}
+            onPointerDown={handleDragPointerDown}
+          />
+        </div>
         {editing ? (
           <div className="flex flex-col items-center gap-2">
             <textarea

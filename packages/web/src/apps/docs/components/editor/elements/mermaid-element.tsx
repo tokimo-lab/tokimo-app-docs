@@ -3,7 +3,7 @@ import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useThemeCore } from "@/system/appearance/ThemeContext";
-import { BlockDragHandle } from "../components/BlockDragHandle";
+import { BlockToolbar } from "../components/BlockToolbar";
 import { useBlockDrag } from "../hooks/use-block-drag";
 
 mermaid.initialize({ startOnLoad: false, theme: "default" });
@@ -90,15 +90,15 @@ export function MermaidElement(props: PlateElementProps) {
   return (
     <PlateElement className="my-4" {...props}>
       <div
-        ref={containerRef}
         contentEditable={false}
-        className={`group relative rounded border border-border-base bg-surface-base p-4 pt-0 transition-opacity select-none ${isDragging ? "opacity-30" : ""}`}
+        className={`group/block relative rounded border border-border-base bg-surface-base p-4 transition-opacity select-none ${isDragging ? "opacity-30" : ""}`}
       >
-        <BlockDragHandle
-          label="图表"
-          isDragging={isDragging}
-          onPointerDown={handleDragPointerDown}
-        />
+        <div ref={containerRef}>
+          <BlockToolbar
+            isDragging={isDragging}
+            onPointerDown={handleDragPointerDown}
+          />
+        </div>
         {editing ? (
           <div className="flex flex-col gap-3">
             <textarea

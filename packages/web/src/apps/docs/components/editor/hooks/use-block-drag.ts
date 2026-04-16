@@ -173,11 +173,11 @@ export function useBlockDrag(containerRef: RefObject<HTMLElement | null>): {
           ds.slateBlock = slateBlock;
           ds.fromIndex = getSlateBlockDomIndex(slateBlock);
 
-          const rect = container.getBoundingClientRect();
+          const rect = slateBlock.getBoundingClientRect();
           ds.offsetX = ds.startX - rect.left;
           ds.offsetY = ds.startY - rect.top;
 
-          const ghost = container.cloneNode(true) as HTMLElement;
+          const ghost = slateBlock.cloneNode(true) as HTMLElement;
           ghost.id = "block-drag-ghost";
           ghost.style.cssText = `
             position: fixed; z-index: 9999; pointer-events: none;
