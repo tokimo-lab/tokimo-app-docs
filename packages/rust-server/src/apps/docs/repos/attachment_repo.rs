@@ -5,6 +5,19 @@ use uuid::Uuid;
 use crate::db::entities::doc_node_attachments;
 use crate::error::AppError;
 
+pub struct CreateAttachmentParams {
+    pub node_id: Uuid,
+    pub storage_key: String,
+    pub file_name: String,
+    pub file_type: String,
+    pub file_size: i32,
+    pub is_binary: Option<bool>,
+    pub detected_mime: Option<String>,
+    pub file_category: Option<String>,
+    pub text_encoding: Option<String>,
+    pub detected_language: Option<String>,
+}
+
 pub struct AttachmentRepo;
 
 impl AttachmentRepo {
@@ -36,20 +49,21 @@ impl AttachmentRepo {
     /// Insert a new attachment record and return it.
     pub async fn create(
         db: &DatabaseConnection,
-        node_id: Uuid,
-        storage_key: &str,
-        file_name: &str,
-        file_type: &str,
-        file_size: i32,
+        params: CreateAttachmentParams,
     ) -> Result<doc_node_attachments::Model, AppError> {
         let id = Uuid::new_v4();
         let active = doc_node_attachments::ActiveModel {
             id: Set(id),
-            node_id: Set(node_id),
-            storage_key: Set(storage_key.to_string()),
-            file_name: Set(file_name.to_string()),
-            file_type: Set(file_type.to_string()),
-            file_size: Set(file_size),
+            node_id: Set(params.node_id),
+            storage_key: Set(params.storage_key),
+            file_name: Set(params.file_name),
+            file_type: Set(params.file_type),
+            file_size: Set(params.file_size),
+            is_binary: Set(params.is_binary),
+            detected_mime: Set(params.detected_mime),
+            file_category: Set(params.file_category),
+            text_encoding: Set(params.text_encoding),
+            detected_language: Set(params.detected_language),
             ..Default::default()
         };
         doc_node_attachments::Entity::insert(active)

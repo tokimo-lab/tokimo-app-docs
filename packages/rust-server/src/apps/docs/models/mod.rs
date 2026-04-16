@@ -195,6 +195,11 @@ pub struct DocNodeAttachmentOutput {
     pub file_type: String,
     #[ts(type = "number")]
     pub file_size: i32,
+    pub is_binary: Option<bool>,
+    pub detected_mime: Option<String>,
+    pub file_category: Option<String>,
+    pub text_encoding: Option<String>,
+    pub detected_language: Option<String>,
     pub created_at: String,
 }
 
@@ -207,6 +212,11 @@ impl From<doc_node_attachments::Model> for DocNodeAttachmentOutput {
             file_name: m.file_name,
             file_type: m.file_type,
             file_size: m.file_size,
+            is_binary: m.is_binary,
+            detected_mime: m.detected_mime,
+            file_category: m.file_category,
+            text_encoding: m.text_encoding,
+            detected_language: m.detected_language,
             created_at: m.created_at.to_rfc3339(),
         }
     }
