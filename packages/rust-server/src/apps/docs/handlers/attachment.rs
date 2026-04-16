@@ -4,13 +4,15 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bytes::Bytes;
+use serde_json::json;
 use std::sync::Arc;
 use tracing::{debug, error};
 use uuid::Uuid;
 
 use crate::AppState;
 use crate::apps::docs::models::DocNodeAttachmentOutput;
-use crate::apps::docs::repos::attachment_repo::AttachmentRepo;
+use crate::apps::docs::repos::attachment_repo::{AttachmentRepo, CreateAttachmentParams};
+use crate::apps::docs::services::preview_service;
 use crate::handlers::user::AuthUser;
 use crate::handlers::{err_resp, ok, ok_empty};
 use crate::services::storage::UploadOptions;
@@ -85,7 +87,23 @@ pub async fn upload_attachment(
             .into_response();
     }
 
-    match AttachmentRepo::create(&state.db, node_id, &storage_key, &file_name, &content_type, file_size).await {
+    match AttachmentRepo::create(
+        &state.db,
+        CreateAttachmentParams {
+            node_id,
+            storage_key: storage_key.clone(),
+            file_name: file_name.clone(),
+            file_type: content_type.clone(),
+            file_size,
+            is_binary: None,
+            detected_mime: None,
+            file_category: None,
+            text_encoding: None,
+            detected_language: None,
+        },
+    )
+    .await
+    {
         Ok(record) => ok(DocNodeAttachmentOutput::from(record)).into_response(),
         Err(e) => {
             // Best-effort cleanup of the uploaded file
@@ -146,4 +164,52 @@ pub async fn restore_attachment(
         Ok(false) => err_resp::<()>(StatusCode::NOT_FOUND, "Attachment not found".into()).into_response(),
         Err(e) => err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("Restore failed: {e}")).into_response(),
     }
+}
+
+/// GET /api/apps/docs/attachments/{id}/preview
+///
+/// Return a URL to a previewable version of the attachment.
+/// For office documents, converts to PDF via Gotenberg (cached in S3).
+/// Returns JSON: `{ "url": "..." }`.
+pub async fn preview_attachment(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+    AuthUser(_auth): AuthUser,
+) -> Response {
+    let attachment = match AttachmentRepo::get_by_id(&state.db, id).await {
+        Ok(Some(a)) => a,
+        Ok(None) => return err_resp::<()>(StatusCode::NOT_FOUND, "Attachment not found".into()).into_response(),
+        Err(e) => return err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")).into_response(),
+    };
+
+    let id_str = attachment.id.to_string();
+
+    // Return cached preview if available
+    if let Some(url) = preview_service::get_cached_preview(&state.storage, &id_str).await {
+        return ok(json!({ "url": url })).into_response();
+    }
+
+    // Convert via Gotenberg if configured
+    if let Some(gotenberg_url) = &state.gotenberg_url {
+        match preview_service::convert_and_cache(
+            &state.storage,
+            gotenberg_url,
+            &id_str,
+            &attachment.storage_key,
+            &attachment.file_name,
+        )
+        .await
+        {
+            Ok(url) => return ok(json!({ "url": url })).into_response(),
+            Err(e) => {
+                error!("Gotenberg conversion failed for attachment {id}: {e}");
+                return err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("Preview generation failed: {e}"))
+                    .into_response();
+            }
+        }
+    }
+
+    // Fallback: return the direct storage URL for browser-viewable types
+    let direct_url = format!("/storage/{}", attachment.storage_key);
+    ok(json!({ "url": direct_url })).into_response()
 }
