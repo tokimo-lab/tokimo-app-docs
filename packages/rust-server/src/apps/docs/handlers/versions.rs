@@ -69,9 +69,7 @@ pub async fn restore_version(
         let space_id = node.space_id;
         let node_clone = node.clone();
         tokio::spawn(async move {
-            if let Ok(Some(space)) = DocSpaceRepo::get_by_id(&db, space_id).await
-                && space.s3_synced
-            {
+            if let Ok(Some(space)) = DocSpaceRepo::get_by_id(&db, space_id).await {
                 DocMarkdownSyncService::spawn_sync(storage, space, node_clone);
             }
         });

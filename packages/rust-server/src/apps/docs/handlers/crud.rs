@@ -257,8 +257,8 @@ pub async fn move_node(
     Ok(ok_empty())
 }
 
-/// Fire-and-forget: check if the node's space has `s3_synced` enabled,
-/// and if so, spawn an async task to sync the node's markdown to S3.
+/// Fire-and-forget: look up the node's space and spawn an async task
+/// to sync the node's markdown to S3.
 fn maybe_spawn_markdown_sync(state: Arc<AppState>, node: &doc_nodes::Model) {
     let db = state.db.clone();
     let storage = state.storage.clone();
@@ -267,10 +267,10 @@ fn maybe_spawn_markdown_sync(state: Arc<AppState>, node: &doc_nodes::Model) {
 
     tokio::spawn(async move {
         match DocSpaceRepo::get_by_id(&db, space_id).await {
-            Ok(Some(space)) if space.s3_synced => {
+            Ok(Some(space)) => {
                 DocMarkdownSyncService::spawn_sync(storage, space, node);
             }
-            Ok(_) => {} // Space not found or s3_synced is false
+            Ok(None) => {}
             Err(e) => {
                 tracing::error!(space_id = %space_id, "Failed to check space for markdown sync: {e}");
             }

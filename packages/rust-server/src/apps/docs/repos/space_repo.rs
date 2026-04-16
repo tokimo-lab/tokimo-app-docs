@@ -51,7 +51,6 @@ impl DocSpaceRepo {
             slug: Set(slug),
             avatar: Set(avatar),
             description: Set(description),
-            s3_synced: Set(true),
             sort_order: Set(max_order),
             created_at: Set(Some(now)),
             updated_at: Set(Some(now)),
@@ -98,10 +97,11 @@ impl DocSpaceRepo {
         Ok(Some(updated))
     }
 
-    /// List all spaces with s3_synced enabled and a valid slug.
-    pub async fn list_synced(db: &DatabaseConnection) -> Result<Vec<doc_spaces::Model>, AppError> {
+    /// List all spaces with a valid slug (for VFS mounting).
+    pub async fn list_with_slug(
+        db: &DatabaseConnection,
+    ) -> Result<Vec<doc_spaces::Model>, AppError> {
         Ok(doc_spaces::Entity::find()
-            .filter(doc_spaces::Column::S3Synced.eq(true))
             .filter(doc_spaces::Column::Slug.is_not_null())
             .all(db)
             .await?)
