@@ -141,6 +141,10 @@ pub fn build_docs_app_routes() -> Router<Arc<AppState>> {
             axum::routing::delete(attachment::delete_attachment),
         )
         .route(
+            "/api/apps/docs/attachments/{id}/preview",
+            get(attachment::preview_attachment),
+        )
+        .route(
             "/api/apps/docs/attachments/{id}/restore",
             post(attachment::restore_attachment),
         )
