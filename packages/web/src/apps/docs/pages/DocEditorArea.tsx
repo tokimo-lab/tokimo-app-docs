@@ -174,21 +174,31 @@ export function DocEditorArea({
         onDropCapture={handleDrop}
       >
         {/* Drag-drop overlay */}
-        {isDraggingFile && (
-          <div className="pointer-events-none absolute inset-0 z-50 border-2 border-dashed border-fill-brand bg-fill-brand-secondary/20">
-            <div
-              className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2"
-              style={{ top: dragY }}
-            >
-              <div className="flex items-center gap-2 rounded-lg bg-surface-elevated px-4 py-3 shadow-lg">
-                <Paperclip size={18} className="text-fill-brand" />
-                <span className="text-sm font-medium text-fg-primary">
-                  松开以添加附件
-                </span>
+        {isDraggingFile &&
+          (() => {
+            const scrollEl = scrollRef.current;
+            const maxTop = scrollEl
+              ? scrollEl.scrollTop + scrollEl.clientHeight - 200
+              : Number.MAX_SAFE_INTEGER;
+            const zoneTop = Math.max(0, Math.min(dragY - 100, maxTop));
+            return (
+              <div className="pointer-events-none absolute inset-0 z-50">
+                <div
+                  className="absolute right-4 left-4 rounded-xl border-2 border-dashed border-fill-brand bg-fill-brand-secondary/20"
+                  style={{ top: zoneTop, height: 200 }}
+                >
+                  <div className="flex h-full items-center justify-center">
+                    <div className="flex items-center gap-2 rounded-lg bg-surface-elevated px-4 py-3 shadow-lg">
+                      <Paperclip size={18} className="text-fill-brand" />
+                      <span className="text-sm font-medium text-fg-primary">
+                        松开以添加附件
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            );
+          })()}
         {/* Title input */}
         <div className="w-full pl-[28px] pr-3 pt-6 pb-2">
           <input
