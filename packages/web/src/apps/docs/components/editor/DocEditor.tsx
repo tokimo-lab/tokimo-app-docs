@@ -63,9 +63,17 @@ import {
   usePlateEditor,
 } from "platejs/react";
 import type { MutableRefObject } from "react";
-import { createContext, useContext, useEffect, useMemo, useRef } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
 import { PROVIDER_TYPE, type TokimoWsProviderOptions } from "./collab-provider";
 import { AttachmentElement } from "./elements/attachment-element";
 import { BlockquoteElement } from "./elements/blockquote-element";
@@ -331,6 +339,23 @@ const plugins = [
   TrailingBlockPlugin,
 ];
 
+/** Recursively collect all attachment IDs from a Plate value tree. */
+function collectAttachmentIds(nodes: Value): Set<string> {
+  const ids = new Set<string>();
+  const walk = (list: readonly Record<string, unknown>[]) => {
+    for (const node of list) {
+      if (node.type === "attachment" && typeof node.attachmentId === "string") {
+        ids.add(node.attachmentId);
+      }
+      if (Array.isArray(node.children)) {
+        walk(node.children as Record<string, unknown>[]);
+      }
+    }
+  };
+  walk(nodes as unknown as Record<string, unknown>[]);
+  return ids;
+}
+
 export function DocEditor({
   value,
   onChange,
@@ -443,6 +468,43 @@ export function DocEditor({
     if (editorRef) editorRef.current = editor;
   }, [editor, editorRef]);
 
+  // Track previous attachment IDs to detect removals (soft-delete) and restores (undo)
+  const prevAttachmentIdsRef = useRef<Set<string>>(
+    collectAttachmentIds(initialValue),
+  );
+
+  const handleValueChange = useCallback(
+    (newValue: Value) => {
+      onChange(newValue);
+
+      if (readOnly) return;
+
+      const newIds = collectAttachmentIds(newValue);
+      const prevIds = prevAttachmentIdsRef.current;
+
+      // Soft-delete removed attachments
+      for (const id of prevIds) {
+        if (!newIds.has(id)) {
+          docAttachmentApi.delete.mutate({ id }).catch((err) => {
+            console.warn("[docs] Failed to soft-delete attachment:", err);
+          });
+        }
+      }
+
+      // Restore re-added attachments (e.g. undo after delete)
+      for (const id of newIds) {
+        if (!prevIds.has(id)) {
+          docAttachmentApi.restore.mutate({ id }).catch(() => {
+            // Ignore — may be a newly uploaded attachment (no soft-delete record)
+          });
+        }
+      }
+
+      prevAttachmentIdsRef.current = newIds;
+    },
+    [onChange, readOnly],
+  );
+
   const editorCtx = useMemo(
     () => ({ onAiAction, onOpenAi, onInsertVfsFile, onAttachmentUpload }),
     [onAiAction, onOpenAi, onInsertVfsFile, onAttachmentUpload],
@@ -461,7 +523,7 @@ export function DocEditor({
       <DndProvider backend={HTML5Backend}>
         <Plate
           editor={editor}
-          onValueChange={({ value: newValue }) => onChange(newValue)}
+          onValueChange={({ value: newValue }) => handleValueChange(newValue)}
           readOnly={readOnly}
         >
           <EditorContent

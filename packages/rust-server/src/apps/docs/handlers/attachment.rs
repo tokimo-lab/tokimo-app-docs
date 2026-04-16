@@ -152,40 +152,40 @@ pub async fn list_attachments(
 
 /// DELETE /api/apps/docs/attachments/{id}
 ///
-/// Delete a single attachment (DB record + storage file).
+/// Soft-delete a single attachment (marks deleted_at, S3 file kept for 7 days).
 pub async fn delete_attachment(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     AuthUser(_auth): AuthUser,
 ) -> Response {
-    // Fetch record first to get storage key
-    let record = match AttachmentRepo::get_by_id(&state.db, id).await {
-        Ok(Some(r)) => r,
-        Ok(None) => {
-            return err_resp::<()>(StatusCode::NOT_FOUND, "Attachment not found".into())
-                .into_response()
+    match AttachmentRepo::soft_delete(&state.db, id).await {
+        Ok(true) => ok_empty().into_response(),
+        Ok(false) => {
+            err_resp::<()>(StatusCode::NOT_FOUND, "Attachment not found".into()).into_response()
         }
         Err(e) => {
-            return err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+            err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("Delete failed: {e}"))
                 .into_response()
         }
-    };
-
-    let storage_key = record.storage_key.clone();
-
-    // Delete DB record
-    if let Err(e) = AttachmentRepo::delete_by_id(&state.db, id).await {
-        return err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("Delete failed: {e}"))
-            .into_response();
     }
+}
 
-    // Fire-and-forget storage cleanup
-    let storage = state.storage.clone();
-    tokio::spawn(async move {
-        if let Err(e) = storage.delete(&storage_key).await {
-            error!("Failed to delete attachment file from storage: {e}");
+/// POST /api/apps/docs/attachments/{id}/restore
+///
+/// Restore a soft-deleted attachment (clears deleted_at).
+pub async fn restore_attachment(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+    AuthUser(_auth): AuthUser,
+) -> Response {
+    match AttachmentRepo::restore(&state.db, id).await {
+        Ok(true) => ok_empty().into_response(),
+        Ok(false) => {
+            err_resp::<()>(StatusCode::NOT_FOUND, "Attachment not found".into()).into_response()
         }
-    });
-
-    ok_empty().into_response()
+        Err(e) => {
+            err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("Restore failed: {e}"))
+                .into_response()
+        }
+    }
 }

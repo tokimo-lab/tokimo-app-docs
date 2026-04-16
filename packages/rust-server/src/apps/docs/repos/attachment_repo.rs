@@ -1,3 +1,4 @@
+use chrono::Utc;
 use sea_orm::*;
 use uuid::Uuid;
 
@@ -7,20 +8,21 @@ use crate::error::AppError;
 pub struct AttachmentRepo;
 
 impl AttachmentRepo {
-    /// List all attachments for a given node.
+    /// List all active (non-deleted) attachments for a given node.
     pub async fn list_by_node(
         db: &DatabaseConnection,
         node_id: Uuid,
     ) -> Result<Vec<doc_node_attachments::Model>, AppError> {
         doc_node_attachments::Entity::find()
             .filter(doc_node_attachments::Column::NodeId.eq(node_id))
+            .filter(doc_node_attachments::Column::DeletedAt.is_null())
             .order_by_asc(doc_node_attachments::Column::CreatedAt)
             .all(db)
             .await
             .map_err(AppError::Database)
     }
 
-    /// Get a single attachment by ID.
+    /// Get a single attachment by ID (including soft-deleted).
     pub async fn get_by_id(
         db: &DatabaseConnection,
         id: Uuid,
@@ -56,7 +58,47 @@ impl AttachmentRepo {
             .map_err(AppError::Database)
     }
 
-    /// Delete an attachment by ID.
+    /// Soft-delete: set deleted_at = now().
+    pub async fn soft_delete(
+        db: &DatabaseConnection,
+        id: Uuid,
+    ) -> Result<bool, AppError> {
+        let record = doc_node_attachments::Entity::find_by_id(id)
+            .filter(doc_node_attachments::Column::DeletedAt.is_null())
+            .one(db)
+            .await
+            .map_err(AppError::Database)?;
+        let Some(record) = record else {
+            return Ok(false);
+        };
+        let mut active: doc_node_attachments::ActiveModel = record.into();
+        active.deleted_at = Set(Some(Utc::now().fixed_offset()));
+        active.update(db).await.map_err(AppError::Database)?;
+        Ok(true)
+    }
+
+    /// Restore a soft-deleted attachment (clear deleted_at).
+    pub async fn restore(
+        db: &DatabaseConnection,
+        id: Uuid,
+    ) -> Result<bool, AppError> {
+        let record = doc_node_attachments::Entity::find_by_id(id)
+            .one(db)
+            .await
+            .map_err(AppError::Database)?;
+        let Some(record) = record else {
+            return Ok(false);
+        };
+        if record.deleted_at.is_none() {
+            return Ok(true); // already active
+        }
+        let mut active: doc_node_attachments::ActiveModel = record.into();
+        active.deleted_at = Set(None);
+        active.update(db).await.map_err(AppError::Database)?;
+        Ok(true)
+    }
+
+    /// Hard-delete an attachment by ID (used by purge task).
     pub async fn delete_by_id(
         db: &DatabaseConnection,
         id: Uuid,
@@ -66,6 +108,20 @@ impl AttachmentRepo {
             .await
             .map_err(AppError::Database)?;
         Ok(res.rows_affected)
+    }
+
+    /// Find all attachments that have been soft-deleted for longer than `retention`.
+    pub async fn list_expired(
+        db: &DatabaseConnection,
+        retention: chrono::Duration,
+    ) -> Result<Vec<doc_node_attachments::Model>, AppError> {
+        let cutoff = Utc::now().fixed_offset() - retention;
+        doc_node_attachments::Entity::find()
+            .filter(doc_node_attachments::Column::DeletedAt.is_not_null())
+            .filter(doc_node_attachments::Column::DeletedAt.lt(cutoff))
+            .all(db)
+            .await
+            .map_err(AppError::Database)
     }
 
     /// List all storage keys for a node (used for bulk cleanup).
