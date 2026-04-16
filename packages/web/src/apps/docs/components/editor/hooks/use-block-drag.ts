@@ -172,8 +172,9 @@ export function useBlockDrag(containerRef: RefObject<HTMLElement | null>): {
           ds.fromIndex = getSlateBlockDomIndex(slateBlock);
 
           const rect = slateBlock.getBoundingClientRect();
-          ds.offsetX = ds.startX - rect.left;
-          ds.offsetY = ds.startY - rect.top;
+          // Use current pointer (after threshold), not initial press position
+          ds.offsetX = ev.clientX - rect.left;
+          ds.offsetY = ev.clientY - rect.top;
 
           const ghost = slateBlock.cloneNode(true) as HTMLElement;
           ghost.id = "block-drag-ghost";
@@ -185,8 +186,15 @@ export function useBlockDrag(containerRef: RefObject<HTMLElement | null>): {
           `;
           ghost.style.left = `${ev.clientX - ds.offsetX}px`;
           ghost.style.top = `${ev.clientY - ds.offsetY}px`;
+          // Force toolbar visible in ghost (it uses group-hover which won't trigger)
+          const ghostToolbar = ghost.querySelector("[class*='bottom-full']")
+            ?.firstElementChild as HTMLElement | null;
+          if (ghostToolbar) ghostToolbar.style.opacity = "1";
           document.body.appendChild(ghost);
           ds.ghost = ghost;
+          // Lock cursor to grabbing globally
+          document.body.style.cursor = "grabbing";
+          document.body.style.setProperty("user-select", "none");
         }
 
         if (ds.active && ds.ghost && ds.slateBlock) {
@@ -223,6 +231,9 @@ export function useBlockDrag(containerRef: RefObject<HTMLElement | null>): {
 
         ds.ghost?.remove();
         setIsDragging(false);
+        // Restore cursor and selection
+        document.body.style.cursor = "";
+        document.body.style.removeProperty("user-select");
 
         if (newDomIndex >= 0 && ds.fromIndex >= 0) {
           const fromPath = editor.api.findPath(element);
