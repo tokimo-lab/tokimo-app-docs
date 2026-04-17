@@ -1,7 +1,7 @@
 use sea_orm::*;
 use uuid::Uuid;
 
-use crate::db::entities::doc_node_versions;
+use crate::db::entities::docs_node_versions;
 use crate::error::AppError;
 use crate::error::OptionExt;
 
@@ -15,17 +15,17 @@ impl DocNodeVersionRepo {
         title: String,
         content: Option<serde_json::Value>,
         word_count: i32,
-    ) -> Result<doc_node_versions::Model, AppError> {
-        let max_version = doc_node_versions::Entity::find()
-            .filter(doc_node_versions::Column::NodeId.eq(node_id))
-            .order_by_desc(doc_node_versions::Column::Version)
+    ) -> Result<docs_node_versions::Model, AppError> {
+        let max_version = docs_node_versions::Entity::find()
+            .filter(docs_node_versions::Column::NodeId.eq(node_id))
+            .order_by_desc(docs_node_versions::Column::Version)
             .one(db)
             .await?
             .map_or(0, |v| v.version);
 
         let now = chrono::Utc::now().fixed_offset();
         let id = Uuid::new_v4();
-        let model = doc_node_versions::ActiveModel {
+        let model = docs_node_versions::ActiveModel {
             id: Set(id),
             node_id: Set(node_id),
             version: Set(max_version + 1),
@@ -34,8 +34,8 @@ impl DocNodeVersionRepo {
             word_count: Set(word_count),
             created_at: Set(now),
         };
-        doc_node_versions::Entity::insert(model).exec(db).await?;
-        doc_node_versions::Entity::find_by_id(id)
+        docs_node_versions::Entity::insert(model).exec(db).await?;
+        docs_node_versions::Entity::find_by_id(id)
             .one(db)
             .await?
             .internal("failed to fetch created version")
@@ -48,10 +48,10 @@ impl DocNodeVersionRepo {
         title: String,
         content: Option<serde_json::Value>,
         word_count: i32,
-    ) -> Result<Option<doc_node_versions::Model>, AppError> {
-        let latest = doc_node_versions::Entity::find()
-            .filter(doc_node_versions::Column::NodeId.eq(node_id))
-            .order_by_desc(doc_node_versions::Column::Version)
+    ) -> Result<Option<docs_node_versions::Model>, AppError> {
+        let latest = docs_node_versions::Entity::find()
+            .filter(docs_node_versions::Column::NodeId.eq(node_id))
+            .order_by_desc(docs_node_versions::Column::Version)
             .one(db)
             .await?;
 
@@ -74,18 +74,18 @@ impl DocNodeVersionRepo {
     }
 
     /// List all versions for a node (without content), ordered by version DESC.
-    pub async fn list(db: &DatabaseConnection, node_id: Uuid) -> Result<Vec<doc_node_versions::Model>, AppError> {
-        let versions = doc_node_versions::Entity::find()
-            .filter(doc_node_versions::Column::NodeId.eq(node_id))
-            .order_by_desc(doc_node_versions::Column::Version)
+    pub async fn list(db: &DatabaseConnection, node_id: Uuid) -> Result<Vec<docs_node_versions::Model>, AppError> {
+        let versions = docs_node_versions::Entity::find()
+            .filter(docs_node_versions::Column::NodeId.eq(node_id))
+            .order_by_desc(docs_node_versions::Column::Version)
             .all(db)
             .await?;
         Ok(versions)
     }
 
     /// Get a single version by ID (with content).
-    pub async fn get_by_id(db: &DatabaseConnection, id: Uuid) -> Result<Option<doc_node_versions::Model>, AppError> {
-        Ok(doc_node_versions::Entity::find_by_id(id).one(db).await?)
+    pub async fn get_by_id(db: &DatabaseConnection, id: Uuid) -> Result<Option<docs_node_versions::Model>, AppError> {
+        Ok(docs_node_versions::Entity::find_by_id(id).one(db).await?)
     }
 
     /// Keep only the latest N versions for a node, deleting older ones.
@@ -94,9 +94,9 @@ impl DocNodeVersionRepo {
         node_id: Uuid,
         keep_count: usize,
     ) -> Result<u64, AppError> {
-        let versions = doc_node_versions::Entity::find()
-            .filter(doc_node_versions::Column::NodeId.eq(node_id))
-            .order_by_desc(doc_node_versions::Column::Version)
+        let versions = docs_node_versions::Entity::find()
+            .filter(docs_node_versions::Column::NodeId.eq(node_id))
+            .order_by_desc(docs_node_versions::Column::Version)
             .all(db)
             .await?;
 
@@ -105,8 +105,8 @@ impl DocNodeVersionRepo {
         }
 
         let to_delete: Vec<Uuid> = versions[keep_count..].iter().map(|v| v.id).collect();
-        let result = doc_node_versions::Entity::delete_many()
-            .filter(doc_node_versions::Column::Id.is_in(to_delete))
+        let result = docs_node_versions::Entity::delete_many()
+            .filter(docs_node_versions::Column::Id.is_in(to_delete))
             .exec(db)
             .await?;
         Ok(result.rows_affected)

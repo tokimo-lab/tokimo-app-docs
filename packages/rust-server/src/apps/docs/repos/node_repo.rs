@@ -3,7 +3,7 @@ use sea_orm::*;
 use uuid::Uuid;
 
 use crate::apps::docs::models::DocNodeListItem;
-use crate::db::entities::doc_nodes;
+use crate::db::entities::docs_nodes;
 use crate::db::pagination::{Page, PageInput};
 use crate::error::AppError;
 use crate::error::OptionExt;
@@ -40,25 +40,25 @@ pub struct DocNodeRepo;
 impl DocNodeRepo {
     /// List nodes with pagination, sorting, search, and filtering.
     pub async fn list(db: &DatabaseConnection, input: ListDocNodesInput) -> Result<Page<DocNodeListItem>, AppError> {
-        let mut query = doc_nodes::Entity::find().filter(doc_nodes::Column::SpaceId.eq(input.space_id));
+        let mut query = docs_nodes::Entity::find().filter(docs_nodes::Column::SpaceId.eq(input.space_id));
 
         if let Some(pid) = input.parent_id {
             if let Some(id) = pid {
-                query = query.filter(doc_nodes::Column::ParentId.eq(id));
+                query = query.filter(docs_nodes::Column::ParentId.eq(id));
             } else {
-                query = query.filter(doc_nodes::Column::ParentId.is_null());
+                query = query.filter(docs_nodes::Column::ParentId.is_null());
             }
         }
 
         if let Some(t) = input.node_type {
-            query = query.filter(doc_nodes::Column::Type.eq(t));
+            query = query.filter(docs_nodes::Column::Type.eq(t));
         }
 
         if input.favorites_only {
-            query = query.filter(doc_nodes::Column::IsFavorite.eq(true));
+            query = query.filter(docs_nodes::Column::IsFavorite.eq(true));
         }
 
-        query = query.filter(doc_nodes::Column::IsArchived.eq(input.archived));
+        query = query.filter(docs_nodes::Column::IsArchived.eq(input.archived));
 
         if let Some(term) = input.search
             && !term.is_empty()
@@ -87,11 +87,11 @@ impl DocNodeRepo {
         };
 
         query = match input.sort_by.as_str() {
-            "title" => query.order_by(doc_nodes::Column::Title, order),
-            "createdAt" | "created" => query.order_by(doc_nodes::Column::CreatedAt, order),
-            "wordCount" => query.order_by(doc_nodes::Column::WordCount, order),
-            "sortOrder" => query.order_by(doc_nodes::Column::SortOrder, order),
-            _ => query.order_by(doc_nodes::Column::UpdatedAt, order),
+            "title" => query.order_by(docs_nodes::Column::Title, order),
+            "createdAt" | "created" => query.order_by(docs_nodes::Column::CreatedAt, order),
+            "wordCount" => query.order_by(docs_nodes::Column::WordCount, order),
+            "sortOrder" => query.order_by(docs_nodes::Column::SortOrder, order),
+            _ => query.order_by(docs_nodes::Column::UpdatedAt, order),
         };
 
         let total = query.clone().count(db).await? as i64;
@@ -106,9 +106,9 @@ impl DocNodeRepo {
 
     /// Get all unique tags for a space's nodes.
     pub async fn list_tags(db: &DatabaseConnection, space_id: Uuid) -> Result<Vec<String>, AppError> {
-        let nodes = doc_nodes::Entity::find()
-            .filter(doc_nodes::Column::SpaceId.eq(space_id))
-            .filter(doc_nodes::Column::IsArchived.eq(false))
+        let nodes = docs_nodes::Entity::find()
+            .filter(docs_nodes::Column::SpaceId.eq(space_id))
+            .filter(docs_nodes::Column::IsArchived.eq(false))
             .all(db)
             .await?;
 
@@ -124,8 +124,8 @@ impl DocNodeRepo {
     }
 
     /// Get a single node by ID (full model with content).
-    pub async fn get_by_id(db: &DatabaseConnection, id: Uuid) -> Result<Option<doc_nodes::Model>, AppError> {
-        Ok(doc_nodes::Entity::find_by_id(id).one(db).await?)
+    pub async fn get_by_id(db: &DatabaseConnection, id: Uuid) -> Result<Option<docs_nodes::Model>, AppError> {
+        Ok(docs_nodes::Entity::find_by_id(id).one(db).await?)
     }
 
     /// Create a new node. Calculates `sort_order` as max+1 among siblings.
@@ -135,23 +135,23 @@ impl DocNodeRepo {
         node_type: String,
         title: String,
         parent_id: Option<Uuid>,
-    ) -> Result<doc_nodes::Model, AppError> {
+    ) -> Result<docs_nodes::Model, AppError> {
         let now = chrono::Utc::now().fixed_offset();
         let id = Uuid::new_v4();
 
-        let max_order = doc_nodes::Entity::find()
-            .filter(doc_nodes::Column::SpaceId.eq(space_id))
+        let max_order = docs_nodes::Entity::find()
+            .filter(docs_nodes::Column::SpaceId.eq(space_id))
             .filter(if let Some(pid) = parent_id {
-                doc_nodes::Column::ParentId.eq(pid)
+                docs_nodes::Column::ParentId.eq(pid)
             } else {
-                doc_nodes::Column::ParentId.is_null()
+                docs_nodes::Column::ParentId.is_null()
             })
-            .order_by_desc(doc_nodes::Column::SortOrder)
+            .order_by_desc(docs_nodes::Column::SortOrder)
             .one(db)
             .await?
             .map_or(0, |n| n.sort_order + 1);
 
-        let model = doc_nodes::ActiveModel {
+        let model = docs_nodes::ActiveModel {
             id: Set(id),
             space_id: Set(space_id),
             parent_id: Set(parent_id),
@@ -171,8 +171,8 @@ impl DocNodeRepo {
             created_at: Set(now),
             updated_at: Set(now),
         };
-        doc_nodes::Entity::insert(model).exec(db).await?;
-        doc_nodes::Entity::find_by_id(id)
+        docs_nodes::Entity::insert(model).exec(db).await?;
+        docs_nodes::Entity::find_by_id(id)
             .one(db)
             .await?
             .internal("failed to fetch created node")
@@ -183,14 +183,14 @@ impl DocNodeRepo {
         db: &DatabaseConnection,
         id: Uuid,
         input: UpdateDocNodeInput,
-    ) -> Result<Option<doc_nodes::Model>, AppError> {
-        let node = doc_nodes::Entity::find_by_id(id).one(db).await?;
+    ) -> Result<Option<docs_nodes::Model>, AppError> {
+        let node = docs_nodes::Entity::find_by_id(id).one(db).await?;
         let Some(node) = node else {
             return Ok(None);
         };
 
         let now = chrono::Utc::now().fixed_offset();
-        let mut active: doc_nodes::ActiveModel = node.into();
+        let mut active: docs_nodes::ActiveModel = node.into();
 
         if let Some(t) = input.title {
             active.title = Set(t);
@@ -221,12 +221,12 @@ impl DocNodeRepo {
 
     /// Archive a node (soft delete).
     pub async fn archive(db: &DatabaseConnection, id: Uuid, archived: bool) -> Result<bool, AppError> {
-        let node = doc_nodes::Entity::find_by_id(id).one(db).await?;
+        let node = docs_nodes::Entity::find_by_id(id).one(db).await?;
         let Some(node) = node else {
             return Ok(false);
         };
         let now = chrono::Utc::now().fixed_offset();
-        let mut active: doc_nodes::ActiveModel = node.into();
+        let mut active: docs_nodes::ActiveModel = node.into();
         active.is_archived = Set(archived);
         active.updated_at = Set(now);
         active.update(db).await?;
@@ -235,30 +235,30 @@ impl DocNodeRepo {
 
     /// Permanent delete. Reparents children to deleted node's parent.
     pub async fn delete(db: &DatabaseConnection, id: Uuid) -> Result<bool, AppError> {
-        let node = doc_nodes::Entity::find_by_id(id).one(db).await?;
+        let node = docs_nodes::Entity::find_by_id(id).one(db).await?;
         let Some(node) = node else {
             return Ok(false);
         };
 
-        doc_nodes::Entity::update_many()
-            .col_expr(doc_nodes::Column::ParentId, Expr::value(node.parent_id))
-            .filter(doc_nodes::Column::ParentId.eq(id))
+        docs_nodes::Entity::update_many()
+            .col_expr(docs_nodes::Column::ParentId, Expr::value(node.parent_id))
+            .filter(docs_nodes::Column::ParentId.eq(id))
             .exec(db)
             .await?;
 
-        doc_nodes::Entity::delete_by_id(id).exec(db).await?;
+        docs_nodes::Entity::delete_by_id(id).exec(db).await?;
         Ok(true)
     }
 
     /// Toggle favorite status. Returns new state.
     pub async fn toggle_favorite(db: &DatabaseConnection, id: Uuid) -> Result<Option<bool>, AppError> {
-        let node = doc_nodes::Entity::find_by_id(id).one(db).await?;
+        let node = docs_nodes::Entity::find_by_id(id).one(db).await?;
         let Some(node) = node else {
             return Ok(None);
         };
         let new_state = !node.is_favorite;
         let now = chrono::Utc::now().fixed_offset();
-        let mut active: doc_nodes::ActiveModel = node.into();
+        let mut active: docs_nodes::ActiveModel = node.into();
         active.is_favorite = Set(new_state);
         active.updated_at = Set(now);
         active.update(db).await?;
@@ -267,13 +267,13 @@ impl DocNodeRepo {
 
     /// Toggle pin status. Returns new state.
     pub async fn toggle_pin(db: &DatabaseConnection, id: Uuid) -> Result<Option<bool>, AppError> {
-        let node = doc_nodes::Entity::find_by_id(id).one(db).await?;
+        let node = docs_nodes::Entity::find_by_id(id).one(db).await?;
         let Some(node) = node else {
             return Ok(None);
         };
         let new_state = !node.is_pinned;
         let now = chrono::Utc::now().fixed_offset();
-        let mut active: doc_nodes::ActiveModel = node.into();
+        let mut active: docs_nodes::ActiveModel = node.into();
         active.is_pinned = Set(new_state);
         active.updated_at = Set(now);
         active.update(db).await?;
@@ -287,7 +287,7 @@ impl DocNodeRepo {
         parent_id: Option<Uuid>,
         sort_order: Option<i32>,
     ) -> Result<bool, AppError> {
-        let node = doc_nodes::Entity::find_by_id(id).one(db).await?;
+        let node = docs_nodes::Entity::find_by_id(id).one(db).await?;
         let Some(node) = node else {
             return Ok(false);
         };
@@ -295,31 +295,31 @@ impl DocNodeRepo {
 
         if let Some(order) = sort_order {
             let txn = db.begin().await?;
-            doc_nodes::Entity::update_many()
+            docs_nodes::Entity::update_many()
                 .filter(
                     if let Some(pid) = parent_id {
-                        doc_nodes::Column::ParentId.eq(pid)
+                        docs_nodes::Column::ParentId.eq(pid)
                     } else {
-                        doc_nodes::Column::ParentId.is_null()
+                        docs_nodes::Column::ParentId.is_null()
                     }
-                    .and(doc_nodes::Column::Id.ne(id))
-                    .and(doc_nodes::Column::SortOrder.gte(order)),
+                    .and(docs_nodes::Column::Id.ne(id))
+                    .and(docs_nodes::Column::SortOrder.gte(order)),
                 )
                 .col_expr(
-                    doc_nodes::Column::SortOrder,
-                    Expr::col(doc_nodes::Column::SortOrder).add(1),
+                    docs_nodes::Column::SortOrder,
+                    Expr::col(docs_nodes::Column::SortOrder).add(1),
                 )
                 .exec(&txn)
                 .await?;
 
-            let mut active: doc_nodes::ActiveModel = node.into();
+            let mut active: docs_nodes::ActiveModel = node.into();
             active.parent_id = Set(parent_id);
             active.sort_order = Set(order);
             active.updated_at = Set(now);
             active.update(&txn).await?;
             txn.commit().await?;
         } else {
-            let mut active: doc_nodes::ActiveModel = node.into();
+            let mut active: docs_nodes::ActiveModel = node.into();
             active.parent_id = Set(parent_id);
             active.updated_at = Set(now);
             active.update(db).await?;

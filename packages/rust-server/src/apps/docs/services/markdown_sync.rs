@@ -4,7 +4,7 @@ use std::sync::Arc;
 use bytes::Bytes;
 use tracing::error;
 
-use crate::db::entities::{doc_nodes, doc_spaces};
+use crate::db::entities::{docs_nodes, docs_spaces};
 use crate::services::storage::StorageProvider;
 
 /// Synchronizes doc nodes to S3 as markdown files.
@@ -30,8 +30,8 @@ impl DocMarkdownSyncService {
     /// Sync a single node's markdown representation to S3.
     pub async fn sync_node(
         storage: &dyn StorageProvider,
-        space: &doc_spaces::Model,
-        node: &doc_nodes::Model,
+        space: &docs_spaces::Model,
+        node: &docs_nodes::Model,
     ) -> Result<(), String> {
         let Some(ref slug) = space.slug else {
             return Err("space has no slug, cannot sync to S3".into());
@@ -48,7 +48,7 @@ impl DocMarkdownSyncService {
     async fn sync_notion_node(
         storage: &dyn StorageProvider,
         slug: &str,
-        node: &doc_nodes::Model,
+        node: &docs_nodes::Model,
     ) -> Result<(), String> {
         let content = node.content.as_ref().ok_or("notion node has no content")?;
 
@@ -145,7 +145,7 @@ impl DocMarkdownSyncService {
     async fn sync_markdown_node(
         storage: &dyn StorageProvider,
         slug: &str,
-        node: &doc_nodes::Model,
+        node: &docs_nodes::Model,
     ) -> Result<(), String> {
         let md_text = node.content.as_ref().and_then(|v| v.as_str()).unwrap_or("");
 
@@ -155,7 +155,7 @@ impl DocMarkdownSyncService {
     }
 
     /// Trigger async sync — fire and forget, logs errors.
-    pub fn spawn_sync(storage: Arc<dyn StorageProvider>, space: doc_spaces::Model, node: doc_nodes::Model) {
+    pub fn spawn_sync(storage: Arc<dyn StorageProvider>, space: docs_spaces::Model, node: docs_nodes::Model) {
         tokio::spawn(async move {
             if let Err(e) = Self::sync_node(storage.as_ref(), &space, &node).await {
                 error!(

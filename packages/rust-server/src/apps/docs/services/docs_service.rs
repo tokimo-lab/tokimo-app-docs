@@ -17,7 +17,7 @@ impl DocsService {
         icon: Option<Option<String>>,
         cover_image: Option<Option<String>>,
         tags: Option<Vec<String>>,
-    ) -> Result<crate::db::entities::doc_nodes::Model, AppError> {
+    ) -> Result<crate::db::entities::docs_nodes::Model, AppError> {
         // Compute word count and search text if content is being updated
         let word_count = content
             .as_ref()

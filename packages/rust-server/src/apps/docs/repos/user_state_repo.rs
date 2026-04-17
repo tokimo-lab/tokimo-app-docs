@@ -2,7 +2,7 @@ use sea_orm::*;
 use serde_json::Value as JsonValue;
 use uuid::Uuid;
 
-use crate::db::entities::doc_node_user_states;
+use crate::db::entities::docs_node_user_states;
 use crate::error::AppError;
 
 pub struct UserStateRepo;
@@ -13,10 +13,10 @@ impl UserStateRepo {
         db: &DatabaseConnection,
         user_id: Uuid,
         node_id: Uuid,
-    ) -> Result<Option<doc_node_user_states::Model>, AppError> {
-        doc_node_user_states::Entity::find()
-            .filter(doc_node_user_states::Column::UserId.eq(user_id))
-            .filter(doc_node_user_states::Column::NodeId.eq(node_id))
+    ) -> Result<Option<docs_node_user_states::Model>, AppError> {
+        docs_node_user_states::Entity::find()
+            .filter(docs_node_user_states::Column::UserId.eq(user_id))
+            .filter(docs_node_user_states::Column::NodeId.eq(node_id))
             .one(db)
             .await
             .map_err(AppError::Database)
@@ -31,7 +31,7 @@ impl UserStateRepo {
     ) -> Result<(), AppError> {
         use sea_orm::sea_query::OnConflict;
 
-        let model = doc_node_user_states::ActiveModel {
+        let model = docs_node_user_states::ActiveModel {
             id: Set(Uuid::new_v4()),
             user_id: Set(user_id),
             node_id: Set(node_id),
@@ -39,14 +39,14 @@ impl UserStateRepo {
             updated_at: Set(chrono::Utc::now().into()),
         };
 
-        doc_node_user_states::Entity::insert(model)
+        docs_node_user_states::Entity::insert(model)
             .on_conflict(
                 OnConflict::columns([
-                    doc_node_user_states::Column::UserId,
-                    doc_node_user_states::Column::NodeId,
+                    docs_node_user_states::Column::UserId,
+                    docs_node_user_states::Column::NodeId,
                 ])
-                .update_column(doc_node_user_states::Column::ViewState)
-                .update_column(doc_node_user_states::Column::UpdatedAt)
+                .update_column(docs_node_user_states::Column::ViewState)
+                .update_column(docs_node_user_states::Column::UpdatedAt)
                 .to_owned(),
             )
             .exec(db)

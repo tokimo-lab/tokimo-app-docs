@@ -39,9 +39,9 @@ pub async fn collab_ws(
 
     // Verify the node exists
     {
-        use crate::db::entities::doc_nodes;
+        use crate::db::entities::docs_nodes;
         use sea_orm::*;
-        doc_nodes::Entity::find_by_id(node_id)
+        docs_nodes::Entity::find_by_id(node_id)
             .one(&state.db)
             .await?
             .ok_or_else(|| AppError::NotFound("node not found".into()))?;

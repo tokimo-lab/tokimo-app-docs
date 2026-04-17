@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::apps::docs::services::whiteboard_library as wb_svc;
-use crate::db::entities::doc_whiteboard_user_libraries;
+use crate::db::entities::docs_whiteboard_user_libraries;
 use crate::error::AppError;
 use crate::handlers::user::AuthUser;
 use crate::handlers::{ApiResponse, ok, ok_empty};
@@ -132,8 +132,8 @@ pub async fn get_user_library(
         .parse()
         .map_err(|_| AppError::BadRequest(format!("invalid user id: {}", auth_user.0.user_id)))?;
 
-    let row = doc_whiteboard_user_libraries::Entity::find()
-        .filter(doc_whiteboard_user_libraries::Column::UserId.eq(user_id))
+    let row = docs_whiteboard_user_libraries::Entity::find()
+        .filter(docs_whiteboard_user_libraries::Column::UserId.eq(user_id))
         .one(&state.db)
         .await?;
 
@@ -155,18 +155,18 @@ pub async fn save_user_library(
 
     let now = chrono::Utc::now().fixed_offset();
 
-    let model = doc_whiteboard_user_libraries::ActiveModel {
+    let model = docs_whiteboard_user_libraries::ActiveModel {
         id: Set(Uuid::new_v4()),
         user_id: Set(user_id),
         items: Set(body.items),
         updated_at: Set(now),
     };
 
-    doc_whiteboard_user_libraries::Entity::insert(model)
+    docs_whiteboard_user_libraries::Entity::insert(model)
         .on_conflict(
-            sea_orm::sea_query::OnConflict::column(doc_whiteboard_user_libraries::Column::UserId)
-                .update_column(doc_whiteboard_user_libraries::Column::Items)
-                .update_column(doc_whiteboard_user_libraries::Column::UpdatedAt)
+            sea_orm::sea_query::OnConflict::column(docs_whiteboard_user_libraries::Column::UserId)
+                .update_column(docs_whiteboard_user_libraries::Column::Items)
+                .update_column(docs_whiteboard_user_libraries::Column::UpdatedAt)
                 .to_owned(),
         )
         .exec(&state.db)

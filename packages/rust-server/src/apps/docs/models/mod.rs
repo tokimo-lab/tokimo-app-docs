@@ -4,7 +4,7 @@ use serde::Serialize;
 use ts_rs::TS;
 use uuid::Uuid;
 
-use crate::db::entities::{doc_node_attachments, doc_node_versions, doc_nodes, doc_spaces};
+use crate::db::entities::{docs_node_attachments, docs_node_versions, docs_nodes, docs_spaces};
 
 /// Doc space output
 #[derive(Debug, Clone, Serialize, TS)]
@@ -21,8 +21,8 @@ pub struct DocSpaceOutput {
     pub updated_at: Option<String>,
 }
 
-impl From<doc_spaces::Model> for DocSpaceOutput {
-    fn from(m: doc_spaces::Model) -> Self {
+impl From<docs_spaces::Model> for DocSpaceOutput {
+    fn from(m: docs_spaces::Model) -> Self {
         Self {
             id: m.id.to_string(),
             name: m.name,
@@ -38,7 +38,7 @@ impl From<doc_spaces::Model> for DocSpaceOutput {
 
 /// Node list item (sidebar/tree — no content)
 #[derive(Debug, Clone, Serialize, DerivePartialModel, TS)]
-#[sea_orm(entity = "doc_nodes::Entity")]
+#[sea_orm(entity = "docs_nodes::Entity")]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct DocNodeListItem {
@@ -86,8 +86,8 @@ pub struct DocNodeOutput {
     pub updated_at: String,
 }
 
-impl From<doc_nodes::Model> for DocNodeOutput {
-    fn from(m: doc_nodes::Model) -> Self {
+impl From<docs_nodes::Model> for DocNodeOutput {
+    fn from(m: docs_nodes::Model) -> Self {
         Self {
             id: m.id.to_string(),
             space_id: m.space_id.to_string(),
@@ -122,8 +122,8 @@ pub struct DocNodeVersionOutput {
     pub created_at: String,
 }
 
-impl From<doc_node_versions::Model> for DocNodeVersionOutput {
-    fn from(m: doc_node_versions::Model) -> Self {
+impl From<docs_node_versions::Model> for DocNodeVersionOutput {
+    fn from(m: docs_node_versions::Model) -> Self {
         Self {
             id: m.id.to_string(),
             node_id: m.node_id.to_string(),
@@ -149,8 +149,8 @@ pub struct DocNodeVersionDetailOutput {
     pub created_at: String,
 }
 
-impl From<doc_node_versions::Model> for DocNodeVersionDetailOutput {
-    fn from(m: doc_node_versions::Model) -> Self {
+impl From<docs_node_versions::Model> for DocNodeVersionDetailOutput {
+    fn from(m: docs_node_versions::Model) -> Self {
         Self {
             id: m.id.to_string(),
             node_id: m.node_id.to_string(),
@@ -201,8 +201,8 @@ pub struct DocNodeAttachmentOutput {
     pub created_at: String,
 }
 
-impl From<doc_node_attachments::Model> for DocNodeAttachmentOutput {
-    fn from(m: doc_node_attachments::Model) -> Self {
+impl From<docs_node_attachments::Model> for DocNodeAttachmentOutput {
+    fn from(m: docs_node_attachments::Model) -> Self {
         Self {
             id: m.id.to_string(),
             node_id: m.node_id.to_string(),

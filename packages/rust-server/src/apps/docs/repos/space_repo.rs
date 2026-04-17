@@ -1,7 +1,7 @@
 use sea_orm::*;
 use uuid::Uuid;
 
-use crate::db::entities::doc_spaces;
+use crate::db::entities::docs_spaces;
 use crate::error::AppError;
 
 pub struct DocSpaceRepo;
@@ -15,16 +15,16 @@ pub struct UpdateSpaceParams {
 }
 
 impl DocSpaceRepo {
-    pub async fn list_all(db: &DatabaseConnection) -> Result<Vec<doc_spaces::Model>, AppError> {
-        Ok(doc_spaces::Entity::find()
-            .order_by_asc(doc_spaces::Column::SortOrder)
-            .order_by_asc(doc_spaces::Column::CreatedAt)
+    pub async fn list_all(db: &DatabaseConnection) -> Result<Vec<docs_spaces::Model>, AppError> {
+        Ok(docs_spaces::Entity::find()
+            .order_by_asc(docs_spaces::Column::SortOrder)
+            .order_by_asc(docs_spaces::Column::CreatedAt)
             .all(db)
             .await?)
     }
 
-    pub async fn get_by_id(db: &DatabaseConnection, id: Uuid) -> Result<Option<doc_spaces::Model>, AppError> {
-        Ok(doc_spaces::Entity::find_by_id(id).one(db).await?)
+    pub async fn get_by_id(db: &DatabaseConnection, id: Uuid) -> Result<Option<docs_spaces::Model>, AppError> {
+        Ok(docs_spaces::Entity::find_by_id(id).one(db).await?)
     }
 
     pub async fn create(
@@ -33,19 +33,19 @@ impl DocSpaceRepo {
         slug: Option<String>,
         avatar: Option<serde_json::Value>,
         description: Option<String>,
-    ) -> Result<doc_spaces::Model, AppError> {
+    ) -> Result<docs_spaces::Model, AppError> {
         use crate::error::OptionExt;
 
         let now = chrono::Utc::now().fixed_offset();
         let id = Uuid::new_v4();
 
-        let max_order = doc_spaces::Entity::find()
-            .order_by_desc(doc_spaces::Column::SortOrder)
+        let max_order = docs_spaces::Entity::find()
+            .order_by_desc(docs_spaces::Column::SortOrder)
             .one(db)
             .await?
             .map_or(0, |s| s.sort_order + 1);
 
-        let model = doc_spaces::ActiveModel {
+        let model = docs_spaces::ActiveModel {
             id: Set(id),
             name: Set(name),
             slug: Set(slug),
@@ -55,9 +55,9 @@ impl DocSpaceRepo {
             created_at: Set(Some(now)),
             updated_at: Set(Some(now)),
         };
-        doc_spaces::Entity::insert(model).exec(db).await?;
+        docs_spaces::Entity::insert(model).exec(db).await?;
 
-        doc_spaces::Entity::find_by_id(id)
+        docs_spaces::Entity::find_by_id(id)
             .one(db)
             .await?
             .internal("failed to fetch created doc space")
@@ -67,14 +67,14 @@ impl DocSpaceRepo {
         db: &DatabaseConnection,
         id: Uuid,
         params: UpdateSpaceParams,
-    ) -> Result<Option<doc_spaces::Model>, AppError> {
-        let space = doc_spaces::Entity::find_by_id(id).one(db).await?;
+    ) -> Result<Option<docs_spaces::Model>, AppError> {
+        let space = docs_spaces::Entity::find_by_id(id).one(db).await?;
         let Some(space) = space else {
             return Ok(None);
         };
 
         let now = chrono::Utc::now().fixed_offset();
-        let mut active: doc_spaces::ActiveModel = space.into();
+        let mut active: docs_spaces::ActiveModel = space.into();
 
         if let Some(n) = params.name {
             active.name = Set(n);
@@ -100,15 +100,15 @@ impl DocSpaceRepo {
     /// List all spaces with a valid slug (for VFS mounting).
     pub async fn list_with_slug(
         db: &DatabaseConnection,
-    ) -> Result<Vec<doc_spaces::Model>, AppError> {
-        Ok(doc_spaces::Entity::find()
-            .filter(doc_spaces::Column::Slug.is_not_null())
+    ) -> Result<Vec<docs_spaces::Model>, AppError> {
+        Ok(docs_spaces::Entity::find()
+            .filter(docs_spaces::Column::Slug.is_not_null())
             .all(db)
             .await?)
     }
 
     pub async fn delete(db: &DatabaseConnection, id: Uuid) -> Result<bool, AppError> {
-        let result = doc_spaces::Entity::delete_by_id(id).exec(db).await?;
+        let result = docs_spaces::Entity::delete_by_id(id).exec(db).await?;
         Ok(result.rows_affected > 0)
     }
 }

@@ -2,7 +2,7 @@
 //!
 //! Each `doc_node` gets its own Yjs document room. Multiple WebSocket
 //! clients can join a room; updates are broadcast to all participants and
-//! periodically persisted to PostgreSQL (`doc_nodes.yjs_state`).
+//! periodically persisted to PostgreSQL (`docs_nodes.yjs_state`).
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -19,7 +19,7 @@ use yrs::sync::protocol::MSG_AWARENESS;
 use yrs::updates::encoder::{Encode, Encoder, EncoderV1};
 use yrs::{Doc, Options, ReadTxn, Transact};
 
-use crate::db::entities::doc_nodes;
+use crate::db::entities::docs_nodes;
 use crate::error::AppError;
 
 /// How long a room stays in memory with no connections before being unloaded.
@@ -326,7 +326,7 @@ impl CollabService {
     async fn load_yjs_state(&self, node_id: Uuid) -> Result<Option<Vec<u8>>, AppError> {
         use sea_orm::*;
 
-        let result = doc_nodes::Entity::find_by_id(node_id).one(&self.db).await?;
+        let result = docs_nodes::Entity::find_by_id(node_id).one(&self.db).await?;
 
         Ok(result.and_then(|m| m.yjs_state))
     }
@@ -335,9 +335,9 @@ impl CollabService {
         use sea_orm::sea_query::Expr;
         use sea_orm::*;
 
-        doc_nodes::Entity::update_many()
-            .col_expr(doc_nodes::Column::YjsState, Expr::value(state.to_vec()))
-            .filter(doc_nodes::Column::Id.eq(node_id))
+        docs_nodes::Entity::update_many()
+            .col_expr(docs_nodes::Column::YjsState, Expr::value(state.to_vec()))
+            .filter(docs_nodes::Column::Id.eq(node_id))
             .exec(&self.db)
             .await?;
 

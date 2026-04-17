@@ -6,7 +6,7 @@ use ts_rs::TS;
 
 use super::parse_uuid;
 use crate::AppState;
-use crate::db::entities::doc_nodes;
+use crate::db::entities::docs_nodes;
 use crate::error::{AppError, OptionExt};
 use crate::handlers::user::AuthUser;
 use crate::handlers::{ApiResponse, ok};
@@ -20,9 +20,9 @@ use sea_orm::*;
 #[ts(export)]
 pub struct BaseMetaOutput {
     pub node_id: String,
-    /// Fields array from doc_nodes.content
+    /// Fields array from docs_nodes.content
     pub fields: serde_json::Value,
-    /// Views array from doc_nodes.content
+    /// Views array from docs_nodes.content
     pub views: serde_json::Value,
     /// Currently active view id
     pub active_view_id: Option<String>,
@@ -53,7 +53,7 @@ pub async fn get_base_meta(
     Path(node_id): Path<String>,
 ) -> Result<Json<ApiResponse<BaseMetaOutput>>, AppError> {
     let uid = parse_uuid(&node_id)?;
-    let node = doc_nodes::Entity::find_by_id(uid)
+    let node = docs_nodes::Entity::find_by_id(uid)
         .one(&state.db)
         .await?
         .not_found("node not found")?;
@@ -74,7 +74,7 @@ pub async fn get_base_meta(
 
     let content = if needs_init {
         let default_content = create_default_content();
-        let mut active: doc_nodes::ActiveModel = node.into();
+        let mut active: docs_nodes::ActiveModel = node.into();
         active.content = Set(Some(default_content.clone()));
         active.update(&state.db).await?;
         default_content
@@ -94,7 +94,7 @@ pub async fn update_base_meta(
     Json(body): Json<UpdateBaseMetaInput>,
 ) -> Result<Json<ApiResponse<BaseMetaOutput>>, AppError> {
     let uid = parse_uuid(&node_id)?;
-    let node = doc_nodes::Entity::find_by_id(uid)
+    let node = docs_nodes::Entity::find_by_id(uid)
         .one(&state.db)
         .await?
         .not_found("node not found")?;
@@ -118,7 +118,7 @@ pub async fn update_base_meta(
         obj.insert("activeViewId".to_string(), serde_json::Value::String(active_view_id));
     }
 
-    let mut active: doc_nodes::ActiveModel = node.into();
+    let mut active: docs_nodes::ActiveModel = node.into();
     active.content = Set(Some(content.clone()));
     active.update(&state.db).await?;
 

@@ -11,7 +11,7 @@ use crate::apps::docs::repos::node_repo::DocNodeRepo;
 use crate::apps::docs::repos::space_repo::DocSpaceRepo;
 use crate::apps::docs::services::docs_service::DocsService;
 use crate::apps::docs::services::markdown_sync::DocMarkdownSyncService;
-use crate::db::entities::doc_nodes;
+use crate::db::entities::docs_nodes;
 use crate::error::{AppError, OptionExt};
 use crate::handlers::{ApiResponse, ok, ok_empty};
 use sea_orm::*;
@@ -46,7 +46,7 @@ pub struct MoveNodeInput {
 
 /// Verify that the parent node exists and is a folder.
 async fn verify_parent_is_folder(db: &DatabaseConnection, parent_id: Uuid) -> Result<(), AppError> {
-    let parent = doc_nodes::Entity::find_by_id(parent_id)
+    let parent = docs_nodes::Entity::find_by_id(parent_id)
         .one(db)
         .await?
         .not_found("parent node not found")?;
@@ -64,17 +64,17 @@ async fn check_unique_sibling_name(
     title: &str,
     exclude_id: Option<Uuid>,
 ) -> Result<(), AppError> {
-    let mut q = doc_nodes::Entity::find()
-        .filter(doc_nodes::Column::SpaceId.eq(space_id))
-        .filter(doc_nodes::Column::Title.eq(title))
-        .filter(doc_nodes::Column::IsArchived.eq(false));
+    let mut q = docs_nodes::Entity::find()
+        .filter(docs_nodes::Column::SpaceId.eq(space_id))
+        .filter(docs_nodes::Column::Title.eq(title))
+        .filter(docs_nodes::Column::IsArchived.eq(false));
     q = if let Some(pid) = parent_id {
-        q.filter(doc_nodes::Column::ParentId.eq(pid))
+        q.filter(docs_nodes::Column::ParentId.eq(pid))
     } else {
-        q.filter(doc_nodes::Column::ParentId.is_null())
+        q.filter(docs_nodes::Column::ParentId.is_null())
     };
     if let Some(eid) = exclude_id {
-        q = q.filter(doc_nodes::Column::Id.ne(eid));
+        q = q.filter(docs_nodes::Column::Id.ne(eid));
     }
     let existing = q.one(db).await?;
     if existing.is_some() {
@@ -92,7 +92,7 @@ async fn check_no_cycle(db: &DatabaseConnection, node_id: Uuid, target_parent_id
         if pid == node_id {
             return Err(AppError::BadRequest("cannot move a node under itself".into()));
         }
-        let parent = doc_nodes::Entity::find_by_id(pid).one(db).await?;
+        let parent = docs_nodes::Entity::find_by_id(pid).one(db).await?;
         current = parent.and_then(|p| p.parent_id);
     }
     Ok(())
@@ -259,7 +259,7 @@ pub async fn move_node(
 
 /// Fire-and-forget: look up the node's space and spawn an async task
 /// to sync the node's markdown to S3.
-fn maybe_spawn_markdown_sync(state: Arc<AppState>, node: &doc_nodes::Model) {
+fn maybe_spawn_markdown_sync(state: Arc<AppState>, node: &docs_nodes::Model) {
     let db = state.db.clone();
     let storage = state.storage.clone();
     let space_id = node.space_id;

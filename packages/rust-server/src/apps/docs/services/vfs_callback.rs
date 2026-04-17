@@ -2,18 +2,18 @@
 //!
 //! When a markdown file is written via VFS/FUSE, this callback resolves the
 //! target space from the slug directory in the path, then updates (or creates)
-//! the corresponding `doc_nodes` record in the database.
+//! the corresponding `docs_nodes` record in the database.
 
 use sea_orm::*;
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
-use crate::db::entities::{doc_nodes, doc_spaces};
+use crate::db::entities::{docs_nodes, docs_spaces};
 use crate::services::media::source::storage_driver::WriteCallback;
 
 /// Callback attached to the docs FUSE mount.
 ///
-/// Receives VFS write events and translates them to doc_nodes DB operations.
+/// Receives VFS write events and translates them to docs_nodes DB operations.
 /// The `relative_path` is relative to the `docs-md/` S3 prefix, so it looks
 /// like `{slug}/my-doc.md` or `{slug}/folder/note.md`.
 pub struct DocSpaceWriteCallback {
@@ -39,9 +39,9 @@ impl DocSpaceWriteCallback {
     async fn find_space_by_slug(
         &self,
         slug: &str,
-    ) -> Result<Option<doc_spaces::Model>, DbErr> {
-        doc_spaces::Entity::find()
-            .filter(doc_spaces::Column::Slug.eq(slug))
+    ) -> Result<Option<docs_spaces::Model>, DbErr> {
+        docs_spaces::Entity::find()
+            .filter(docs_spaces::Column::Slug.eq(slug))
             .one(&self.db)
             .await
     }
@@ -51,11 +51,11 @@ impl DocSpaceWriteCallback {
         &self,
         space_id: Uuid,
         title: &str,
-    ) -> Result<Option<doc_nodes::Model>, DbErr> {
-        doc_nodes::Entity::find()
-            .filter(doc_nodes::Column::SpaceId.eq(space_id))
-            .filter(doc_nodes::Column::Type.eq("markdown"))
-            .filter(doc_nodes::Column::Title.eq(title))
+    ) -> Result<Option<docs_nodes::Model>, DbErr> {
+        docs_nodes::Entity::find()
+            .filter(docs_nodes::Column::SpaceId.eq(space_id))
+            .filter(docs_nodes::Column::Type.eq("markdown"))
+            .filter(docs_nodes::Column::Title.eq(title))
             .one(&self.db)
             .await
     }
@@ -96,7 +96,7 @@ impl WriteCallback for DocSpaceWriteCallback {
         match self.find_markdown_node_by_title(space.id, title).await {
             Ok(Some(node)) => {
                 let now = chrono::Utc::now().fixed_offset();
-                let mut active: doc_nodes::ActiveModel = node.into();
+                let mut active: docs_nodes::ActiveModel = node.into();
                 active.content = Set(Some(serde_json::Value::String(md_text.into_owned())));
                 active.updated_at = Set(now);
                 active
@@ -108,7 +108,7 @@ impl WriteCallback for DocSpaceWriteCallback {
             Ok(None) => {
                 let now = chrono::Utc::now().fixed_offset();
                 let id = Uuid::new_v4();
-                let model = doc_nodes::ActiveModel {
+                let model = docs_nodes::ActiveModel {
                     id: Set(id),
                     space_id: Set(space.id),
                     title: Set(title.to_string()),
@@ -118,7 +118,7 @@ impl WriteCallback for DocSpaceWriteCallback {
                     updated_at: Set(now),
                     ..Default::default()
                 };
-                doc_nodes::Entity::insert(model)
+                docs_nodes::Entity::insert(model)
                     .exec(&self.db)
                     .await
                     .map_err(|e| format!("Failed to create doc_node: {e}"))?;
@@ -161,7 +161,7 @@ impl WriteCallback for DocSpaceWriteCallback {
 
         match self.find_markdown_node_by_title(space.id, title).await {
             Ok(Some(node)) => {
-                doc_nodes::Entity::delete_by_id(node.id)
+                docs_nodes::Entity::delete_by_id(node.id)
                     .exec(&self.db)
                     .await
                     .map_err(|e| format!("Failed to delete doc_node: {e}"))?;

@@ -2,7 +2,7 @@ use sea_orm::*;
 use uuid::Uuid;
 
 use crate::apps::docs::models::DocNodeCommentOutput;
-use crate::db::entities::{doc_node_comments, users};
+use crate::db::entities::{docs_node_comments, users};
 use crate::error::AppError;
 use crate::error::OptionExt;
 
@@ -11,10 +11,10 @@ pub struct DocNodeCommentRepo;
 impl DocNodeCommentRepo {
     /// List comments for a node (top-level + replies).
     pub async fn list_by_node(db: &DatabaseConnection, node_id: Uuid) -> Result<Vec<DocNodeCommentOutput>, AppError> {
-        let comments = doc_node_comments::Entity::find()
-            .filter(doc_node_comments::Column::NodeId.eq(node_id))
+        let comments = docs_node_comments::Entity::find()
+            .filter(docs_node_comments::Column::NodeId.eq(node_id))
             .find_also_related(users::Entity)
-            .order_by_asc(doc_node_comments::Column::CreatedAt)
+            .order_by_asc(docs_node_comments::Column::CreatedAt)
             .all(db)
             .await?;
 
@@ -63,10 +63,10 @@ impl DocNodeCommentRepo {
         comment_key: String,
         content: String,
         parent_id: Option<Uuid>,
-    ) -> Result<doc_node_comments::Model, AppError> {
+    ) -> Result<docs_node_comments::Model, AppError> {
         let now = chrono::Utc::now().fixed_offset();
         let id = Uuid::new_v4();
-        let model = doc_node_comments::ActiveModel {
+        let model = docs_node_comments::ActiveModel {
             id: Set(id),
             node_id: Set(node_id),
             user_id: Set(user_id),
@@ -77,8 +77,8 @@ impl DocNodeCommentRepo {
             created_at: Set(now),
             updated_at: Set(now),
         };
-        doc_node_comments::Entity::insert(model).exec(db).await?;
-        doc_node_comments::Entity::find_by_id(id)
+        docs_node_comments::Entity::insert(model).exec(db).await?;
+        docs_node_comments::Entity::find_by_id(id)
             .one(db)
             .await?
             .internal("failed to fetch created comment")
@@ -86,12 +86,12 @@ impl DocNodeCommentRepo {
 
     /// Resolve/unresolve a comment.
     pub async fn resolve(db: &DatabaseConnection, id: Uuid, resolved: bool) -> Result<bool, AppError> {
-        let comment = doc_node_comments::Entity::find_by_id(id).one(db).await?;
+        let comment = docs_node_comments::Entity::find_by_id(id).one(db).await?;
         let Some(comment) = comment else {
             return Ok(false);
         };
         let now = chrono::Utc::now().fixed_offset();
-        let mut active: doc_node_comments::ActiveModel = comment.into();
+        let mut active: docs_node_comments::ActiveModel = comment.into();
         active.is_resolved = Set(resolved);
         active.updated_at = Set(now);
         active.update(db).await?;
@@ -100,7 +100,7 @@ impl DocNodeCommentRepo {
 
     /// Delete a comment.
     pub async fn delete(db: &DatabaseConnection, id: Uuid) -> Result<bool, AppError> {
-        let result = doc_node_comments::Entity::delete_by_id(id).exec(db).await?;
+        let result = docs_node_comments::Entity::delete_by_id(id).exec(db).await?;
         Ok(result.rows_affected > 0)
     }
 }
