@@ -82,8 +82,7 @@ impl DocMarkdownSyncService {
 
             if let Some(ref preamble) = result.preamble {
                 let md = if has_attachments {
-                    let (rewritten, _) =
-                        tokimo_plate_markdown::rewrite_attachment_urls(preamble, &attachments);
+                    let (rewritten, _) = tokimo_plate_markdown::rewrite_attachment_urls(preamble, &attachments);
                     rewritten
                 } else {
                     preamble.clone()
@@ -95,20 +94,14 @@ impl DocMarkdownSyncService {
 
             for section in &result.sections {
                 let md = if has_attachments {
-                    let (rewritten, _) = tokimo_plate_markdown::rewrite_attachment_urls(
-                        &section.markdown,
-                        &attachments,
-                    );
+                    let (rewritten, _) =
+                        tokimo_plate_markdown::rewrite_attachment_urls(&section.markdown, &attachments);
                     rewritten
                 } else {
                     section.markdown.clone()
                 };
                 storage
-                    .upload(
-                        &format!("{base}/{}", section.filename),
-                        Bytes::from(md),
-                        None,
-                    )
+                    .upload(&format!("{base}/{}", section.filename), Bytes::from(md), None)
                     .await?;
             }
 
@@ -126,8 +119,8 @@ impl DocMarkdownSyncService {
                     })
                     .collect();
 
-                let manifest_json = serde_json::to_string_pretty(&manifest)
-                    .map_err(|e| format!("manifest serialize failed: {e}"))?;
+                let manifest_json =
+                    serde_json::to_string_pretty(&manifest).map_err(|e| format!("manifest serialize failed: {e}"))?;
                 storage
                     .upload(
                         &format!("{base}/{ATTACHMENTS_MANIFEST}"),

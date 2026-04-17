@@ -98,9 +98,7 @@ impl DocSpaceRepo {
     }
 
     /// List all spaces with a valid slug (for VFS mounting).
-    pub async fn list_with_slug(
-        db: &DatabaseConnection,
-    ) -> Result<Vec<docs_spaces::Model>, AppError> {
+    pub async fn list_with_slug(db: &DatabaseConnection) -> Result<Vec<docs_spaces::Model>, AppError> {
         Ok(docs_spaces::Entity::find()
             .filter(docs_spaces::Column::Slug.is_not_null())
             .all(db)

@@ -203,8 +203,11 @@ pub async fn preview_attachment(
             Ok(url) => return ok(json!({ "url": url })).into_response(),
             Err(e) => {
                 error!("Gotenberg conversion failed for attachment {id}: {e}");
-                return err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("Preview generation failed: {e}"))
-                    .into_response();
+                return err_resp::<()>(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Preview generation failed: {e}"),
+                )
+                .into_response();
             }
         }
     }

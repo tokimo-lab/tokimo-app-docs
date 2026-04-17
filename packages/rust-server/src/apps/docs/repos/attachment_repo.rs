@@ -36,7 +36,10 @@ impl AttachmentRepo {
     }
 
     /// Get a single attachment by ID (including soft-deleted).
-    pub async fn get_by_id(db: &DatabaseConnection, id: Uuid) -> Result<Option<docs_node_attachments::Model>, AppError> {
+    pub async fn get_by_id(
+        db: &DatabaseConnection,
+        id: Uuid,
+    ) -> Result<Option<docs_node_attachments::Model>, AppError> {
         docs_node_attachments::Entity::find_by_id(id)
             .one(db)
             .await

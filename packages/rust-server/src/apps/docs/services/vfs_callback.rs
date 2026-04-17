@@ -36,10 +36,7 @@ impl DocSpaceWriteCallback {
     }
 
     /// Resolve a space by slug.
-    async fn find_space_by_slug(
-        &self,
-        slug: &str,
-    ) -> Result<Option<docs_spaces::Model>, DbErr> {
+    async fn find_space_by_slug(&self, slug: &str) -> Result<Option<docs_spaces::Model>, DbErr> {
         docs_spaces::Entity::find()
             .filter(docs_spaces::Column::Slug.eq(slug))
             .one(&self.db)

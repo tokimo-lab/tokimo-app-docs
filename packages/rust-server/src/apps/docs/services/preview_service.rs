@@ -17,10 +17,7 @@ fn preview_url(attachment_id: &str) -> String {
 }
 
 /// Check if a cached preview exists, returning its URL if so.
-pub async fn get_cached_preview(
-    storage: &Arc<dyn StorageProvider>,
-    attachment_id: &str,
-) -> Option<String> {
+pub async fn get_cached_preview(storage: &Arc<dyn StorageProvider>, attachment_id: &str) -> Option<String> {
     let key = preview_cache_key(attachment_id);
     match storage.exists(&key).await {
         Ok(true) => Some(preview_url(attachment_id)),
@@ -38,14 +35,12 @@ pub async fn convert_and_cache(
     file_name: &str,
 ) -> Result<String, AppError> {
     // Download original from storage
-    let original_data = storage.download(original_key).await.map_err(|e| {
-        AppError::Internal(format!("Failed to download original file: {e}"))
-    })?;
+    let original_data = storage
+        .download(original_key)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to download original file: {e}")))?;
 
-    debug!(
-        attachment_id,
-        file_name, "Converting attachment to PDF via Gotenberg"
-    );
+    debug!(attachment_id, file_name, "Converting attachment to PDF via Gotenberg");
 
     // Send to Gotenberg for conversion
     let pdf_bytes = call_gotenberg(gotenberg_url, &original_data, file_name).await?;
@@ -63,11 +58,7 @@ pub async fn convert_and_cache(
     Ok(preview_url(attachment_id))
 }
 
-async fn call_gotenberg(
-    gotenberg_url: &str,
-    file_data: &[u8],
-    file_name: &str,
-) -> Result<Bytes, AppError> {
+async fn call_gotenberg(gotenberg_url: &str, file_data: &[u8], file_name: &str) -> Result<Bytes, AppError> {
     let url = format!("{gotenberg_url}/forms/libreoffice/convert");
 
     let part = multipart::Part::bytes(file_data.to_vec())
