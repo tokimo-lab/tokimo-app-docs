@@ -9,7 +9,8 @@ import type { MindElixirInstance } from "mind-elixir";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { useThemeCore } from "@/system";
+import { useThemeCore, useWindowActions } from "@/system";
+import { useWindowId } from "@/system/window/WindowNavContext";
 import {
   angularMain,
   angularSub,
@@ -192,6 +193,8 @@ function BranchPopover({
 export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
   const { t } = useTranslation();
   const { theme } = useThemeCore();
+  const { toggleFullscreen } = useWindowActions();
+  const windowId = useWindowId();
   const isDark = theme === "dark";
 
   const [zoom, setZoom] = useState(100);
@@ -255,14 +258,14 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
     return () => mind.bus?.removeListener("scale", handler);
   }, [mind]);
 
-  // Fullscreen change handler — targets the .mind-feishu container (includes toolbar)
+  // Re-center map when container resizes (handles app-level fullscreen transitions)
   useEffect(() => {
     if (!mind) return;
     const fsContainer = mind.container.closest(".mind-feishu") as
       | HTMLElement
       | undefined;
     if (!fsContainer) return;
-    const handleFullscreenChange = () => {
+    const observer = new ResizeObserver(() => {
       const data = fullscreenDataRef.current;
       if (!data) return;
       const rect = mind.container.getBoundingClientRect();
@@ -275,13 +278,9 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
       if (m) {
         mind.move(tx - Number(m[1]), ty - Number(m[2]));
       }
-    };
-    fsContainer.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () =>
-      fsContainer.removeEventListener(
-        "fullscreenchange",
-        handleFullscreenChange,
-      );
+    });
+    observer.observe(fsContainer);
+    return () => observer.disconnect();
   }, [mind]);
 
   const handleUndo = useCallback(() => mind?.undo(), [mind]);
@@ -310,11 +309,7 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
   const handleFitToScreen = useCallback(() => mind?.toCenter(), [mind]);
 
   const handleFullscreen = useCallback(() => {
-    if (!mind) return;
-    const fsContainer = mind.container.closest(".mind-feishu") as
-      | HTMLElement
-      | undefined;
-    if (!fsContainer) return;
+    if (!mind || !windowId) return;
     // Record current state for repositioning after fullscreen change
     const rect = mind.container.getBoundingClientRect();
     const style = mind.map.style.transform;
@@ -325,12 +320,8 @@ export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
       mapCenterX: (rect.width / 2 - curX) / mind.scaleVal,
       mapCenterY: (rect.height / 2 - curY) / mind.scaleVal,
     };
-    if (document.fullscreenElement !== fsContainer) {
-      fsContainer.requestFullscreen();
-    } else {
-      document.exitFullscreen();
-    }
-  }, [mind]);
+    toggleFullscreen(windowId);
+  }, [mind, windowId, toggleFullscreen]);
 
   const handleSliderChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

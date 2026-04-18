@@ -1,5 +1,7 @@
 import { Maximize } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useWindowActions } from "@/system";
+import { useWindowId } from "@/system/window/WindowNavContext";
 import { useDocViewport } from "../../hooks/use-doc-viewport";
 import { SearchReplace } from "./components/SearchReplace";
 import { SlidePanel } from "./panels/SlidePanel";
@@ -37,6 +39,8 @@ export function SlideEditor({
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const { toggleFullscreen } = useWindowActions();
+  const windowId = useWindowId();
 
   // Viewport state persistence
   const {
@@ -128,10 +132,9 @@ export function SlideEditor({
   const handlePresent = useCallback(() => setPresenting(true), []);
   const handleExitPresent = useCallback(() => {
     setPresenting(false);
-    if (document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {});
-    }
-  }, []);
+    // Force exit app-level fullscreen
+    if (windowId) toggleFullscreen(windowId, false);
+  }, [windowId, toggleFullscreen]);
 
   const currentSlide = presentation.slides[currentSlideIndex];
 

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useWindowActions } from "@/system";
+import { useWindowId } from "@/system/window/WindowNavContext";
 import { AudioElement } from "./elements/AudioElement";
 import { ChartElement } from "./elements/ChartElement";
 import { ImageElement } from "./elements/ImageElement";
@@ -38,6 +40,8 @@ export function SlidePresenter({
   const [animStep, setAnimStep] = useState(0);
   const slideContainerRef = useRef<HTMLDivElement>(null);
   const outerRef = useRef<HTMLDivElement>(null);
+  const { toggleFullscreen } = useWindowActions();
+  const windowId = useWindowId();
 
   // Presenter feature states
   const [penActive, setPenActive] = useState(false);
@@ -118,14 +122,11 @@ export function SlidePresenter({
     });
   }, []);
 
-  // Fullscreen on mount
+  // App-level fullscreen on mount (force enter, no-op if already fullscreen)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount
   useEffect(() => {
-    document.documentElement.requestFullscreen?.().catch(() => {});
-    return () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen?.().catch(() => {});
-      }
-    };
+    if (windowId) toggleFullscreen(windowId, true);
+    // Intentionally no cleanup — exiting presenter is handled via onExit
   }, []);
 
   // Toolbar auto-hide on mouse move
