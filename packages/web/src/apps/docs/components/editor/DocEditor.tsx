@@ -510,7 +510,13 @@ export function DocEditor({
   );
 
   const editorCtx = useMemo(
-    () => ({ onAiAction, onOpenAi, onInsertVfsFile, onAttachmentUpload, nodeId }),
+    () => ({
+      onAiAction,
+      onOpenAi,
+      onInsertVfsFile,
+      onAttachmentUpload,
+      nodeId,
+    }),
     [onAiAction, onOpenAi, onInsertVfsFile, onAttachmentUpload, nodeId],
   );
 

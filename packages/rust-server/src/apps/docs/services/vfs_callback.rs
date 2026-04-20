@@ -157,7 +157,7 @@ impl DocSpaceWriteCallback {
         existing: &[docs_node_attachments::Model],
     ) {
         let node_type = node.get("type").and_then(|v| v.as_str()).map(str::to_string);
-        if matches!(node_type.as_deref(), Some("attachment") | Some("img"))
+        if matches!(node_type.as_deref(), Some("attachment" | "img"))
             && let Some(storage_key) =
                 node.get("storageKey").and_then(|v| v.as_str()).map(str::to_string)
         {
@@ -316,38 +316,35 @@ impl WriteCallback for DocSpaceWriteCallback {
         };
 
         let now = chrono::Utc::now().fixed_offset();
-        let updated_id: Uuid = match existing {
-            Some(node) => {
-                let id = node.id;
-                let mut active: docs_nodes::ActiveModel = node.into();
-                active.content = Set(Some(content_value.clone()));
-                active.updated_at = Set(now);
-                active
-                    .update(&self.db)
-                    .await
-                    .map_err(|e| format!("Failed to update doc_node: {e}"))?;
-                info!(slug, title = %title, node_type, "VFS write → updated doc");
-                id
-            }
-            None => {
-                let id = Uuid::new_v4();
-                let model = docs_nodes::ActiveModel {
-                    id: Set(id),
-                    space_id: Set(space.id),
-                    title: Set(title.clone()),
-                    r#type: Set(node_type.to_string()),
-                    content: Set(Some(content_value.clone())),
-                    created_at: Set(now),
-                    updated_at: Set(now),
-                    ..Default::default()
-                };
-                docs_nodes::Entity::insert(model)
-                    .exec(&self.db)
-                    .await
-                    .map_err(|e| format!("Failed to create doc_node: {e}"))?;
-                info!(slug, title = %title, node_type, "VFS write → created doc");
-                id
-            }
+        let updated_id: Uuid = if let Some(node) = existing {
+            let id = node.id;
+            let mut active: docs_nodes::ActiveModel = node.into();
+            active.content = Set(Some(content_value.clone()));
+            active.updated_at = Set(now);
+            active
+                .update(&self.db)
+                .await
+                .map_err(|e| format!("Failed to update doc_node: {e}"))?;
+            info!(slug, title = %title, node_type, "VFS write → updated doc");
+            id
+        } else {
+            let id = Uuid::new_v4();
+            let model = docs_nodes::ActiveModel {
+                id: Set(id),
+                space_id: Set(space.id),
+                title: Set(title.clone()),
+                r#type: Set(node_type.to_string()),
+                content: Set(Some(content_value.clone())),
+                created_at: Set(now),
+                updated_at: Set(now),
+                ..Default::default()
+            };
+            docs_nodes::Entity::insert(model)
+                .exec(&self.db)
+                .await
+                .map_err(|e| format!("Failed to create doc_node: {e}"))?;
+            info!(slug, title = %title, node_type, "VFS write → created doc");
+            id
         };
 
         // Invalidate the cached Y.Doc so the next collab connection re-seeds
