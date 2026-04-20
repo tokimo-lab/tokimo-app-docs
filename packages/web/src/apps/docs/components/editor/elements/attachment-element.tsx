@@ -30,6 +30,7 @@ import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
 import { rustUrl } from "@/lib/rust-api-runtime";
 import { MaterialFileIcon } from "@/shared/components/icons";
 import { BlockToolbar } from "../components/BlockToolbar";
+import { useDocEditorContext } from "../DocEditor";
 import { useBlockDrag } from "../hooks/use-block-drag";
 
 function formatFileSize(bytes: number | null | undefined): string {
@@ -702,18 +703,39 @@ export function AttachmentElement(props: PlateElementProps) {
 
   const storageKey = el.storageKey || "";
   const fileName = el.fileName || "Unnamed file";
+
+  // Fallback: if Yjs-synced plate node lacks enrichment fields (e.g. after VFS
+  // shell write where the Y.Doc cache overrode freshly-enriched content),
+  // look up the canonical DocNodeAttachment record via REST and use it.
+  const { nodeId } = useDocEditorContext();
+  const needsEnrichmentFallback =
+    !!storageKey && (!el.attachmentId || !el.fileCategory);
+  const { data: attachmentList } = docAttachmentApi.list.useQuery(
+    { nodeId: nodeId || "" },
+    { enabled: !!nodeId && needsEnrichmentFallback },
+  );
+  const fallback = needsEnrichmentFallback
+    ? attachmentList?.find((a) => a.storageKey === storageKey)
+    : undefined;
+
   // Prefer backend-detected MIME over browser-provided MIME
-  const fileType = el.detectedMime || el.fileType || "application/octet-stream";
-  const fileSize = el.fileSize;
+  const fileType =
+    el.detectedMime ||
+    fallback?.detectedMime ||
+    el.fileType ||
+    fallback?.fileType ||
+    "application/octet-stream";
+  const fileSize = el.fileSize ?? fallback?.fileSize;
   const height = el.height;
   const maxWidth = el.maxWidth;
   const pdfMode = (el.pdfMode as PdfViewMode) || "scroll";
   const pdfZoom = (el.pdfZoom as number) || 1;
   const uploadProgress = el.uploadProgress;
-  const fileCategory = el.fileCategory;
-  const detectedLanguage = el.detectedLanguage;
-  const isBinary = el.isBinary;
-  const attachmentId = el.attachmentId;
+  const fileCategory = el.fileCategory || fallback?.fileCategory || undefined;
+  const detectedLanguage =
+    el.detectedLanguage || fallback?.detectedLanguage || undefined;
+  const isBinary = el.isBinary ?? fallback?.isBinary ?? undefined;
+  const attachmentId = el.attachmentId || fallback?.id;
 
   // Block focus: controls whether preview content captures wheel events
   const { isActivated, activate, observeRef } = useBlockFocus(attachmentId);

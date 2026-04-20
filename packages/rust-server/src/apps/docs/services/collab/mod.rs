@@ -343,4 +343,54 @@ impl CollabService {
 
         Ok(())
     }
+
+    /// Invalidate any cached Y.Doc for the given node and clear `yjs_state` in DB.
+    ///
+    /// Called after the node's `content` was updated through a non-collab
+    /// channel (e.g. VFS / REST PATCH), so that the next collab session loads
+    /// a fresh empty Y.Doc which the client will re-seed from the new `content`.
+    ///
+    /// If the room is currently active (has connected clients), it is left
+    /// alone; connected clients keep editing against the in-memory doc and
+    /// will overwrite whatever was written externally on the next persist
+    /// cycle. Choosing not to disrupt live sessions is intentional — the
+    /// common case is one editor at a time, and losing live edits would be
+    /// worse than briefly diverging from the shell-written content.
+    /// Invalidate any cached Y.Doc for the given node and clear `yjs_state` in DB.
+    ///
+    /// If `force` is false and the room has active connections, this is a no-op:
+    /// dropping a live room would disconnect editors and their subsequent writes
+    /// will overwrite whatever was written externally on the next persist
+    /// cycle. Choosing not to disrupt live sessions is intentional — the
+    /// common case is one editor at a time, and losing live edits would be
+    /// worse than briefly diverging from the shell-written content.
+    ///
+    /// `force=true` bypasses the live-connection check and is used by VFS writes
+    /// because the filesystem is the authoritative source — otherwise stale
+    /// cached Y.Doc state overrides freshly-synced content (e.g. attachment
+    /// enrichment fields) the next time the client syncs.
+    pub async fn invalidate_room(&self, node_id: Uuid, force: bool) -> Result<(), AppError> {
+        use sea_orm::sea_query::Expr;
+        use sea_orm::*;
+
+        if !force && let Some(entry) = self.rooms.get(&node_id)
+            && entry.value().connection_count() > 0
+        {
+            tracing::debug!(
+                "collab: skip invalidate for active room {node_id} ({} clients)",
+                entry.value().connection_count()
+            );
+            return Ok(());
+        }
+        self.rooms.remove(&node_id);
+
+        docs_nodes::Entity::update_many()
+            .col_expr(docs_nodes::Column::YjsState, Expr::value(Option::<Vec<u8>>::None))
+            .filter(docs_nodes::Column::Id.eq(node_id))
+            .exec(&self.db)
+            .await?;
+
+        tracing::debug!("collab: invalidated room {node_id} (external content update)");
+        Ok(())
+    }
 }

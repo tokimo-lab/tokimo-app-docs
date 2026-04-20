@@ -126,6 +126,10 @@ interface DocEditorCtx {
   onOpenAi?: () => void;
   onInsertVfsFile?: () => void;
   onAttachmentUpload?: () => void;
+  /** Doc node ID — consumed by child elements (e.g. attachment-element) that
+   * need to fall back to REST API when Yjs state is stale (e.g. after a VFS
+   * shell write repopulated docs_node_attachments rows). */
+  nodeId?: string;
 }
 const DocEditorContext = createContext<DocEditorCtx>({});
 export function useDocEditorContext() {
@@ -506,8 +510,8 @@ export function DocEditor({
   );
 
   const editorCtx = useMemo(
-    () => ({ onAiAction, onOpenAi, onInsertVfsFile, onAttachmentUpload }),
-    [onAiAction, onOpenAi, onInsertVfsFile, onAttachmentUpload],
+    () => ({ onAiAction, onOpenAi, onInsertVfsFile, onAttachmentUpload, nodeId }),
+    [onAiAction, onOpenAi, onInsertVfsFile, onAttachmentUpload, nodeId],
   );
 
   if (!editor) {

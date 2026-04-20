@@ -9,13 +9,16 @@ use crate::services::storage::StorageProvider;
 
 /// Synchronizes doc nodes to S3 as markdown files.
 ///
-/// - `notion` docs: converted via `tokimo-plate-markdown` with smart splitting
-/// - `markdown` docs: content written as-is
-/// - Other types: skipped
+/// - `notion` docs: converted via `tokimo-plate-markdown` to a single `README.md`
+///   inside `{slug}/{title}/`. Attachments are NOT split — referenced by full
+///   `/storage/...` URLs in the markdown for lossless round-trip.
+/// - `markdown` docs: content written as-is to `{slug}/{title}.md`.
+/// - Other types: skipped.
 ///
 /// Attachments are NOT copied — instead a `.attachments.json` manifest maps
 /// virtual filenames to their original storage keys. The VFS driver uses this
-/// manifest to serve attachment reads directly from the source location.
+/// manifest to serve attachment reads directly from the source location, while
+/// keeping the markdown body fully reversible.
 pub struct DocMarkdownSyncService;
 
 /// S3 key prefix for all docs markdown files.
@@ -25,6 +28,9 @@ const S3_PREFIX: &str = "docs-md";
 /// Stored alongside markdown files so the VFS driver can serve attachments
 /// without duplicating data.
 pub const ATTACHMENTS_MANIFEST: &str = ".attachments.json";
+
+/// Filename for notion-doc body inside `{slug}/{title}/`.
+pub const NOTION_BODY_FILENAME: &str = "README.md";
 
 impl DocMarkdownSyncService {
     /// Sync a single node's markdown representation to S3.
@@ -44,7 +50,9 @@ impl DocMarkdownSyncService {
         }
     }
 
-    /// Sync a notion (Plate JSON) document: convert → split → upload manifest.
+    /// Sync a notion (Plate JSON) document: convert to single README.md plus
+    /// optional attachment manifest. No chapter splitting; URLs are kept verbatim
+    /// for round-trip parsing.
     async fn sync_notion_node(
         storage: &dyn StorageProvider,
         slug: &str,
@@ -52,83 +60,42 @@ impl DocMarkdownSyncService {
     ) -> Result<(), String> {
         let content = node.content.as_ref().ok_or("notion node has no content")?;
 
-        let result = tokimo_plate_markdown::split_to_sections(content, &node.title)
+        let md = tokimo_plate_markdown::plate_to_markdown(content)
             .map_err(|e| format!("plate→md conversion failed: {e}"))?;
 
         let attachments = tokimo_plate_markdown::extract_attachments(content);
+        let attachments = tokimo_plate_markdown::dedupe_attachments(&attachments);
+
         let title_safe = sanitize_path_component(&node.title);
-        let has_attachments = !attachments.is_empty();
+        let base = format!("{S3_PREFIX}/{slug}/{title_safe}");
 
-        if result.sections.len() <= 1 && !has_attachments {
-            // Simple document without attachments: flat .md file
-            let md = result
-                .sections
-                .first()
-                .map(|s| s.markdown.as_str())
-                .or(result.preamble.as_deref())
-                .unwrap_or("");
-            let key = format!("{S3_PREFIX}/{slug}/{title_safe}.md");
-            storage.upload(&key, Bytes::from(md.to_owned()), None).await?;
-        } else {
-            // Directory-based document: sections + attachment manifest
-            let base = format!("{S3_PREFIX}/{slug}/{title_safe}");
+        // Always write README.md (single body, no splitting).
+        storage
+            .upload(&format!("{base}/{NOTION_BODY_FILENAME}"), Bytes::from(md), None)
+            .await?;
 
-            // Rewrite attachment URLs once to get deduplicated filenames
-            let (_, deduped) = if has_attachments {
-                tokimo_plate_markdown::rewrite_attachment_urls("", &attachments)
-            } else {
-                (String::new(), Vec::new())
-            };
+        // Attachment manifest serves virtual file entries in VFS listings.
+        if !attachments.is_empty() {
+            let manifest: HashMap<&str, &str> = attachments
+                .iter()
+                .filter_map(|att| {
+                    let source_key = att.url.strip_prefix("/storage/")?;
+                    if source_key.is_empty() {
+                        return None;
+                    }
+                    Some((att.filename.as_str(), source_key))
+                })
+                .collect();
 
-            if let Some(ref preamble) = result.preamble {
-                let md = if has_attachments {
-                    let (rewritten, _) = tokimo_plate_markdown::rewrite_attachment_urls(preamble, &attachments);
-                    rewritten
-                } else {
-                    preamble.clone()
-                };
-                storage
-                    .upload(&format!("{base}/README.md"), Bytes::from(md), None)
-                    .await?;
-            }
-
-            for section in &result.sections {
-                let md = if has_attachments {
-                    let (rewritten, _) =
-                        tokimo_plate_markdown::rewrite_attachment_urls(&section.markdown, &attachments);
-                    rewritten
-                } else {
-                    section.markdown.clone()
-                };
-                storage
-                    .upload(&format!("{base}/{}", section.filename), Bytes::from(md), None)
-                    .await?;
-            }
-
-            // Write attachment manifest instead of copying files.
-            // Maps: { "cos正太体型.dat": "docs/attachments/{space_id}/{uuid}.dat", ... }
-            if !deduped.is_empty() {
-                let manifest: HashMap<&str, &str> = deduped
-                    .iter()
-                    .filter_map(|att| {
-                        let source_key = att.url.strip_prefix("/storage/")?;
-                        if source_key.is_empty() {
-                            return None;
-                        }
-                        Some((att.filename.as_str(), source_key))
-                    })
-                    .collect();
-
-                let manifest_json =
-                    serde_json::to_string_pretty(&manifest).map_err(|e| format!("manifest serialize failed: {e}"))?;
-                storage
-                    .upload(
-                        &format!("{base}/{ATTACHMENTS_MANIFEST}"),
-                        Bytes::from(manifest_json),
-                        None,
-                    )
-                    .await?;
-            }
+            let manifest_json =
+                serde_json::to_string_pretty(&manifest).map_err(|e| format!("manifest serialize failed: {e}"))?;
+            storage
+                .upload(
+                    &format!("{base}/{ATTACHMENTS_MANIFEST}"),
+                    Bytes::from(manifest_json),
+                    None,
+                )
+                .await?;
         }
 
         Ok(())
@@ -163,7 +130,7 @@ impl DocMarkdownSyncService {
 
 /// Sanitize a string for use as a filesystem path component.
 /// Replaces `/`, `\`, NUL with `_`, trims whitespace and dots.
-fn sanitize_path_component(name: &str) -> String {
+pub(crate) fn sanitize_path_component(name: &str) -> String {
     let sanitized: String = name
         .chars()
         .map(|c| match c {
