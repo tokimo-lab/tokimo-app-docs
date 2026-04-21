@@ -1,5 +1,5 @@
 import { getCommentKeys } from "@platejs/comment";
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import type { PlateLeafProps } from "platejs/react";
 import { PlateLeaf } from "platejs/react";
 

@@ -1,4 +1,4 @@
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import type { Field } from "../types";

@@ -10,7 +10,7 @@ import {
   useRole,
   useTransitionStyles,
 } from "@floating-ui/react";
-import { FloatingVibrancy } from "@tokiomo/components";
+import { FloatingVibrancy } from "@tokimo/ui";
 import {
   Calendar,
   CheckSquare,

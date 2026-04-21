@@ -1,7 +1,7 @@
 /**
  * useTreeDnd — Pointer-event-based drag-to-reorder hook for the doc tree.
  *
- * Inspired by the generic `useDnd` hook in @tokiomo/components but extended
+ * Inspired by the generic `useDnd` hook in @tokimo/ui but extended
  * for tree semantics: "before" / "inside" / "after" drop zones, auto-expand
  * on hover, and root-level drop detection.
  *

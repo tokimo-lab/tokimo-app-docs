@@ -1,5 +1,5 @@
-import type { DropdownMenuItem } from "@tokiomo/components";
-import { cn, Dropdown } from "@tokiomo/components";
+import type { DropdownMenuItem } from "@tokimo/ui";
+import { cn, Dropdown } from "@tokimo/ui";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { useCallback } from "react";
 import type { BaseEditorState } from "../useBaseEditor";

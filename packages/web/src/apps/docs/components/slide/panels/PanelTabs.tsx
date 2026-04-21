@@ -1,4 +1,4 @@
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 
 interface PanelTabsProps {
   tabs: Array<{ key: string; label: string }>;

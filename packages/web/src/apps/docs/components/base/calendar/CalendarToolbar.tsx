@@ -1,4 +1,4 @@
-import { cn, Dropdown } from "@tokiomo/components";
+import { cn, Dropdown } from "@tokimo/ui";
 import { ArrowUpDown, Calendar, Filter, Plus } from "lucide-react";
 import { useCallback, useState } from "react";
 import { FilterBuilder } from "../toolbar/FilterBuilder";

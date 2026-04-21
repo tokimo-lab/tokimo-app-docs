@@ -1,4 +1,4 @@
-import { AppSidebar, Tooltip } from "@tokiomo/components";
+import { AppSidebar, Tooltip } from "@tokimo/ui";
 import { PanelLeft, PanelLeftClose, Plus, Settings } from "lucide-react";
 import type { DocSpaceOutput } from "@/generated/rust-types/DocSpaceOutput";
 import { getAvatarColor, getAvatarIcon } from "@/shared/avatar-utils";

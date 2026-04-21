@@ -1,4 +1,4 @@
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { Calendar } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { BaseEditorState } from "../useBaseEditor";

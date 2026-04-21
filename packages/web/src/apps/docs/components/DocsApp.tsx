@@ -1,4 +1,4 @@
-import { Spin } from "@tokiomo/components";
+import { Spin } from "@tokimo/ui";
 import { FileText, Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/generated/rust-api";

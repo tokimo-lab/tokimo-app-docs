@@ -7,7 +7,7 @@
  */
 
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { Check, Library, Plus, RefreshCw, Search, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";

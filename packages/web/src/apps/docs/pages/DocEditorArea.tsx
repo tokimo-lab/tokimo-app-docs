@@ -1,4 +1,4 @@
-import { Spin } from "@tokiomo/components";
+import { Spin } from "@tokimo/ui";
 import type { Value } from "platejs";
 import type { MutableRefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";

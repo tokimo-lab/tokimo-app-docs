@@ -1,4 +1,4 @@
-import { cn, Dropdown } from "@tokiomo/components";
+import { cn, Dropdown } from "@tokimo/ui";
 import { useCallback } from "react";
 import type { CellValue, SelectOption } from "../types";
 

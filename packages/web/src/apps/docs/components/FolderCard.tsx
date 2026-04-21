@@ -1,4 +1,4 @@
-import { Dropdown, type DropdownMenuItem } from "@tokiomo/components";
+import { Dropdown, type DropdownMenuItem } from "@tokimo/ui";
 import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { DocNode } from "../lib/doc-node";

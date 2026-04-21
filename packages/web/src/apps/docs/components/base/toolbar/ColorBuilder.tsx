@@ -1,4 +1,4 @@
-import { ColorPicker } from "@tokiomo/components";
+import { ColorPicker } from "@tokimo/ui";
 import { Plus, Trash2 } from "lucide-react";
 import type { ColorRule, Field, FilterOperator } from "../types";
 import { ROW_COLORS as COLORS } from "../types";

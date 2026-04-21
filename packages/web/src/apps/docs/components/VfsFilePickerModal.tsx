@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Button, Modal, Spin } from "@tokiomo/components";
+import { Button, Modal, Spin } from "@tokimo/ui";
 import {
   ChevronRight,
   CornerLeftUp,

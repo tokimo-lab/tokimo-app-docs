@@ -1,4 +1,4 @@
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { ChevronDown, ChevronRight, X } from "lucide-react";
 import { useCallback, useState } from "react";
 import { SLIDE_LAYOUTS } from "./lib/layouts";

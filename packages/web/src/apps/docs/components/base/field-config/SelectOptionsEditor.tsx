@@ -1,4 +1,4 @@
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { X } from "lucide-react";
 import { useRef } from "react";
 import type { SelectOption } from "../types";

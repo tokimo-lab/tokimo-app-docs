@@ -1,4 +1,4 @@
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { Minus, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { SlideTableElement } from "../types";

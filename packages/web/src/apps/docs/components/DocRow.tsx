@@ -1,4 +1,4 @@
-import { cn, Dropdown, type DropdownMenuItem } from "@tokiomo/components";
+import { cn, Dropdown, type DropdownMenuItem } from "@tokimo/ui";
 import {
   Copy,
   Folder,

@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import {
   Check,
   ChevronDown,

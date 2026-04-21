@@ -5,7 +5,7 @@
  * autocompletes from all tags in the app (via api.docs.listTags).
  */
 
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { Plus, Tag, X } from "lucide-react";
 import {
   type KeyboardEvent,

@@ -9,7 +9,7 @@ import {
   useInteractions,
   useRole,
 } from "@floating-ui/react";
-import { cn, FloatingVibrancy } from "@tokiomo/components";
+import { cn, FloatingVibrancy } from "@tokimo/ui";
 import { X } from "lucide-react";
 import type { BaseRecord, CellValue, Field } from "../types";
 import { FIELD_TYPE_LABELS } from "../utils";

@@ -1,4 +1,4 @@
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { useCallback, useMemo } from "react";
 import type { Field, SelectOption } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";

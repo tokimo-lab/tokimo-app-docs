@@ -5,7 +5,7 @@
  * creates a new doc and populates its content from the chosen template.
  */
 
-import { cn, Modal } from "@tokiomo/components";
+import { cn, Modal } from "@tokimo/ui";
 import {
   BookOpen,
   Calendar,

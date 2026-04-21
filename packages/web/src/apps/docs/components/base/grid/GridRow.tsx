@@ -1,4 +1,4 @@
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { BaseRecord, ColorRule, Field } from "../types";

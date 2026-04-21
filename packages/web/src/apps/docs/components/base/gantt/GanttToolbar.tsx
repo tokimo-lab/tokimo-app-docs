@@ -1,4 +1,4 @@
-import { cn, Dropdown } from "@tokiomo/components";
+import { cn, Dropdown } from "@tokimo/ui";
 import { ArrowUpDown, Filter, GanttChart, Group, Plus } from "lucide-react";
 import { useCallback, useState } from "react";
 import { FieldConfigPanel } from "../field-config";

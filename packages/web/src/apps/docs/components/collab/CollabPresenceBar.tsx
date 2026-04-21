@@ -5,7 +5,7 @@
  * connection status dot. Designed to sit in the document/sheet toolbar.
  */
 
-import { Avatar } from "@tokiomo/components";
+import { Avatar } from "@tokimo/ui";
 import { Wifi, WifiOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

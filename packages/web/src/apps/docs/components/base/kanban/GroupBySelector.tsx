@@ -1,4 +1,4 @@
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { Check } from "lucide-react";
 import type { Field } from "../types";
 import { FIELD_TYPE_LABELS, KANBAN_GROUPABLE_TYPES } from "../utils";

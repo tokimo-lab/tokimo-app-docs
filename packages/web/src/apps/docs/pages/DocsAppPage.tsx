@@ -5,7 +5,7 @@
  * Right area: Plate editor for the selected doc
  */
 
-import { Empty, Spin } from "@tokiomo/components";
+import { Empty, Spin } from "@tokimo/ui";
 import {
   ArrowLeft,
   Clock,

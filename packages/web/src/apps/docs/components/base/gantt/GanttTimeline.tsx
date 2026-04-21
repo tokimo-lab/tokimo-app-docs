@@ -1,4 +1,4 @@
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { Plus } from "lucide-react";
 import { forwardRef, useCallback } from "react";
 import type { Field } from "../types";

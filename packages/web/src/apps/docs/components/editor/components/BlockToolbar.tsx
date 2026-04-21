@@ -1,4 +1,4 @@
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { GripVertical } from "lucide-react";
 import type { ReactNode } from "react";
 

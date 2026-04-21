@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { Clock, RotateCcw, X } from "lucide-react";
 import { useCallback, useState } from "react";
 import { api } from "@/generated/rust-api";

@@ -1,4 +1,4 @@
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { Eye, EyeOff, Lock, Plus } from "lucide-react";
 import { useMemo } from "react";
 import type { GalleryCardSize } from "../types";

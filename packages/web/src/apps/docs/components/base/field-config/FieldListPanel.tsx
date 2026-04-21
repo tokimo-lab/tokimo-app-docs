@@ -1,5 +1,5 @@
-import type { DropdownMenuItem } from "@tokiomo/components";
-import { cn, Dropdown } from "@tokiomo/components";
+import type { DropdownMenuItem } from "@tokimo/ui";
+import { cn, Dropdown } from "@tokimo/ui";
 import { Eye, EyeOff, Lock, MoreHorizontal, Plus } from "lucide-react";
 import type { Field } from "../types";
 import { FIELD_TYPE_ICON } from "./FieldConfigPanel";

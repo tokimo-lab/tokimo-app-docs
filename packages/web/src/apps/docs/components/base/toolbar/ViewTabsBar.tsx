@@ -1,5 +1,5 @@
-import type { DropdownMenuItem } from "@tokiomo/components";
-import { cn, Dropdown } from "@tokiomo/components";
+import type { DropdownMenuItem } from "@tokimo/ui";
+import { cn, Dropdown } from "@tokimo/ui";
 import {
   BarChart3,
   Calendar,

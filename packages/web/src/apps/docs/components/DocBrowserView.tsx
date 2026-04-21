@@ -5,7 +5,7 @@
  * (subfolders as cards + documents as a table) with breadcrumb navigation.
  */
 
-import { cn, Empty } from "@tokiomo/components";
+import { cn, Empty } from "@tokimo/ui";
 import {
   ArrowDown,
   ArrowUp,

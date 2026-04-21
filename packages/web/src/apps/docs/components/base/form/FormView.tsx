@@ -1,4 +1,4 @@
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { useState } from "react";
 import type { BaseEditorState } from "../useBaseEditor";
 import { FormEditView } from "./FormEditView";

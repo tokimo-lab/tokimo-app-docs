@@ -1,5 +1,5 @@
 import type { Editor } from "@tiptap/react";
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import {
   AlignCenter,
   AlignJustify,

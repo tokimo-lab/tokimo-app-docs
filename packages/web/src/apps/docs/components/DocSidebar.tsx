@@ -1,12 +1,6 @@
 /** DocSidebar — Feishu-style sidebar for the doc app. */
 
-import {
-  cn,
-  Dropdown,
-  type DropdownMenuItem,
-  Input,
-  Spin,
-} from "@tokiomo/components";
+import { cn, Dropdown, type DropdownMenuItem, Input, Spin } from "@tokimo/ui";
 import {
   ArrowUpDown,
   BrainCircuit,

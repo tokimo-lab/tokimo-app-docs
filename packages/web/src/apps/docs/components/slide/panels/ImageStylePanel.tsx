@@ -1,4 +1,4 @@
-import { cn } from "@tokiomo/components";
+import { cn } from "@tokimo/ui";
 import { FlipHorizontal, FlipVertical } from "lucide-react";
 import type { ElementOutline, SlideImageElement } from "../types";
 import { useSlideStore } from "../use-slide-store";

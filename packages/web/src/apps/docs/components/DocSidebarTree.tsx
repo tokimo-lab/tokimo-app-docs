@@ -10,7 +10,7 @@
  * provides a flat visible-nodes list and this component renders one row.
  */
 
-import { cn, Dropdown, type DropdownMenuItem } from "@tokiomo/components";
+import { cn, Dropdown, type DropdownMenuItem } from "@tokimo/ui";
 import {
   BrainCircuit,
   Check,
