@@ -1,15 +1,28 @@
+/**
+ * VfsFilePickerWindow — native window-modal version of the legacy
+ * VfsFilePickerModal. Selection is returned via the window-bridge
+ * (`emitPick` → caller's `pickWithBridge`).
+ *
+ * Two phases:
+ * 1. pick a file system (from `api.vfs.list`)
+ * 2. browse directories and pick a file
+ */
+
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Button, Modal, Spin } from "@tokimo/ui";
+import { Button, Spin } from "@tokimo/ui";
 import {
   ChevronRight,
   CornerLeftUp,
   FolderOpen,
   HardDrive,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { VfsDto } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
 import { MaterialFileIcon } from "@/shared/components/icons";
+import { useWindowActions } from "@/system/window/WindowManagerContext";
+import type { WindowState } from "@/system/window/window-types";
+import { emitPick } from "@/system/window-bridge";
 
 export interface VfsFileSelection {
   fileSystemId: string;
@@ -18,12 +31,6 @@ export interface VfsFileSelection {
   fileName: string;
   fileSize: number | null;
   modifiedAt: string | null;
-}
-
-interface VfsFilePickerModalProps {
-  open: boolean;
-  onClose: () => void;
-  onSelect: (file: VfsFileSelection) => void;
 }
 
 const ROW_HEIGHT = 36;
@@ -37,32 +44,13 @@ function formatFileSize(bytes: number | null | undefined): string {
   return `${val < 10 ? val.toFixed(1) : Math.round(val)} ${units[i]}`;
 }
 
-/**
- * VfsFilePickerModal — Two-phase picker:
- * 1. Select a file system (from api.vfs.list)
- * 2. Browse directories and select a file
- */
-export default function VfsFilePickerModal({
-  open,
-  onClose,
-  onSelect,
-}: VfsFilePickerModalProps) {
+export default function VfsFilePickerWindow({ win }: { win: WindowState }) {
+  const { closeWindow } = useWindowActions();
   const [selectedFs, setSelectedFs] = useState<VfsDto | null>(null);
   const [currentPath, setCurrentPath] = useState("/");
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
-  // Reset state when opening
-  useEffect(() => {
-    if (open) {
-      setSelectedFs(null);
-      setCurrentPath("/");
-      setSelectedFile(null);
-    }
-  }, [open]);
-
-  const fsListQuery = api.vfs.list.useQuery({
-    enabled: open,
-  });
+  const fsListQuery = api.vfs.list.useQuery();
 
   const fileSystems = fsListQuery.data ?? [];
 
@@ -79,42 +67,36 @@ export default function VfsFilePickerModal({
     setSelectedFile(null);
   }, []);
 
+  const handleConfirmSelection = useCallback(
+    (file: VfsFileSelection) => {
+      emitPick(win, file);
+      closeWindow(win.id);
+    },
+    [win, closeWindow],
+  );
+
   return (
-    <Modal
-      title="引用文件"
-      open={open}
-      onCancel={onClose}
-      footer={null}
-      size="default"
-      centered
-    >
-      <div className="flex flex-col" style={{ height: 420 }}>
-        {!selectedFs ? (
-          <FileSystemList
-            fileSystems={fileSystems}
-            isLoading={fsListQuery.isLoading}
-            onSelect={handleSelectFs}
-          />
-        ) : (
-          <FileBrowser
-            fileSystem={selectedFs}
-            currentPath={currentPath}
-            selectedFile={selectedFile}
-            onNavigate={setCurrentPath}
-            onSelectFile={setSelectedFile}
-            onBack={handleBack}
-            onConfirm={(file) => {
-              onSelect(file);
-              onClose();
-            }}
-          />
-        )}
-      </div>
-    </Modal>
+    <div className="flex flex-col h-full">
+      {!selectedFs ? (
+        <FileSystemList
+          fileSystems={fileSystems}
+          isLoading={fsListQuery.isLoading}
+          onSelect={handleSelectFs}
+        />
+      ) : (
+        <FileBrowser
+          fileSystem={selectedFs}
+          currentPath={currentPath}
+          selectedFile={selectedFile}
+          onNavigate={setCurrentPath}
+          onSelectFile={setSelectedFile}
+          onBack={handleBack}
+          onConfirm={handleConfirmSelection}
+        />
+      )}
+    </div>
   );
 }
-
-// ── Phase 1: File System Selection ──
 
 function FileSystemList({
   fileSystems,
@@ -150,7 +132,7 @@ function FileSystemList({
         <button
           key={fs.id}
           type="button"
-          className="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-2.5 text-left text-inherit transition-colors hover:bg-fill-tertiary"
+          className="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-2.5 text-left text-inherit transition-colors hover:bg-fill-tertiary cursor-pointer"
           onClick={() => onSelect(fs)}
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]">
@@ -168,8 +150,6 @@ function FileSystemList({
     </div>
   );
 }
-
-// ── Phase 2: File Browser ──
 
 function FileBrowser({
   fileSystem,
@@ -228,7 +208,6 @@ function FileBrowser({
     });
   }, [selectedEntry, fileSystem, onConfirm]);
 
-  // Path segments for breadcrumb
   const pathSegments = currentPath
     .split("/")
     .filter(Boolean)
@@ -240,11 +219,10 @@ function FileBrowser({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Header: back + breadcrumb */}
       <div className="flex items-center gap-1 border-b border-border-base px-3 py-1.5">
         <button
           type="button"
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-transparent border-0 text-fg-muted hover:bg-fill-tertiary hover:text-fg-secondary"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-transparent border-0 text-fg-muted hover:bg-fill-tertiary hover:text-fg-secondary cursor-pointer"
           onClick={onBack}
           title="Back to file systems"
         >
@@ -253,7 +231,7 @@ function FileBrowser({
         <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto text-xs">
           <button
             type="button"
-            className="shrink-0 rounded bg-transparent border-0 px-1 py-0.5 text-fg-muted hover:text-fg-secondary"
+            className="shrink-0 rounded bg-transparent border-0 px-1 py-0.5 text-fg-muted hover:text-fg-secondary cursor-pointer"
             onClick={() => onNavigate("/")}
           >
             {fileSystem.name}
@@ -263,7 +241,7 @@ function FileBrowser({
               <ChevronRight size={10} className="shrink-0 text-fg-muted" />
               <button
                 type="button"
-                className="shrink-0 truncate rounded bg-transparent border-0 px-1 py-0.5 text-fg-muted hover:text-fg-secondary"
+                className="shrink-0 truncate rounded bg-transparent border-0 px-1 py-0.5 text-fg-muted hover:text-fg-secondary cursor-pointer"
                 onClick={() => onNavigate(seg.path)}
               >
                 {seg.name}
@@ -273,7 +251,6 @@ function FileBrowser({
         </div>
       </div>
 
-      {/* File list */}
       <div ref={parentRef} className="flex-1 overflow-y-auto">
         {browseQuery.isFetching && entries.length === 0 ? (
           <div className="flex h-full items-center justify-center">
@@ -306,7 +283,7 @@ function FileBrowser({
                   {row.kind === "up" ? (
                     <button
                       type="button"
-                      className="flex h-full w-full items-center gap-2 border-0 bg-transparent px-3 text-left text-inherit text-sm opacity-60 hover:bg-fill-tertiary"
+                      className="flex h-full w-full items-center gap-2 border-0 bg-transparent px-3 text-left text-inherit text-sm opacity-60 hover:bg-fill-tertiary cursor-pointer"
                       onClick={() => onNavigate(row.path)}
                     >
                       <MaterialFileIcon name=".." isDirectory size={16} />
@@ -315,7 +292,7 @@ function FileBrowser({
                   ) : row.kind === "dir" ? (
                     <button
                       type="button"
-                      className="flex h-full w-full items-center gap-2 border-0 bg-transparent px-3 text-left text-inherit text-sm hover:bg-fill-tertiary"
+                      className="flex h-full w-full items-center gap-2 border-0 bg-transparent px-3 text-left text-inherit text-sm hover:bg-fill-tertiary cursor-pointer"
                       onClick={() => onNavigate(row.entry.path)}
                     >
                       <MaterialFileIcon
@@ -334,7 +311,7 @@ function FileBrowser({
                   ) : (
                     <button
                       type="button"
-                      className={`flex h-full w-full items-center gap-2 border-0 px-3 text-left text-sm transition-colors ${
+                      className={`flex h-full w-full items-center gap-2 border-0 px-3 text-left text-sm transition-colors cursor-pointer ${
                         selectedFile === row.entry.path
                           ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]"
                           : "bg-transparent text-inherit hover:bg-fill-tertiary"
@@ -369,7 +346,6 @@ function FileBrowser({
         )}
       </div>
 
-      {/* Footer */}
       <div className="flex items-center justify-between border-t border-border-base px-3 py-2">
         <span className="truncate text-xs text-fg-muted">
           {selectedEntry ? selectedEntry.name : "Select a file"}

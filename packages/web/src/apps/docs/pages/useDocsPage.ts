@@ -10,7 +10,7 @@ import type {
 } from "@/apps/docs/components/DocSidebar";
 import type { DocTemplate } from "@/apps/docs/components/doc-templates";
 import type { DocEditorHandle } from "@/apps/docs/components/editor";
-import type { VfsFileSelection } from "@/apps/docs/components/VfsFilePickerModal";
+import type { VfsFileSelection } from "@/apps/docs/components/VfsFilePickerWindow";
 import type { DocNode, DocNodeType } from "@/apps/docs/lib/doc-node";
 import {
   buildNodePath,
@@ -24,6 +24,9 @@ import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
 import { onAiDocumentEdit, openAiAssistant } from "@/lib/ai-assistant-events";
 import { useMessage, useWindowNav } from "@/system";
 import { useAuth } from "@/system/auth/useAuth";
+import { useWindowActions } from "@/system/window/WindowManagerContext";
+import { useWindowId } from "@/system/window/WindowNavContext";
+import { PickCancelled, pickWithBridge } from "@/system/window-bridge";
 import {
   dispatchAiAction,
   exportAsDocx,
@@ -53,8 +56,9 @@ export function useDocsPage(spaceId: string) {
   );
   const [templateChooserOpen, setTemplateChooserOpen] = useState(false);
   const [pendingParentId, setPendingParentId] = useState<string | undefined>();
-  const [vfsPickerOpen, setVfsPickerOpen] = useState(false);
   const editorRef = useRef<DocEditorHandle | null>(null);
+  const windowId = useWindowId();
+  const { openModalWindow } = useWindowActions();
 
   const effectiveSortField = tab === "recent" ? "updatedAt" : sortField;
   const effectiveSortDir = tab === "recent" ? "desc" : sortDir;
@@ -447,7 +451,36 @@ export function useDocsPage(spaceId: string) {
     dispatchAiAction(actionId, selected, full);
   }, []);
 
-  const handleInsertVfsFile = useCallback(() => setVfsPickerOpen(true), []);
+  const insertVfsFileNode = useCallback((file: VfsFileSelection) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.tf.insertNodes({
+      type: "vfs_file",
+      fileSystemId: file.fileSystemId,
+      fileSystemName: file.fileSystemName,
+      filePath: file.filePath,
+      fileName: file.fileName,
+      fileSize: file.fileSize,
+      modifiedAt: file.modifiedAt,
+      children: [{ text: "" }],
+    } as unknown as TElement);
+  }, []);
+
+  const handleInsertVfsFile = useCallback(async () => {
+    try {
+      const file = await pickWithBridge<VfsFileSelection>(openModalWindow, {
+        component: () => import("@/apps/docs/components/VfsFilePickerWindow"),
+        parentWindowId: windowId,
+        title: "引用文件",
+        width: 600,
+        height: 480,
+      });
+      insertVfsFileNode(file);
+    } catch (err) {
+      if (err instanceof PickCancelled) return;
+      throw err;
+    }
+  }, [openModalWindow, windowId, insertVfsFileNode]);
 
   // ── Attachment upload ──────────────────────────────────────────────
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
@@ -559,21 +592,6 @@ export function useDocsPage(spaceId: string) {
     [uploadAndInsertAttachment],
   );
 
-  const handleVfsFileSelected = useCallback((file: VfsFileSelection) => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    editor.tf.insertNodes({
-      type: "vfs_file",
-      fileSystemId: file.fileSystemId,
-      fileSystemName: file.fileSystemName,
-      filePath: file.filePath,
-      fileName: file.fileName,
-      fileSize: file.fileSize,
-      modifiedAt: file.modifiedAt,
-      children: [{ text: "" }],
-    } as unknown as TElement);
-  }, []);
-
   // ── AI document edit: apply & undo ──────────────────────────────────
   const [aiUndoContent, setAiUndoContent] = useState<Value | null>(null);
   const [aiUndoSummary, setAiUndoSummary] = useState<string | null>(null);
@@ -634,8 +652,6 @@ export function useDocsPage(spaceId: string) {
     setPreviewingVersionId,
     templateChooserOpen,
     setTemplateChooserOpen,
-    vfsPickerOpen,
-    setVfsPickerOpen,
     editorRef,
     effectiveSortField,
     effectiveSortDir,
@@ -691,7 +707,6 @@ export function useDocsPage(spaceId: string) {
     handleAttachmentFileChange,
     attachmentInputRef,
     uploadAndInsertAttachment,
-    handleVfsFileSelected,
     aiUndoContent,
     aiUndoSummary,
     handleAiUndo,

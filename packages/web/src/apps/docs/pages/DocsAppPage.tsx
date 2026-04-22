@@ -30,7 +30,6 @@ import { MarkdownEditor } from "@/apps/docs/components/markdown/MarkdownEditor";
 import { MindEditor } from "@/apps/docs/components/mind/MindEditor";
 import { SheetEditor } from "@/apps/docs/components/sheet/SheetEditor";
 import { SlideEditor } from "@/apps/docs/components/slide/SlideEditor";
-import VfsFilePickerModal from "@/apps/docs/components/VfsFilePickerModal";
 import { WhiteboardEditor } from "@/apps/docs/components/whiteboard/WhiteboardEditor";
 import { apiNodeToLocal, nextUniqueName } from "@/apps/docs/lib/doc-node";
 import { useMenuBar } from "@/system";
@@ -590,13 +589,6 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
         open={s.templateChooserOpen}
         onClose={() => s.setTemplateChooserOpen(false)}
         onSelect={s.handleTemplateSelect}
-      />
-
-      {/* ── VFS file picker ──────────────────────────────────────────── */}
-      <VfsFilePickerModal
-        open={s.vfsPickerOpen}
-        onClose={() => s.setVfsPickerOpen(false)}
-        onSelect={s.handleVfsFileSelected}
       />
 
       {/* Hidden file input for attachment upload */}
