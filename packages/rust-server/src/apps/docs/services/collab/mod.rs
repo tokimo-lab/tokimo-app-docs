@@ -23,13 +23,13 @@ use crate::db::entities::docs_nodes;
 use crate::error::AppError;
 
 /// How long a room stays in memory with no connections before being unloaded.
-const ROOM_IDLE_TIMEOUT: Duration = Duration::from_secs(5 * 60);
+const ROOM_IDLE_TIMEOUT: Duration = Duration::from_mins(5);
 
 /// Interval for periodic persistence of dirty rooms.
 const PERSIST_INTERVAL: Duration = Duration::from_secs(30);
 
 /// Interval for checking idle rooms.
-const CLEANUP_INTERVAL: Duration = Duration::from_secs(60);
+const CLEANUP_INTERVAL: Duration = Duration::from_mins(1);
 
 /// An in-memory collaborative editing room for a single document/sheet.
 pub struct CollabRoom {
@@ -153,7 +153,7 @@ impl CollabRoom {
     }
 
     fn idle_duration(&self) -> Duration {
-        self.last_activity.lock().map(|t| t.elapsed()).unwrap_or(Duration::ZERO)
+        self.last_activity.lock().map_or(Duration::ZERO, |t| t.elapsed())
     }
 }
 

@@ -6,7 +6,7 @@ use tracing::warn;
 
 const CATALOG_URL: &str = "https://raw.githubusercontent.com/excalidraw/excalidraw-libraries/main/libraries.json";
 const GITHUB_RAW_BASE: &str = "https://raw.githubusercontent.com/excalidraw/excalidraw-libraries/main";
-const CACHE_TTL: Duration = Duration::from_secs(24 * 60 * 60);
+const CACHE_TTL: Duration = Duration::from_hours(24);
 
 /// Raw entry from the upstream libraries.json catalog.
 #[derive(Debug, Clone, Deserialize)]
