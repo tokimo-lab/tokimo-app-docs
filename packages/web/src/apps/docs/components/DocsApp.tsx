@@ -94,11 +94,7 @@ export default function DocsApp() {
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="grid h-full"
-      style={{ gridTemplateColumns: `${sidebarCollapsed ? 48 : 188}px 1fr` }}
-    >
+    <div ref={containerRef} className="relative flex h-full">
       <DocsSpaceSidebar
         spaces={spaces as DocSpaceOutput[]}
         activeId={activeSpaceId}
@@ -108,7 +104,7 @@ export default function DocsApp() {
         onSettingsClick={openSettings}
         onToggleCollapse={onToggleCollapse}
       />
-      <div className="min-w-0 overflow-hidden h-full">
+      <div className="flex-1 min-w-0 overflow-hidden h-full">
         {activeSpaceId && <DocsAppPage spaceId={activeSpaceId} />}
       </div>
     </div>
