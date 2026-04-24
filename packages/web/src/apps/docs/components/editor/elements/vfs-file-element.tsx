@@ -1,9 +1,9 @@
+import { MaterialFileIcon } from "@tokimo/ui";
 import { ExternalLink, FileIcon, HardDrive } from "lucide-react";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useElement } from "platejs/react";
 import { useRef } from "react";
 import { rustUrl } from "@/lib/rust-api-runtime";
-import { MaterialFileIcon } from "@/shared/components/icons";
 import { BlockToolbar } from "../components/BlockToolbar";
 import { useBlockDrag } from "../hooks/use-block-drag";
 

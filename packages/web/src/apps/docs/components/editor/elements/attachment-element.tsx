@@ -1,3 +1,4 @@
+import { MaterialFileIcon } from "@tokimo/ui";
 import {
   Download,
   FileWarning,
@@ -28,7 +29,6 @@ import { MonacoTextEditor } from "@/apps/viewers/text/MonacoTextEditor";
 import { VideoPreview } from "@/apps/viewers/video/VideoPreview";
 import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
 import { rustUrl } from "@/lib/rust-api-runtime";
-import { MaterialFileIcon } from "@/shared/components/icons";
 import { BlockToolbar } from "../components/BlockToolbar";
 import { useDocEditorContext } from "../DocEditor";
 import { useBlockDrag } from "../hooks/use-block-drag";

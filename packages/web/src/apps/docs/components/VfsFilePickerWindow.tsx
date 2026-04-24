@@ -9,7 +9,7 @@
  */
 
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Button, Spin } from "@tokimo/ui";
+import { Button, MaterialFileIcon, Spin } from "@tokimo/ui";
 import {
   ChevronRight,
   CornerLeftUp,
@@ -19,7 +19,6 @@ import {
 import { useCallback, useRef, useState } from "react";
 import type { VfsDto } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
-import { MaterialFileIcon } from "@/shared/components/icons";
 import { useWindowActions } from "@/system/window/WindowManagerContext";
 import type { WindowState } from "@/system/window/window-types";
 import { emitPick } from "@/system/window-bridge";
