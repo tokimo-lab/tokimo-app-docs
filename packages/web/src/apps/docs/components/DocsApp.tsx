@@ -1,6 +1,6 @@
 import { Spin } from "@tokimo/ui";
 import { FileText, Plus } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { api } from "@/generated/rust-api";
 import type { DocSpaceOutput } from "@/generated/rust-types/DocSpaceOutput";
 import { useContainerWidth } from "@/shared/hooks/use-container-width";
@@ -9,13 +9,10 @@ import { useWindowActions, useWindowId, useWindowNav } from "@/system";
 import DocsAppPage from "../pages/DocsAppPage";
 import DocsSpaceSidebar from "./DocsSpaceSidebar";
 
-const STORAGE_KEY = "docs-active-space";
-
 export default function DocsApp() {
   const { data: spaces, isLoading } = api.docs.listSpaces.useQuery({});
-  const [activeSpaceId, setActiveSpaceId] = useState<string | null>(null);
-  const initialized = useRef(false);
-  const { updateTitle } = useWindowNav();
+  const { params, replace, updateTitle } = useWindowNav();
+  const activeSpaceId = params.spaceId ?? null;
   const [containerRef, containerWidth] = useContainerWidth();
   const { collapsed: sidebarCollapsed, onToggleCollapse } = useSidebarCollapsed(
     "docs",
@@ -36,15 +33,13 @@ export default function DocsApp() {
     });
   }, [openModalWindow, windowId]);
 
+  // Default to first space when no spaceId in route, or stale spaceId
   useEffect(() => {
-    if (!spaces?.length || initialized.current) return;
-    initialized.current = true;
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const id =
-      saved && spaces.some((s) => s.id === saved) ? saved : spaces[0].id;
-    setActiveSpaceId(id);
-    localStorage.setItem(STORAGE_KEY, id);
-  }, [spaces]);
+    if (!spaces?.length) return;
+    if (!activeSpaceId || !spaces.some((s) => s.id === activeSpaceId)) {
+      replace(`/space/${spaces[0].id}`);
+    }
+  }, [spaces, activeSpaceId, replace]);
 
   const activeSpace = spaces?.find((s) => s.id === activeSpaceId);
 
@@ -55,8 +50,7 @@ export default function DocsApp() {
   }, [activeSpace, updateTitle]);
 
   const handleSelectSpace = (id: string) => {
-    setActiveSpaceId(id);
-    localStorage.setItem(STORAGE_KEY, id);
+    replace(`/space/${id}`);
   };
 
   if (isLoading) {

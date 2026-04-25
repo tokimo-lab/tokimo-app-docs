@@ -14,6 +14,7 @@ export const manifest: AppManifest = {
   component: () => import("./components/DocsApp"),
   views: {
     "/": () => import("./components/DocsApp"),
+    "/space/:spaceId": () => import("./components/DocsApp"),
   },
 
   userSettings: {
