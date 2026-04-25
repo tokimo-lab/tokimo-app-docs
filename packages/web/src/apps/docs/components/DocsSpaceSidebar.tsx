@@ -12,6 +12,7 @@ export default function DocsSpaceSidebar({
   onCreateClick,
   onSettingsClick,
   onToggleCollapse,
+  settingsActive = false,
 }: {
   spaces: DocSpaceOutput[];
   activeId: string | null;
@@ -20,6 +21,8 @@ export default function DocsSpaceSidebar({
   onCreateClick: () => void;
   onSettingsClick: () => void;
   onToggleCollapse?: () => void;
+  /** When true, the settings (⚙) button shows a highlighted state. */
+  settingsActive?: boolean;
 }) {
   const sections = [
     {
@@ -52,7 +55,11 @@ export default function DocsSpaceSidebar({
         <button
           type="button"
           onClick={onSettingsClick}
-          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-fg-muted transition-all hover:bg-black/[0.08] hover:text-fg-secondary dark:hover:bg-white/[0.08]"
+          className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg transition-all ${
+            settingsActive
+              ? "bg-black/[0.08] text-fg-primary dark:bg-white/[0.08]"
+              : "text-fg-muted hover:bg-black/[0.08] hover:text-fg-secondary dark:hover:bg-white/[0.08]"
+          }`}
         >
           <Settings className="h-4 w-4" />
         </button>
@@ -84,7 +91,11 @@ export default function DocsSpaceSidebar({
         <button
           type="button"
           onClick={onSettingsClick}
-          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-fg-muted transition-all hover:bg-black/[0.08] hover:text-fg-secondary dark:hover:bg-white/[0.08]"
+          className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-all ${
+            settingsActive
+              ? "bg-black/[0.08] text-fg-primary dark:bg-white/[0.08]"
+              : "text-fg-muted hover:bg-black/[0.08] hover:text-fg-secondary dark:hover:bg-white/[0.08]"
+          }`}
         >
           <Settings className="h-4 w-4" />
         </button>
