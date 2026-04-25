@@ -1,4 +1,11 @@
-import { MaterialFileIcon } from "@tokimo/ui";
+import {
+  AudioPlayer,
+  ImagePreview,
+  MaterialFileIcon,
+  PdfEmbed,
+  type PdfViewMode,
+  VideoPreview,
+} from "@tokimo/ui";
 import {
   Download,
   FileWarning,
@@ -22,11 +29,7 @@ import {
   useBlockFocus,
   WheelCaptureShield,
 } from "@/apps/docs/hooks/use-scroll-guard";
-import { AudioPlayer } from "@/apps/viewers/audio/AudioPlayer";
-import { ImagePreview } from "@/apps/viewers/image/ImagePreview";
-import { PdfEmbed, type PdfViewMode } from "@/apps/viewers/pdf/PdfEmbed";
 import { MonacoTextEditor } from "@/apps/viewers/text/MonacoTextEditor";
-import { VideoPreview } from "@/apps/viewers/video/VideoPreview";
 import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
 import { rustUrl } from "@/lib/rust-api-runtime";
 import { BlockToolbar } from "../components/BlockToolbar";
