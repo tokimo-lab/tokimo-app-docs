@@ -1,6 +1,7 @@
 import { Spin } from "@tokimo/ui";
 import { FileText, Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { AnimatedSettingsPane } from "@/apps/_framework/AnimatedSettingsPane";
 import DocSpaceEditor from "@/apps/settings/admin/DocSpaceEditor";
 import { api } from "@/generated/rust-api";
 import type { DocSpaceOutput } from "@/generated/rust-types/DocSpaceOutput";
@@ -149,28 +150,26 @@ export default function DocsApp() {
         onToggleCollapse={onToggleCollapse}
         settingsActive={isSettingsView}
       />
-      <div className="flex-1 min-w-0 overflow-hidden h-full">
-        {mode === "settings-new" ? (
-          <div className="animate-settings-pane-in h-full">
-            <DocSpaceEditor
-              key="__new__"
-              onSaved={handleSaved}
-              onCancel={handleCancel}
-            />
-          </div>
-        ) : mode === "settings" && activeSpaceId ? (
-          <div className="animate-settings-pane-in h-full">
-            <DocSpaceEditor
-              key={activeSpaceId}
-              spaceId={activeSpaceId}
-              onSaved={handleSaved}
-              onDeleted={handleDeleted}
-              onCancel={handleCancel}
-            />
-          </div>
-        ) : (
-          activeSpaceId && <DocsAppPage spaceId={activeSpaceId} />
+      <div className="relative flex-1 min-w-0 overflow-hidden h-full">
+        {activeSpaceId && mode === "docs" && (
+          <DocsAppPage spaceId={activeSpaceId} />
         )}
+        <AnimatedSettingsPane open={mode === "settings-new"}>
+          <DocSpaceEditor
+            key="__new__"
+            onSaved={handleSaved}
+            onCancel={handleCancel}
+          />
+        </AnimatedSettingsPane>
+        <AnimatedSettingsPane open={mode === "settings" && !!activeSpaceId}>
+          <DocSpaceEditor
+            key={activeSpaceId ?? "edit"}
+            spaceId={activeSpaceId ?? undefined}
+            onSaved={handleSaved}
+            onDeleted={handleDeleted}
+            onCancel={handleCancel}
+          />
+        </AnimatedSettingsPane>
       </div>
     </div>
   );
