@@ -151,19 +151,23 @@ export default function DocsApp() {
       />
       <div className="flex-1 min-w-0 overflow-hidden h-full">
         {mode === "settings-new" ? (
-          <DocSpaceEditor
-            key="__new__"
-            onSaved={handleSaved}
-            onCancel={handleCancel}
-          />
+          <div className="animate-settings-pane-in h-full">
+            <DocSpaceEditor
+              key="__new__"
+              onSaved={handleSaved}
+              onCancel={handleCancel}
+            />
+          </div>
         ) : mode === "settings" && activeSpaceId ? (
-          <DocSpaceEditor
-            key={activeSpaceId}
-            spaceId={activeSpaceId}
-            onSaved={handleSaved}
-            onDeleted={handleDeleted}
-            onCancel={handleCancel}
-          />
+          <div className="animate-settings-pane-in h-full">
+            <DocSpaceEditor
+              key={activeSpaceId}
+              spaceId={activeSpaceId}
+              onSaved={handleSaved}
+              onDeleted={handleDeleted}
+              onCancel={handleCancel}
+            />
+          </div>
         ) : (
           activeSpaceId && <DocsAppPage spaceId={activeSpaceId} />
         )}
