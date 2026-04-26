@@ -373,7 +373,8 @@ impl CollabService {
         use sea_orm::sea_query::Expr;
         use sea_orm::*;
 
-        if !force && let Some(entry) = self.rooms.get(&node_id)
+        if !force
+            && let Some(entry) = self.rooms.get(&node_id)
             && entry.value().connection_count() > 0
         {
             tracing::debug!(

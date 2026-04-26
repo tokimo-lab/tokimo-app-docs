@@ -11,8 +11,8 @@
 
 use std::sync::Arc;
 
-use sea_orm::*;
 use sea_orm::sea_query::Expr;
+use sea_orm::*;
 use tracing::{info, warn};
 use uuid::Uuid;
 
@@ -39,11 +39,7 @@ enum PathKind<'a> {
 }
 
 impl DocSpaceWriteCallback {
-    pub fn new(
-        db: DatabaseConnection,
-        collab: Arc<CollabService>,
-        storage: Arc<dyn StorageProvider>,
-    ) -> Self {
+    pub fn new(db: DatabaseConnection, collab: Arc<CollabService>, storage: Arc<dyn StorageProvider>) -> Self {
         Self { db, collab, storage }
     }
 
@@ -115,12 +111,10 @@ impl DocSpaceWriteCallback {
     ) -> Result<(&'static str, &'a str, serde_json::Value), String> {
         let text = String::from_utf8_lossy(bytes);
         match *kind {
-            PathKind::Markdown { title } => {
-                Ok(("markdown", title, serde_json::Value::String(text.into_owned())))
-            }
+            PathKind::Markdown { title } => Ok(("markdown", title, serde_json::Value::String(text.into_owned()))),
             PathKind::Notion { title } => {
-                let nodes = tokimo_plate_markdown::markdown_to_plate(&text)
-                    .map_err(|e| format!("md→plate failed: {e}"))?;
+                let nodes =
+                    tokimo_plate_markdown::markdown_to_plate(&text).map_err(|e| format!("md→plate failed: {e}"))?;
                 Ok(("notion", title, nodes))
             }
         }
@@ -136,7 +130,9 @@ impl DocSpaceWriteCallback {
     /// `attachmentId` is populated — required by OfficePreview for
     /// `.doc`/`.xls`/`.ppt` and for soft-delete tracking.
     async fn refine_attachment_mimes(&self, node_id: Uuid, content: &mut serde_json::Value) {
-        let serde_json::Value::Array(nodes) = content else { return };
+        let serde_json::Value::Array(nodes) = content else {
+            return;
+        };
         // Preload existing attachment records so we can reuse ids by storage_key.
         let existing = match AttachmentRepo::list_by_node(&self.db, node_id).await {
             Ok(v) => v,
@@ -158,13 +154,9 @@ impl DocSpaceWriteCallback {
     ) {
         let node_type = node.get("type").and_then(|v| v.as_str()).map(str::to_string);
         if matches!(node_type.as_deref(), Some("attachment" | "img"))
-            && let Some(storage_key) =
-                node.get("storageKey").and_then(|v| v.as_str()).map(str::to_string)
+            && let Some(storage_key) = node.get("storageKey").and_then(|v| v.as_str()).map(str::to_string)
         {
-            let filename = node
-                .get("fileName")
-                .and_then(|v| v.as_str())
-                .map(str::to_string);
+            let filename = node.get("fileName").and_then(|v| v.as_str()).map(str::to_string);
             // Try to reuse an existing DB row (matched by storage_key) first.
             let (mime, category, is_binary, encoding, language, size_bytes, attachment_id) =
                 if let Some(row) = existing.iter().find(|r| r.storage_key == storage_key) {
@@ -177,9 +169,7 @@ impl DocSpaceWriteCallback {
                         row.file_size as u64,
                         row.id,
                     )
-                } else if let Some((info, size)) =
-                    self.detect_from_storage(&storage_key, filename.as_deref()).await
-                {
+                } else if let Some((info, size)) = self.detect_from_storage(&storage_key, filename.as_deref()).await {
                     // No existing row → create one so OfficePreview and soft-delete work.
                     let size_i32 = i32::try_from(size).unwrap_or(i32::MAX);
                     let category_str = info.category.as_str().to_string();
