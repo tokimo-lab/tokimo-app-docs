@@ -1,11 +1,12 @@
+import { MaterialFileIcon } from "@tokimo/ui";
 import {
   AudioPlayer,
   ImagePreview,
-  MaterialFileIcon,
+  MonacoTextEditor,
   PdfEmbed,
   type PdfViewMode,
   VideoPreview,
-} from "@tokimo/ui";
+} from "@tokimo/viewers";
 import {
   Download,
   FileWarning,
@@ -29,7 +30,6 @@ import {
   useBlockFocus,
   WheelCaptureShield,
 } from "@/apps/docs/hooks/use-scroll-guard";
-import { MonacoTextEditor } from "@/apps/viewers/text/MonacoTextEditor";
 import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
 import { rustUrl } from "@/lib/rust-api-runtime";
 import { BlockToolbar } from "../components/BlockToolbar";
@@ -508,8 +508,17 @@ function PreviewContent({
       <div style={{ height: height ? `${height}px` : "300px" }}>
         <WheelCaptureShield active={!!activated}>
           <MonacoTextEditor
-            readOnlyUrl={url}
+            key={url}
             fileName={fileName}
+            fetchContent={() =>
+              fetch(url, { credentials: "include" }).then((response) => {
+                if (!response.ok) {
+                  throw new Error(`fetch failed: ${response.status}`);
+                }
+                return response.text();
+              })
+            }
+            readOnly
             language={detectedLanguage}
           />
         </WheelCaptureShield>
