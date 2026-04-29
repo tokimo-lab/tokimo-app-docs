@@ -10,10 +10,7 @@ interface GalleryConfigPanelProps {
   onClose: () => void;
 }
 
-export function GalleryConfigPanel({
-  state,
-  onClose,
-}: GalleryConfigPanelProps) {
+export function GalleryConfigPanel({ state }: GalleryConfigPanelProps) {
   const { activeView, fields } = state;
   const config = activeView?.galleryConfig;
 

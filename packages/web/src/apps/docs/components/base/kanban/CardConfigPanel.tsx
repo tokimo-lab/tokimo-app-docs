@@ -9,7 +9,7 @@ interface CardConfigPanelProps {
   onClose: () => void;
 }
 
-export function CardConfigPanel({ state, onClose }: CardConfigPanelProps) {
+export function CardConfigPanel({ state }: CardConfigPanelProps) {
   const { activeView, fields } = state;
   const config = activeView?.kanbanConfig;
 

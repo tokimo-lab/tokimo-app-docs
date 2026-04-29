@@ -14,7 +14,6 @@ export function GroupBySelector({
   fields,
   selectedFieldId,
   onSelect,
-  onClose,
 }: GroupBySelectorProps) {
   const groupableFields = fields.filter((f) =>
     KANBAN_GROUPABLE_TYPES.includes(f.type),
