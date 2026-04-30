@@ -7,13 +7,7 @@ import {
   type PdfViewMode,
   VideoPreview,
 } from "@tokimo/viewers";
-import {
-  Download,
-  FileWarning,
-  Loader2,
-  Paperclip,
-  Settings2,
-} from "lucide-react";
+import { Download, Paperclip, Settings2 } from "lucide-react";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
 import {
@@ -201,40 +195,7 @@ function isTextType(mime: string, fileName?: string): boolean {
   return false;
 }
 
-/** Check if a file is an office document that can be previewed via Gotenberg */
-function isOfficeType(category?: string, mime?: string): boolean {
-  if (
-    category === "document" ||
-    category === "spreadsheet" ||
-    category === "presentation"
-  ) {
-    // Exclude PDF since we handle it natively
-    if (mime === "application/pdf") return false;
-    return true;
-  }
-  // Fallback: check MIME for legacy Office types (e.g. when category is "binary")
-  if (mime) {
-    const officeMimes = [
-      "application/msword",
-      "application/vnd.ms-excel",
-      "application/vnd.ms-powerpoint",
-      "application/rtf",
-      "application/vnd.openxmlformats-officedocument.",
-      "application/vnd.oasis.opendocument.",
-    ];
-    if (officeMimes.some((prefix) => mime.startsWith(prefix))) return true;
-  }
-  return false;
-}
-
-type PreviewKind =
-  | "image"
-  | "pdf"
-  | "video"
-  | "audio"
-  | "text"
-  | "office"
-  | "fallback";
+type PreviewKind = "image" | "pdf" | "video" | "audio" | "text" | "fallback";
 
 /** Determine preview kind from detection fields, falling back to MIME heuristics */
 function resolvePreviewKind(
@@ -245,7 +206,6 @@ function resolvePreviewKind(
 ): PreviewKind {
   // Use fileCategory from detector when available
   if (fileCategory) {
-    if (isOfficeType(fileCategory, fileType)) return "office";
     switch (fileCategory) {
       case "image":
         return "image";
@@ -264,7 +224,6 @@ function resolvePreviewKind(
   if (isVideoType(fileType)) return "video";
   if (isAudioType(fileType)) return "audio";
   if (isTextType(fileType, fileName)) return "text";
-  if (isOfficeType(undefined, fileType)) return "office";
   if (isBinary === false) return "text";
 
   // PDF check (category=document but caught above via MIME)
@@ -277,7 +236,6 @@ const DEFAULT_HEIGHTS: Record<string, number> = {
   image: 300,
   pdf: 400,
   text: 300,
-  office: 400,
   fallback: 120,
 };
 
@@ -334,93 +292,6 @@ function LazyViewport({
   return <>{children}</>;
 }
 
-/** Office document preview — fetches PDF preview URL from backend, renders via PdfEmbed */
-function OfficePreview({
-  attachmentId,
-  fileName,
-  height,
-  maxWidth,
-  pdfMode,
-  onPdfModeChange,
-  pdfZoom,
-  onPdfZoomChange,
-}: {
-  attachmentId: string;
-  fileName: string;
-  height: number | null | undefined;
-  maxWidth?: number | null;
-  pdfMode?: PdfViewMode;
-  onPdfModeChange?: (mode: PdfViewMode) => void;
-  pdfZoom?: number;
-  onPdfZoomChange?: (zoom: number) => void;
-}) {
-  const [state, setState] = useState<{
-    status: "loading" | "ready" | "error";
-    url?: string;
-    error?: string;
-  }>({ status: "loading" });
-
-  useEffect(() => {
-    let cancelled = false;
-    docAttachmentApi.preview
-      .fetch({ id: attachmentId })
-      .then((result) => {
-        if (!cancelled) {
-          setState({ status: "ready", url: rustUrl(result.url) });
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setState({
-            status: "error",
-            error: err instanceof Error ? err.message : "Preview failed",
-          });
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [attachmentId]);
-
-  if (state.status === "loading") {
-    return (
-      <div
-        className="flex items-center justify-center gap-2 text-fg-muted"
-        style={{ height: height ? `${height}px` : "400px" }}
-      >
-        <Loader2 size={18} className="animate-spin" />
-        <span className="text-xs">Generating preview…</span>
-      </div>
-    );
-  }
-
-  if (state.status === "error" || !state.url) {
-    return (
-      <div
-        className="flex flex-col items-center justify-center gap-2 text-fg-muted"
-        style={{ height: height ? `${height}px` : "120px" }}
-      >
-        <FileWarning size={24} />
-        <span className="text-xs">{state.error ?? "Preview unavailable"}</span>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ height: height ? `${height}px` : "400px" }}>
-      <PdfEmbed
-        src={state.url}
-        title={fileName}
-        maxWidth={maxWidth ?? undefined}
-        mode={pdfMode}
-        onModeChange={onPdfModeChange}
-        zoom={pdfZoom}
-        onZoomChange={onPdfZoomChange}
-      />
-    </div>
-  );
-}
-
 function PreviewContent({
   storageKey,
   fileType,
@@ -431,7 +302,6 @@ function PreviewContent({
   pdfZoom,
   onPdfModeChange,
   onPdfZoomChange,
-  attachmentId,
   fileCategory,
   detectedLanguage,
   isBinary,
@@ -446,7 +316,6 @@ function PreviewContent({
   pdfZoom?: number;
   onPdfModeChange?: (mode: PdfViewMode) => void;
   onPdfZoomChange?: (zoom: number) => void;
-  attachmentId?: string;
   fileCategory?: string;
   detectedLanguage?: string;
   isBinary?: boolean;
@@ -526,31 +395,24 @@ function PreviewContent({
     );
   }
 
-  if (kind === "office" && attachmentId) {
-    return (
-      <WheelCaptureShield active={!!activated}>
-        <OfficePreview
-          attachmentId={attachmentId}
-          fileName={fileName}
-          height={height}
-          maxWidth={maxWidth}
-          pdfMode={pdfMode}
-          onPdfModeChange={onPdfModeChange}
-          pdfZoom={pdfZoom}
-          onPdfZoomChange={onPdfZoomChange}
-        />
-      </WheelCaptureShield>
-    );
-  }
-
-  // Fallback: large icon centered
+  // Fallback: download prompt
   return (
     <div
-      className="flex flex-col items-center justify-center gap-2 py-8"
+      className="flex flex-col items-center justify-center gap-3 py-8"
       style={style}
     >
       <MaterialFileIcon name={fileName} size={48} />
-      <span className="text-xs text-fg-muted">Preview not available</span>
+      <span className="text-xs text-fg-muted">该文件类型不支持预览</span>
+      <a
+        href={getStorageUrl(storageKey)}
+        download={fileName}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1.5 cursor-pointer rounded-md bg-fill-brand-secondary px-3 py-1.5 text-xs font-medium text-fg-on-emphasis transition-colors hover:bg-fill-brand"
+      >
+        <Download size={14} />
+        下载文件
+      </a>
     </div>
   );
 }
@@ -765,7 +627,7 @@ export function AttachmentElement(props: PlateElementProps) {
     isBinary,
     fileName,
   );
-  const showMaxWidthSetting = previewKind === "pdf" || previewKind === "office";
+  const showMaxWidthSetting = previewKind === "pdf";
 
   const handleHeightChange = useCallback(
     (h: number | null) => {
@@ -967,7 +829,6 @@ export function AttachmentElement(props: PlateElementProps) {
                     pdfZoom={pdfZoom}
                     onPdfModeChange={handlePdfModeChange}
                     onPdfZoomChange={handlePdfZoomChange}
-                    attachmentId={attachmentId}
                     fileCategory={fileCategory}
                     detectedLanguage={detectedLanguage}
                     isBinary={isBinary}
