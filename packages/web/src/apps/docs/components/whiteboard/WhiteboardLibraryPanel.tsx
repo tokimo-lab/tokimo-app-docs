@@ -12,6 +12,7 @@ import { Check, Library, Plus, RefreshCw, Search, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "@/generated/rust-api";
+import { authFetch } from "@/lib/auth-fetch";
 import { rustUrl } from "@/lib/rust-api-runtime";
 
 interface WhiteboardLibraryPanelProps {
@@ -55,7 +56,7 @@ export function WhiteboardLibraryPanel({
         const url = rustUrl(
           `/api/apps/docs/whiteboard/libraries/${libraryId}/download`,
         );
-        const res = await fetch(url, { credentials: "include" });
+        const res = await authFetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         // New format: { libraryItems: [{id,status,elements,...}] }

@@ -25,6 +25,7 @@ import {
   WheelCaptureShield,
 } from "@/apps/docs/hooks/use-scroll-guard";
 import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
+import { authFetch } from "@/lib/auth-fetch";
 import { rustUrl } from "@/lib/rust-api-runtime";
 import { BlockToolbar } from "../components/BlockToolbar";
 import { useDocEditorContext } from "../DocEditor";
@@ -380,7 +381,7 @@ function PreviewContent({
             key={url}
             fileName={fileName}
             fetchContent={() =>
-              fetch(url, { credentials: "include" }).then((response) => {
+              authFetch(url).then((response) => {
                 if (!response.ok) {
                   throw new Error(`fetch failed: ${response.status}`);
                 }

@@ -7,11 +7,11 @@
 import { useHandleLibrary } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useCallback, useMemo } from "react";
+import { authFetch } from "@/lib/auth-fetch";
 import { rustUrl } from "@/lib/rust-api-runtime";
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(rustUrl(path), {
-    credentials: "include",
+  const res = await authFetch(rustUrl(path), {
     ...options,
     headers: {
       "Content-Type": "application/json",
