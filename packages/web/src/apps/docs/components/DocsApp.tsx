@@ -27,12 +27,9 @@ export default function DocsApp() {
   const openEditorModal = useCallback(
     (opts: { spaceId?: string } = {}) => {
       openModalWindow({
-        component: () =>
-          import("@/apps/settings/admin/DocSpaceEditorWindow"),
+        component: () => import("@/apps/settings/admin/DocSpaceEditorWindow"),
         parentWindowId: windowId,
-        title: opts.spaceId
-          ? `TokimoDocs · 设置`
-          : "TokimoDocs · 新建文档空间",
+        title: opts.spaceId ? `TokimoDocs · 设置` : "TokimoDocs · 新建文档空间",
         width: 720,
         height: 640,
         noResize: true,
