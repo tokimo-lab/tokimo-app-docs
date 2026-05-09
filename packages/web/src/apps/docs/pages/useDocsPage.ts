@@ -278,10 +278,15 @@ export function useDocsPage(spaceId: string) {
         deselectNode();
         return;
       }
+      // Don't require the node to exist in already-loaded queries —
+      // ancestor folders may not be in treeNodes yet. Just navigate to the
+      // relPath; the route-driven queries will resolve type/metadata.
       const node = treeNodes.find((n) => n.relPath === nodeId);
-      node ? selectNode(node) : deselectNode();
+      const title = node?.title ?? nodeId.split("/").pop() ?? nodeId;
+      navigate(buildNodePath(spaceId, nodeId), `TokimoDocs · ${title}`);
+      setPreviewingVersionId(null);
     },
-    [treeNodes, selectNode, deselectNode],
+    [treeNodes, navigate, spaceId, deselectNode],
   );
 
   const handleSelectNode = useCallback(
