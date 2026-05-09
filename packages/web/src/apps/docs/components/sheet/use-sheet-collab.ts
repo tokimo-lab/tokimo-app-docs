@@ -72,18 +72,19 @@ interface UniverInstance {
 
 // ── WebSocket URL builder ───────────────────────────────────────────────────
 
-function buildCollabWsUrl(): string {
+function buildCollabWsUrl(spaceId: string, relPath: string): string {
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host = window.location.hostname;
   const port = window.location.port === "5173" ? "5678" : window.location.port;
-  return `${proto}//${host}:${port}/api/apps/docs/collab`;
+  return `${proto}//${host}:${port}/api/apps/docs/spaces/${encodeURIComponent(spaceId)}/collab?relPath=${encodeURIComponent(relPath)}`;
 }
 
 // ── Hook ────────────────────────────────────────────────────────────────────
 
 interface UseSheetCollabOptions {
   /** Doc node ID. null disables collab. */
-  nodeId: string | null;
+  spaceId: string | null;
+  relPath: string | null;
   /** User display name for presence. */
   userName: string;
   /** The Univer instance (from createUniver().univer). */
@@ -103,7 +104,8 @@ interface UseSheetCollabOptions {
  * remote mutation replay, and snapshot seeding for new rooms.
  */
 export function useSheetCollab({
-  nodeId,
+  spaceId,
+  relPath,
   userName,
   univer,
   univerAPI,
@@ -113,11 +115,12 @@ export function useSheetCollab({
   const cleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (!nodeId || !univer || !univerAPI) return;
+    if (!spaceId || !relPath || !univer || !univerAPI) return;
 
     const doc = new Y.Doc();
     const awareness = new Awareness(doc);
-    const wsUrl = buildCollabWsUrl();
+    const roomKey = `${spaceId}:${relPath}`;
+    const wsUrl = buildCollabWsUrl(spaceId, relPath);
 
     // Set local awareness state
     awareness.setLocalStateField("user", {
@@ -125,13 +128,13 @@ export function useSheetCollab({
       color: randomCursorColor(),
     });
 
-    const wsProvider = new WebsocketProvider(wsUrl, nodeId, doc, {
+    const wsProvider = new WebsocketProvider(wsUrl, roomKey, doc, {
       connect: true,
       awareness,
     });
 
     // Register in shared store for CollabPresenceBar
-    registerAwareness(nodeId, awareness, false);
+    registerAwareness(roomKey, awareness, false);
 
     // Broadcast awareness null on tab close/refresh so peers see immediate removal
     const handleBeforeUnload = () => {
@@ -140,7 +143,7 @@ export function useSheetCollab({
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     wsProvider.on("status", ({ status }: { status: string }) => {
-      updateConnectionStatus(nodeId, status === "connected");
+      updateConnectionStatus(roomKey, status === "connected");
     });
 
     const sheetMap = doc.getMap("sheet");
@@ -278,7 +281,7 @@ export function useSheetCollab({
       }
       // Broadcast cursor removal to peers BEFORE closing the WebSocket
       awareness.setLocalState(null);
-      unregisterAwareness(nodeId);
+      unregisterAwareness(roomKey);
       wsProvider.destroy();
       awareness.destroy();
       doc.destroy();
@@ -288,7 +291,15 @@ export function useSheetCollab({
       cleanupRef.current?.();
       cleanupRef.current = null;
     };
-  }, [nodeId, userName, univer, univerAPI, isReplayingRef, initialContent]);
+  }, [
+    spaceId,
+    relPath,
+    userName,
+    univer,
+    univerAPI,
+    isReplayingRef,
+    initialContent,
+  ]);
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

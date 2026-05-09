@@ -28,6 +28,7 @@ export type DocNodeType =
 
 export interface DocNode {
   id: string;
+  relPath: string;
   type: DocNodeType;
   parentId: string | null;
   title: string;
@@ -54,7 +55,8 @@ export interface DocTreeNode {
 /** Map an API list item to the local DocNode shape. */
 export function apiNodeToLocal(n: DocNodeListItem): DocNode {
   return {
-    id: n.id,
+    id: n.relPath,
+    relPath: n.relPath,
     type: n.type as DocNodeType,
     parentId: n.parentId,
     title: n.title,
@@ -189,6 +191,18 @@ export function nextUniqueName(
 
 // ── Path routing utilities ──────────────────────────────────────────────────
 
+export function parentRelPathOf(
+  relPath: string | null | undefined,
+): string | null {
+  const normalized = relPath?.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+  if (!normalized) return null;
+
+  const lastSlashIndex = normalized.lastIndexOf("/");
+  if (lastSlashIndex < 0) return null;
+
+  return normalized.slice(0, lastSlashIndex) || null;
+}
+
 /** Characters forbidden in node names (Windows + Linux filesystem union). */
 const FORBIDDEN_CHARS = /[\\/:*?"<>|]/g;
 
@@ -205,62 +219,57 @@ export function isValidNodeName(name: string): boolean {
   return name.length > 0 && name.length <= 255 && !FORBIDDEN_CHARS.test(name);
 }
 
-/**
- * Build a filesystem-style path from root to the given node.
- * Returns "/" for root (no node), "/Folder/Doc" for nested nodes.
- * Each segment is URI-encoded.
- */
-export function buildNodePath(
-  nodeId: string,
-  allNodes: { id: string; parentId: string | null; title: string }[],
-): string {
-  const byId = new Map(allNodes.map((n) => [n.id, n]));
-  const chain: string[] = [];
-  let cur = byId.get(nodeId);
-  while (cur) {
-    chain.unshift(encodeURIComponent(cur.title));
-    cur = cur.parentId ? byId.get(cur.parentId) : undefined;
-  }
-  return `/${chain.join("/")}`;
+/** Encode a VFS relative path for use in a route segment. */
+export function encodeRelPath(relPath: string): string {
+  const bytes = new TextEncoder().encode(relPath);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
 }
 
-/**
- * Resolve a filesystem-style path to a node.
- * Walks segments from root, matching title at each level.
- * Returns null if any segment doesn't match.
- */
-export function resolveNodeByPath(
-  path: string,
-  allNodes: { id: string; parentId: string | null; title: string }[],
+export function decodeRelPath(
+  encoded: string | null | undefined,
 ): string | null {
-  if (!path || path === "/") return null;
-  const segments = path.split("/").filter(Boolean).map(safeDecodeURIComponent);
-  if (segments.length === 0) return null;
-
-  // Build parent→children index for fast lookup
-  const childIndex = new Map<string | null, typeof allNodes>();
-  for (const n of allNodes) {
-    const list = childIndex.get(n.parentId) ?? [];
-    list.push(n);
-    childIndex.set(n.parentId, list);
+  if (!encoded) return null;
+  try {
+    const padded = encoded
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(encoded.length / 4) * 4, "=");
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch (error) {
+    console.warn("[TokimoDocs] invalid relPath route", error);
+    return null;
   }
-
-  let parentId: string | null = null;
-  for (const seg of segments) {
-    const children = childIndex.get(parentId);
-    const match = children?.find((n) => n.title === seg);
-    if (!match) return null;
-    parentId = match.id;
-  }
-  return parentId; // last matched node ID
 }
 
-function safeDecodeURIComponent(s: string): string {
-  try {
-    return decodeURIComponent(s);
-  } catch {
-    return s;
+export function buildNodePath(spaceId: string, relPath: string): string {
+  return `/space/${encodeURIComponent(spaceId)}/node/${encodeRelPath(relPath)}`;
+}
+
+export function resolveNodeByPath(path: string): string | null {
+  const queryIndex = path.indexOf("?");
+  const pathname = queryIndex >= 0 ? path.slice(0, queryIndex) : path;
+  const segments = pathname.split("/").filter(Boolean);
+  const nodeIndex = segments.indexOf("node");
+  const encodedRelPath = nodeIndex >= 0 ? segments[nodeIndex + 1] : undefined;
+
+  if (encodedRelPath) {
+    try {
+      const relPath = decodeRelPath(decodeURIComponent(encodedRelPath));
+      if (relPath) return relPath;
+    } catch (error) {
+      console.warn("[TokimoDocs] invalid relPath route", error);
+    }
   }
+
+  const query = queryIndex >= 0 ? path.slice(queryIndex + 1) : "";
+  return decodeRelPath(new URLSearchParams(query).get("relPath"));
 }
 
 // ── Flat tree for DnD / flat rendering ─────────────────────────────────────

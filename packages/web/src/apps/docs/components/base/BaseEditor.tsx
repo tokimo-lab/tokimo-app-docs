@@ -15,11 +15,12 @@ import { ViewTabsBar } from "./toolbar/ViewTabsBar";
 import { useBaseEditor } from "./useBaseEditor";
 
 interface BaseEditorProps {
-  nodeId: string;
+  spaceId: string;
+  relPath: string;
 }
 
-export function BaseEditor({ nodeId }: BaseEditorProps) {
-  const state = useBaseEditor({ nodeId });
+export function BaseEditor({ spaceId, relPath }: BaseEditorProps) {
+  const state = useBaseEditor({ spaceId, relPath });
 
   if (state.isLoading) {
     return (

@@ -21,7 +21,7 @@ export const PROVIDER_TYPE = "tokimo-ws";
 export interface TokimoWsProviderOptions {
   /** WebSocket server base URL (without room name). */
   url: string;
-  /** Room name (typically the doc node ID). */
+  /** Room name used for local awareness bookkeeping. */
   roomName: string;
 }
 

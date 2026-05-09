@@ -41,7 +41,8 @@ interface MindEditorProps {
   /** Called when the mind map data changes (will be debounced internally). */
   onChange: (data: MindElixirData) => void;
   /** Doc node ID for collaboration room. */
-  nodeId: string;
+  spaceId: string;
+  relPath: string;
   /** User display name for collab presence. */
   userName?: string;
 }
@@ -62,7 +63,8 @@ function isMindElixirData(v: unknown): v is MindElixirData {
 export function MindEditor({
   content,
   onChange,
-  nodeId,
+  spaceId,
+  relPath,
   userName,
 }: MindEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -94,7 +96,7 @@ export function MindEditor({
     viewState: savedViewport,
     isLoading: viewportLoading,
     saveViewport,
-  } = useDocViewport(nodeId);
+  } = useDocViewport(spaceId, relPath);
   const viewportRestoredRef = useRef(false);
 
   const debouncedSave = useCallback(() => {
@@ -232,7 +234,8 @@ export function MindEditor({
 
   // ── Collab ─────────────────────────────────────────────────────────────
   useMindCollab({
-    nodeId,
+    spaceId,
+    relPath,
     userName: userName ?? "Anonymous",
     mind: mindInstance,
     isReplayingRef,

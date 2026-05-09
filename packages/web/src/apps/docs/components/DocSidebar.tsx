@@ -1,11 +1,8 @@
-/** DocSidebar — Feishu-style sidebar for the doc app. */
-
 import { cn, Dropdown, type DropdownMenuItem, Input, Spin } from "@tokimo/ui";
 import {
   ArrowUpDown,
   BrainCircuit,
   Check,
-  Clock,
   FileCode,
   FileText,
   FolderPlus,
@@ -20,24 +17,19 @@ import {
   Table2,
   Trash2,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DocNodeListItem } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
+import { apiNodeToLocal, parentRelPathOf } from "../lib/doc-node";
 import { DocNodeTipPanel, useDocNodeTip } from "./DocNodeTip";
 import { DocSidebarTagFilter } from "./DocSidebarTagFilter";
-import { ArchivedNodeRow, NodeTreeItem } from "./DocSidebarTree";
-import { TreeDragContext } from "./tree-drag-context";
-import { useDocSidebarNodes } from "./useDocSidebarNodes";
+import { ArchivedNodeRow, LazyTreeNode, NodeTreeItem } from "./DocSidebarTree";
 
-// ── Exported types ─────────────────────────────────────────────────────────
-
-export type SidebarTab = "all" | "recent" | "favorites" | "trash";
+export type SidebarTab = "all" | "favorites" | "archived";
 export type SortField = "updatedAt" | "createdAt" | "title" | "wordCount";
 export type SortDir = "asc" | "desc";
-
-// ── Internal types ─────────────────────────────────────────────────────────
 
 interface DocSidebarProps {
   spaceId: string;
@@ -49,14 +41,13 @@ interface DocSidebarProps {
   onSetTab: (tab: SidebarTab) => void;
   search: string;
   onSetSearch: (search: string) => void;
-  onCreateNode: (type: DocNodeType, parentId?: string) => void;
-  onCreateFolder: (parentId?: string) => void;
-  onFavoriteNode: (id: string) => void;
+  onCreateNode: (type: DocNodeType, parentRelPath?: string) => void;
+  onCreateFolder: (parentRelPath?: string) => void;
+  onFavoriteNode: (relPath: string) => void;
   onDeleteNode: (node: DocNode) => void;
-  onUpdateNode: (id: string, title: string) => void;
-  onMoveNode: (id: string, parentId: string | null, sortOrder?: number) => void;
-  onRestoreNode: (id: string) => void;
-  onPermanentDeleteNode: (id: string) => void;
+  onUpdateNode: (relPath: string, title: string) => void;
+  onRestoreNode: (relPath: string) => void;
+  onPermanentDeleteNode: (relPath: string) => void;
   sortField: SortField;
   sortDir: SortDir;
   onSetSortField: (field: SortField) => void;
@@ -67,8 +58,6 @@ interface DocSidebarProps {
   onSetFilterTags: (tags: string[]) => void;
 }
 
-// ── Sort labels ────────────────────────────────────────────────────────────
-
 const SORT_LABELS: Record<SortField, string> = {
   updatedAt: "更新时间",
   createdAt: "创建时间",
@@ -76,20 +65,11 @@ const SORT_LABELS: Record<SortField, string> = {
   wordCount: "字数",
 };
 
-// ── Nav item config ────────────────────────────────────────────────────────
-
-const NAV_ITEMS: {
-  key: SidebarTab;
-  label: string;
-  icon: typeof FileText;
-}[] = [
+const NAV_ITEMS: { key: SidebarTab; label: string; icon: typeof FileText }[] = [
   { key: "all", label: "全部文档", icon: FileText },
-  { key: "recent", label: "最近编辑", icon: Clock },
   { key: "favorites", label: "收藏", icon: Star },
-  { key: "trash", label: "回收站", icon: Trash2 },
+  { key: "archived", label: "归档", icon: Trash2 },
 ];
-
-// ── DocSidebar ─────────────────────────────────────────────────────────────
 
 export function DocSidebar({
   spaceId,
@@ -106,7 +86,6 @@ export function DocSidebar({
   onFavoriteNode,
   onDeleteNode,
   onUpdateNode,
-  onMoveNode,
   onRestoreNode,
   onPermanentDeleteNode,
   sortField,
@@ -119,92 +98,73 @@ export function DocSidebar({
   onSetFilterTags,
 }: DocSidebarProps) {
   const { t } = useTranslation();
-  // ── Tags data ───────────────────────────────────────────────
   const tagsQuery = api.docs.listTags.useQuery(
     { spaceId },
     { enabled: !!spaceId },
   );
   const availableTags = tagsQuery.data ?? [];
-
-  // ── Expand/collapse ──────────────────────────────────────────
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
     new Set(),
   );
-  const toggleFolder = useCallback((folderId: string) => {
+  const [renamingRelPath, setRenamingRelPath] = useState<string | null>(null);
+  const tip = useDocNodeTip();
+
+  const flatDocNodes = useMemo(() => nodes.map(apiNodeToLocal), [nodes]);
+
+  const showTree = tab === "all" && !search && filterTags.length === 0;
+
+  useEffect(() => {
+    if (!selectedNodeId || !showTree) return;
+
+    const pathsToExpand: string[] = [selectedNodeId];
+    let currentPath: string | null = selectedNodeId;
+    while (currentPath) {
+      const parentPath = parentRelPathOf(currentPath);
+      if (parentPath) {
+        pathsToExpand.push(parentPath);
+      }
+      currentPath = parentPath;
+    }
+
+    setExpandedFolders((prev) => {
+      const allExist = pathsToExpand.every((path) => prev.has(path));
+      if (allExist) return prev;
+
+      const next = new Set(prev);
+      for (const path of pathsToExpand) {
+        next.add(path);
+      }
+      return next;
+    });
+  }, [selectedNodeId, showTree]);
+
+  const toggleFolder = useCallback((relPath: string) => {
     setExpandedFolders((prev) => {
       const next = new Set(prev);
-      if (next.has(folderId)) next.delete(folderId);
-      else next.add(folderId);
+      if (next.has(relPath)) next.delete(relPath);
+      else next.add(relPath);
       return next;
     });
   }, []);
 
-  // ── Rename state ─────────────────────────────────────────────
-  const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
-
-  const startRename = useCallback((node: DocNode) => {
-    setRenamingNodeId(node.id);
-  }, []);
-
-  const commitRename = useCallback(
-    (nodeId: string, name: string) => {
-      onUpdateNode(nodeId, name);
-      setRenamingNodeId(null);
-    },
-    [onUpdateNode],
-  );
-
-  const cancelRename = useCallback(() => {
-    setRenamingNodeId(null);
-  }, []);
-
-  // ── Create folder ────────────────────────────────────────────
   const handleCreateFolder = useCallback(
-    (parentId?: string) => {
-      onCreateFolder(parentId);
-      if (parentId) {
-        setExpandedFolders((prev) => new Set([...prev, parentId]));
-      }
+    (parentRelPath?: string) => {
+      onCreateFolder(parentRelPath);
+      if (parentRelPath)
+        setExpandedFolders((prev) => new Set([...prev, parentRelPath]));
     },
     [onCreateFolder],
   );
 
-  const handleDeleteNode = useCallback(
-    (node: DocNode) => {
-      onDeleteNode(node);
-    },
-    [onDeleteNode],
-  );
-
   const handleCreateDocInFolder = useCallback(
-    (type: DocNodeType, folderId?: string) => {
-      if (folderId) {
-        setExpandedFolders((prev) => new Set([...prev, folderId]));
-      }
-      onCreateNode(type, folderId);
+    (type: DocNodeType, parentRelPath?: string) => {
+      if (parentRelPath)
+        setExpandedFolders((prev) => new Set([...prev, parentRelPath]));
+      onCreateNode(type, parentRelPath);
     },
     [onCreateNode],
   );
 
-  // ── Node tree + DnD ──────────────────────────────────────────
-  const {
-    flatDocNodes,
-    allFolders,
-    flatItems,
-    handleMoveDoc,
-    treeDragValue,
-    dnd,
-  } = useDocSidebarNodes({
-    nodes,
-    expandedFolders,
-    toggleFolder,
-    onMoveNode,
-  });
-
-  // ── Hover tooltip ──────────────────────────────────────────
-  const tip = useDocNodeTip();
-
-  // ── Sort menu ────────────────────────────────────────────────
   const sortMenuItems: DropdownMenuItem[] = useMemo(() => {
     const fieldItems: DropdownMenuItem[] = (
       ["updatedAt", "createdAt", "title", "wordCount"] as SortField[]
@@ -246,11 +206,8 @@ export function DocSidebar({
     return [...fieldItems, { type: "divider" as const }, ...dirItems];
   }, [sortField, sortDir, onSetSortField, onSetSortDir]);
 
-  const showTree =
-    (tab === "all" || tab === "recent") && !search && filterTags.length === 0;
-  const isTrash = tab === "trash";
+  const isArchived = tab === "archived";
 
-  // ── Collapsed view ───────────────────────────────────────────
   if (collapsed) {
     return (
       <div className="flex w-10 shrink-0 flex-col items-center border-r border-border-base bg-surface-base/50 py-2">
@@ -266,9 +223,28 @@ export function DocSidebar({
     );
   }
 
+  const treeActions = {
+    selectedRelPath: selectedNodeId,
+    onSelectNode,
+    onFavoriteDoc: onFavoriteNode,
+    onDeleteNode,
+    onCreateDoc: handleCreateDocInFolder,
+    onCreateSubfolder: handleCreateFolder,
+    onStartRename: (node: DocNode) => setRenamingRelPath(node.relPath),
+    onCommitRename: (relPath: string, name: string) => {
+      onUpdateNode(relPath, name);
+      setRenamingRelPath(null);
+    },
+    onCancelRename: () => setRenamingRelPath(null),
+    renamingRelPath,
+    expandedFolders,
+    onToggleExpand: toggleFolder,
+    onNodeHover: tip.enter,
+    onNodeLeave: tip.leave,
+  };
+
   return (
     <div className="flex w-64 shrink-0 flex-col border-r border-border-base bg-surface-base/50">
-      {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex items-center gap-1 px-3 py-2">
         <div className="min-w-0 flex-1">
           <Input
@@ -302,7 +278,6 @@ export function DocSidebar({
         </button>
       </div>
 
-      {/* ── Nav items ───────────────────────────────────────── */}
       <div className="flex flex-col gap-0.5 px-2 pb-2">
         {NAV_ITEMS.map((item) => {
           const isActive = tab === item.key;
@@ -314,7 +289,7 @@ export function DocSidebar({
               className={cn(
                 "flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
                 isActive
-                  ? "bg-[var(--accent-subtle)] font-medium text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
+                  ? "bg-[var(--accent-subtle)] font-medium text-[var(--accent)]"
                   : "text-fg-secondary hover:bg-fill-tertiary",
               )}
               onClick={() => onSetTab(item.key)}
@@ -331,8 +306,7 @@ export function DocSidebar({
         })}
       </div>
 
-      {/* ── Section header: 我的文档 ───────────────────────── */}
-      {(tab === "all" || tab === "recent") && (
+      {tab === "all" && (
         <div className="flex items-center gap-1 px-3 pt-1 pb-1">
           <span className="flex-1 text-xs font-semibold tracking-wide text-fg-muted uppercase">
             我的文档
@@ -395,7 +369,7 @@ export function DocSidebar({
           >
             <button
               type="button"
-              className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-[var(--accent)] dark:hover:text-[var(--accent)]"
+              className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-[var(--accent)]"
               title={t("docs.newDocument")}
             >
               <Plus size={14} />
@@ -404,8 +378,7 @@ export function DocSidebar({
         </div>
       )}
 
-      {/* ── Tag filter ──────────────────────────────────────── */}
-      {(tab === "all" || tab === "recent") && (
+      {tab === "all" && (
         <DocSidebarTagFilter
           availableTags={availableTags}
           filterTags={filterTags}
@@ -420,17 +393,19 @@ export function DocSidebar({
         />
       )}
 
-      {/* ── Content ─────────────────────────────────────────── */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: tooltip leave handler */}
-      <div className="flex-1 overflow-y-auto" onMouseLeave={tip.leave}>
+      <section
+        className="flex-1 overflow-y-auto"
+        onMouseLeave={tip.leave}
+        aria-label="Document tree"
+      >
         {isLoadingNodes ? (
           <div className="flex justify-center py-8">
             <Spin size="small" />
           </div>
         ) : nodes.length === 0 ? (
           <div className="px-3 py-8 text-center text-sm text-fg-muted">
-            {isTrash
-              ? "回收站为空"
+            {isArchived
+              ? "归档为空"
               : search
                 ? "没有匹配的文档"
                 : tab === "favorites"
@@ -438,44 +413,27 @@ export function DocSidebar({
                   : "暂无文档，点击上方新建"}
           </div>
         ) : showTree ? (
-          <TreeDragContext.Provider value={treeDragValue}>
-            <div ref={dnd.containerRef} className="flex flex-col px-1.5 py-1">
-              {flatItems.map((item) => (
-                <NodeTreeItem
-                  key={item.node.id}
-                  node={item.node}
-                  depth={item.depth}
-                  hasChildren={item.hasChildren}
-                  isExpanded={item.isExpanded}
-                  selectedNodeId={selectedNodeId}
-                  onToggleExpand={toggleFolder}
-                  onSelectNode={onSelectNode}
-                  onFavoriteDoc={onFavoriteNode}
-                  onDeleteNode={handleDeleteNode}
-                  onCreateDoc={handleCreateDocInFolder}
-                  onCreateSubfolder={handleCreateFolder}
-                  onStartRename={startRename}
-                  onCommitRename={commitRename}
-                  onCancelRename={cancelRename}
-                  onMoveDoc={handleMoveDoc}
-                  renamingNodeId={renamingNodeId}
-                  allFolders={allFolders}
-                  onNodeHover={tip.enter}
-                  onNodeLeave={tip.leave}
-                />
-              ))}
-            </div>
-          </TreeDragContext.Provider>
-        ) : isTrash ? (
+          <div className="flex flex-col px-1.5 py-1">
+            {flatDocNodes.map((node) => (
+              <LazyTreeNode
+                key={node.relPath}
+                spaceId={spaceId}
+                node={node}
+                depth={0}
+                actions={treeActions}
+              />
+            ))}
+          </div>
+        ) : isArchived ? (
           <div className="flex flex-col gap-0.5 px-1.5 py-1">
             {flatDocNodes.map((node) => (
               <ArchivedNodeRow
-                key={node.id}
+                key={node.relPath}
                 node={node}
-                isActive={node.id === selectedNodeId}
+                isActive={node.relPath === selectedNodeId}
                 onClick={() => onSelectNode(node)}
-                onRestore={() => onRestoreNode(node.id)}
-                onPermanentDelete={() => onPermanentDeleteNode(node.id)}
+                onRestore={() => onRestoreNode(node.relPath)}
+                onPermanentDelete={() => onPermanentDeleteNode(node.relPath)}
               />
             ))}
           </div>
@@ -483,26 +441,12 @@ export function DocSidebar({
           <div className="flex flex-col gap-0.5 px-1.5 py-1">
             {flatDocNodes.map((node) => (
               <NodeTreeItem
-                key={node.id}
+                key={node.relPath}
                 node={node}
                 depth={0}
-                hasChildren={false}
-                isExpanded={false}
-                selectedNodeId={selectedNodeId}
-                onToggleExpand={toggleFolder}
-                onSelectNode={onSelectNode}
-                onFavoriteDoc={onFavoriteNode}
-                onDeleteNode={handleDeleteNode}
-                onCreateDoc={handleCreateDocInFolder}
-                onCreateSubfolder={handleCreateFolder}
-                onStartRename={startRename}
-                onCommitRename={commitRename}
-                onCancelRename={cancelRename}
-                onMoveDoc={handleMoveDoc}
-                renamingNodeId={renamingNodeId}
-                allFolders={allFolders}
-                onNodeHover={tip.enter}
-                onNodeLeave={tip.leave}
+                hasChildren={node.type === "folder"}
+                isExpanded={expandedFolders.has(node.relPath)}
+                {...treeActions}
               />
             ))}
           </div>
@@ -518,7 +462,7 @@ export function DocSidebar({
             leave={tip.leave}
           />
         )}
-      </div>
+      </section>
     </div>
   );
 }

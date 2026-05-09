@@ -51,7 +51,8 @@ interface SheetEditorProps {
   /** Called when the workbook data changes (debounced by parent). */
   onChange: (snapshot: unknown) => void;
   /** Doc node ID — when provided, enables real-time collaborative editing. */
-  nodeId?: string;
+  spaceId?: string;
+  relPath?: string;
   /** User display name for remote presence labels. */
   userName?: string;
 }
@@ -61,7 +62,8 @@ interface SheetEditorProps {
 export function SheetEditor({
   content,
   onChange,
-  nodeId,
+  spaceId,
+  relPath,
   userName,
 }: SheetEditorProps) {
   const { i18n } = useTranslation();
@@ -82,7 +84,7 @@ export function SheetEditor({
     viewState: savedViewport,
     isLoading: viewportLoading,
     saveViewport,
-  } = useDocViewport(nodeId);
+  } = useDocViewport(spaceId, relPath);
   const viewportRestoredRef = useRef(false);
 
   // Stable reference to initial content — only used on mount
@@ -155,7 +157,8 @@ export function SheetEditor({
 
   // Real-time collaboration via Yjs
   useSheetCollab({
-    nodeId: nodeId ?? null,
+    spaceId: spaceId ?? null,
+    relPath: relPath ?? null,
     userName: userName ?? "Anonymous",
     univer: univerInstance?.univer as never,
     univerAPI: univerInstance?.univerAPI as never,
@@ -213,9 +216,9 @@ export function SheetEditor({
         ref={containerRef}
         className="h-full w-full sheet-editor-overrides"
       />
-      {nodeId && (
+      {relPath && (
         <SheetCursorOverlay
-          nodeId={nodeId}
+          nodeId={relPath ?? null}
           univerAPI={univerInstance?.univerAPI as never}
           containerRef={containerRef}
         />

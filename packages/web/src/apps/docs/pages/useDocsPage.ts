@@ -15,12 +15,14 @@ import type { DocNode, DocNodeType } from "@/apps/docs/lib/doc-node";
 import {
   buildNodePath,
   nextUniqueName,
+  parentRelPathOf,
   resolveNodeByPath,
   untitledI18nKey,
 } from "@/apps/docs/lib/doc-node";
-import type { DocNodeOutput } from "@/generated/rust-api";
+import type { DocNodeListItem } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
 import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
+import type { DocsTab } from "@/generated/rust-api/docs/docs";
 import { onAiDocumentEdit, openAiAssistant } from "@/lib/ai-assistant-events";
 import { useMessage, useWindowNav } from "@/system";
 import { useAuth } from "@/system/auth/useAuth";
@@ -35,6 +37,89 @@ import {
   getSelectedText,
   pickAndReadMarkdownFile,
 } from "./doc-page-utils";
+
+export type DocNodeDetail = DocNodeListItem & {
+  id: string;
+  content: unknown;
+};
+
+type DetailRecord = Record<string, unknown>;
+
+function asDetailRecord(value: unknown): DetailRecord | null {
+  return value != null && typeof value === "object"
+    ? (value as DetailRecord)
+    : null;
+}
+
+function stringField(record: DetailRecord | null, key: string): string | null {
+  const value = record?.[key];
+  return typeof value === "string" ? value : null;
+}
+
+function numberField(record: DetailRecord | null, key: string): number | null {
+  const value = record?.[key];
+  return typeof value === "number" ? value : null;
+}
+
+function booleanField(
+  record: DetailRecord | null,
+  key: string,
+): boolean | null {
+  const value = record?.[key];
+  return typeof value === "boolean" ? value : null;
+}
+
+function stringArrayField(
+  record: DetailRecord | null,
+  key: string,
+): string[] | null {
+  const value = record?.[key];
+  return Array.isArray(value) && value.every((item) => typeof item === "string")
+    ? value
+    : null;
+}
+
+function buildDocNodeDetail(
+  node: DocNodeListItem | null,
+  detail: unknown,
+): DocNodeDetail | null {
+  if (!node) return null;
+  const record = asDetailRecord(detail);
+  return {
+    ...node,
+    id: stringField(record, "id") ?? node.relPath,
+    relPath: stringField(record, "relPath") ?? node.relPath,
+    spaceId: stringField(record, "spaceId") ?? node.spaceId,
+    parentId: stringField(record, "parentId") ?? node.parentId,
+    type: stringField(record, "type") ?? node.type,
+    title: stringField(record, "title") ?? node.title,
+    icon: stringField(record, "icon") ?? node.icon,
+    tags: stringArrayField(record, "tags") ?? node.tags,
+    isFavorite: booleanField(record, "isFavorite") ?? node.isFavorite,
+    isPinned: booleanField(record, "isPinned") ?? node.isPinned,
+    isArchived: booleanField(record, "isArchived") ?? node.isArchived,
+    wordCount: numberField(record, "wordCount") ?? node.wordCount,
+    sortOrder: numberField(record, "sortOrder") ?? node.sortOrder,
+    lastOpenedAt: stringField(record, "lastOpenedAt") ?? node.lastOpenedAt,
+    createdAt: stringField(record, "createdAt") ?? node.createdAt,
+    updatedAt: stringField(record, "updatedAt") ?? node.updatedAt,
+    content: record?.content ?? null,
+  };
+}
+
+function mergeNodesByRelPath(
+  ...nodeGroups: readonly (readonly DocNodeListItem[] | undefined)[]
+): DocNodeListItem[] {
+  const nodesByRelPath = new Map<string, DocNodeListItem>();
+  for (const group of nodeGroups) {
+    for (const node of group ?? []) {
+      if (!nodesByRelPath.has(node.relPath)) {
+        nodesByRelPath.set(node.relPath, node);
+      }
+    }
+  }
+  return Array.from(nodesByRelPath.values());
+}
 
 export function useDocsPage(spaceId: string) {
   const { route, navigate, replace } = useWindowNav();
@@ -60,27 +145,45 @@ export function useDocsPage(spaceId: string) {
   const windowId = useWindowId();
   const { openModalWindow } = useWindowActions();
 
-  const effectiveSortField = tab === "recent" ? "updatedAt" : sortField;
-  const effectiveSortDir = tab === "recent" ? "desc" : sortDir;
+  const effectiveSortField = sortField;
+  const effectiveSortDir = sortDir;
+  const listTab: DocsTab = tab;
 
-  // ── Unfiltered tree index (for path ↔ node resolution) ──────────────
-  const treeQuery = api.docs.list.useQuery(
-    { spaceId: spaceId ?? "", pageSize: 9999 },
+  // ── Filtered node list query (sidebar display) ──────────────────────
+  const listQuery = api.docs.list.useQuery(
+    {
+      spaceId: spaceId ?? "",
+      pageSize: 500,
+      tab: listTab,
+      search: search || undefined,
+      tags: filterTags.length > 0 ? filterTags.join(",") : undefined,
+    },
     { enabled: !!spaceId },
-  );
-  const treeNodes = useMemo(
-    () => treeQuery.data?.items ?? [],
-    [treeQuery.data],
   );
 
   // ── Route-derived selection ──────────────────────────────────────────
-  const selectedNodeId = useMemo(
-    () => resolveNodeByPath(route, treeNodes),
-    [route, treeNodes],
+  const selectedNodeId = useMemo(() => resolveNodeByPath(route), [route]);
+  const selectedParentPath = useMemo(
+    () => parentRelPathOf(selectedNodeId),
+    [selectedNodeId],
+  );
+  const selectedFolderListQuery = api.docs.list.useQuery(
+    {
+      spaceId: spaceId ?? "",
+      path: selectedParentPath ?? "",
+      tab: "all",
+      pageSize: 500,
+    },
+    { enabled: !!spaceId && !!selectedNodeId },
   );
   const selectedNode = useMemo(
-    () => treeNodes.find((n) => n.id === selectedNodeId) ?? null,
-    [treeNodes, selectedNodeId],
+    () =>
+      selectedFolderListQuery.data?.items.find(
+        (n) => n.relPath === selectedNodeId,
+      ) ??
+      listQuery.data?.items.find((n) => n.relPath === selectedNodeId) ??
+      null,
+    [selectedFolderListQuery.data, listQuery.data, selectedNodeId],
   );
   const selectedNodeType = (selectedNode?.type as DocNodeType) ?? null;
 
@@ -88,33 +191,27 @@ export function useDocsPage(spaceId: string) {
   const prevRouteRef = useRef(route);
   useEffect(() => {
     if (!selectedNodeId || !selectedNode) return;
-    const correctPath = buildNodePath(selectedNodeId, treeNodes);
+    const correctPath = buildNodePath(spaceId, selectedNodeId);
     if (correctPath !== route && route !== "/") {
       replace(correctPath, selectedNode.title);
     }
     prevRouteRef.current = route;
-  }, [selectedNodeId, selectedNode, treeNodes, route, replace]);
+  }, [selectedNodeId, selectedNode, spaceId, route, replace]);
 
   // Navigation helpers
   const selectNode = useCallback(
-    (node: { id: string; title: string }) => {
-      navigate(buildNodePath(node.id, treeNodes), `TokimoDocs · ${node.title}`);
+    (node: { relPath: string; title: string }) => {
+      navigate(
+        buildNodePath(spaceId, node.relPath),
+        `TokimoDocs · ${node.title}`,
+      );
       setPreviewingVersionId(null);
     },
-    [treeNodes, navigate],
+    [navigate, spaceId],
   );
-  const deselectNode = useCallback(() => navigate("/"), [navigate]);
-
-  const navigateToNode = useCallback(
-    (nodeId: string | null) => {
-      if (!nodeId) {
-        deselectNode();
-        return;
-      }
-      const node = treeNodes.find((n) => n.id === nodeId);
-      node ? selectNode(node) : deselectNode();
-    },
-    [treeNodes, selectNode, deselectNode],
+  const deselectNode = useCallback(
+    () => navigate(`/space/${encodeURIComponent(spaceId)}`),
+    [navigate, spaceId],
   );
 
   const selectedDocId = selectedNodeType === "notion" ? selectedNodeId : null;
@@ -135,50 +232,77 @@ export function useDocsPage(spaceId: string) {
     selectedWhiteboardId ??
     selectedBaseId;
   const currentFolderId = selectedNodeType === "folder" ? selectedNodeId : null;
+  const browserQuery = api.docs.list.useQuery(
+    {
+      spaceId: spaceId ?? "",
+      path: currentFolderId ?? "",
+      tab: "all",
+      pageSize: 500,
+    },
+    { enabled: !!spaceId && selectedNodeType === "folder" },
+  );
+  const treeNodes = useMemo(
+    () =>
+      mergeNodesByRelPath(
+        listQuery.data?.items,
+        selectedFolderListQuery.data?.items,
+        browserQuery.data?.items,
+      ),
+    [listQuery.data, selectedFolderListQuery.data, browserQuery.data],
+  );
+  const allNodes = useMemo(
+    () =>
+      mergeNodesByRelPath(
+        listQuery.data?.items,
+        selectedFolderListQuery.data?.items,
+        browserQuery.data?.items,
+      ),
+    [listQuery.data, selectedFolderListQuery.data, browserQuery.data],
+  );
+
+  const navigateToNode = useCallback(
+    (nodeId: string | null) => {
+      if (!nodeId) {
+        deselectNode();
+        return;
+      }
+      const node = treeNodes.find((n) => n.relPath === nodeId);
+      node ? selectNode(node) : deselectNode();
+    },
+    [treeNodes, selectNode, deselectNode],
+  );
 
   const handleSelectNode = useCallback(
     (node: DocNode) => selectNode(node),
     [selectNode],
   );
 
-  // ── Filtered node list query (sidebar display) ──────────────────────
-  const listQuery = api.docs.list.useQuery(
-    {
-      spaceId: spaceId ?? "",
-      pageSize: 500,
-      sortBy: effectiveSortField,
-      sortDir: effectiveSortDir,
-      search: search || undefined,
-      favoritesOnly: tab === "favorites" ? true : undefined,
-      tags: filterTags.length > 0 ? filterTags.join(",") : undefined,
-      archived: tab === "trash" ? true : undefined,
-    },
-    { enabled: !!spaceId },
-  );
-  const allNodes = useMemo(() => listQuery.data?.items ?? [], [listQuery.data]);
-
   // ── Selected node detail ────────────────────────────────────────────
   const detailQuery = api.docs.getById.useQuery(
     { id: selectedContentNodeId ?? "", spaceId: spaceId ?? "" },
     { enabled: !!selectedContentNodeId && !!spaceId },
   );
-  const selectedDoc = selectedDocId ? (detailQuery.data ?? null) : null;
-  const selectedMarkdown = selectedMarkdownId
-    ? (detailQuery.data ?? null)
-    : null;
-  const selectedSheet = selectedSheetId ? (detailQuery.data ?? null) : null;
-  const selectedMind = selectedMindId ? (detailQuery.data ?? null) : null;
-  const selectedSlide = selectedSlideId ? (detailQuery.data ?? null) : null;
-  const selectedWhiteboard = selectedWhiteboardId
-    ? (detailQuery.data ?? null)
-    : null;
-  const selectedBase = selectedBaseId ? (detailQuery.data ?? null) : null;
+  const selectedDetail = useMemo(
+    () => buildDocNodeDetail(selectedNode, detailQuery.data),
+    [selectedNode, detailQuery.data],
+  );
+  const selectedDoc = selectedDocId ? selectedDetail : null;
+  const selectedMarkdown = selectedMarkdownId ? selectedDetail : null;
+  const selectedSheet = selectedSheetId ? selectedDetail : null;
+  const selectedMind = selectedMindId ? selectedDetail : null;
+  const selectedSlide = selectedSlideId ? selectedDetail : null;
+  const selectedWhiteboard = selectedWhiteboardId ? selectedDetail : null;
+  const selectedBase = selectedBaseId ? selectedDetail : null;
+  const markdownText =
+    typeof selectedMarkdown?.content === "string"
+      ? selectedMarkdown.content
+      : "";
   const queryClient = useQueryClient();
 
   // ── Version preview ─────────────────────────────────────────────────
   const versionQuery = api.docs.getVersion.useQuery(
-    { versionId: previewingVersionId ?? "" },
-    { enabled: !!previewingVersionId },
+    { spaceId: spaceId ?? "", versionId: previewingVersionId ?? "" },
+    { enabled: !!spaceId && !!previewingVersionId },
   );
   const restoreVersionMutation = api.docs.restoreVersion.useMutation({
     onSuccess: () => {
@@ -187,7 +311,8 @@ export function useDocsPage(spaceId: string) {
       detailQuery.refetch();
       listQuery.refetch();
       api.docs.listVersions.invalidate(queryClient, {
-        nodeId: selectedDocId ?? "",
+        spaceId: spaceId ?? "",
+        relPath: selectedDocId ?? "",
       });
     },
     onError: () => message.error("恢复失败"),
@@ -199,27 +324,38 @@ export function useDocsPage(spaceId: string) {
   const deselectNodeRef = useRef(deselectNode);
   deselectNodeRef.current = deselectNode;
 
+  const refetchNodeQueries = useCallback(() => {
+    api.docs.list.invalidate(queryClient);
+    listQuery.refetch();
+    if (selectedNodeId) selectedFolderListQuery.refetch();
+    if (currentFolderId) browserQuery.refetch();
+  }, [
+    queryClient,
+    listQuery,
+    selectedFolderListQuery,
+    browserQuery,
+    selectedNodeId,
+    currentFolderId,
+  ]);
+
   const createMutation = api.docs.create.useMutation({
-    onSuccess: (node: DocNodeOutput) => {
+    onSuccess: (node: DocNodeListItem) => {
       if (node.type !== "folder") selectNodeRef.current(node);
-      listQuery.refetch();
-      treeQuery.refetch();
+      refetchNodeQueries();
     },
     onError: () => message.error("创建失败"),
   });
 
   const updateMutation = api.docs.update.useMutation({
     onSuccess: () => {
-      listQuery.refetch();
-      treeQuery.refetch();
+      refetchNodeQueries();
     },
   });
 
   const archiveMutation = api.docs.archive.useMutation({
     onSuccess: () => {
       deselectNodeRef.current();
-      listQuery.refetch();
-      treeQuery.refetch();
+      refetchNodeQueries();
       message.success("已归档");
     },
     onError: () => message.error("归档失败"),
@@ -228,8 +364,7 @@ export function useDocsPage(spaceId: string) {
   const restoreMutation = api.docs.restore.useMutation({
     onSuccess: () => {
       deselectNodeRef.current();
-      listQuery.refetch();
-      treeQuery.refetch();
+      refetchNodeQueries();
       message.success("已恢复");
     },
     onError: () => message.error("恢复失败"),
@@ -238,8 +373,7 @@ export function useDocsPage(spaceId: string) {
   const permanentDeleteMutation = api.docs.permanentDelete.useMutation({
     onSuccess: () => {
       deselectNodeRef.current();
-      listQuery.refetch();
-      treeQuery.refetch();
+      refetchNodeQueries();
       message.success("已永久删除");
     },
     onError: () => message.error("删除失败"),
@@ -251,8 +385,7 @@ export function useDocsPage(spaceId: string) {
 
   const moveMut = api.docs.move.useMutation({
     onSuccess: () => {
-      listQuery.refetch();
-      treeQuery.refetch();
+      refetchNodeQueries();
       message.success("已移动");
     },
     onError: () => message.error("移动失败"),
@@ -263,12 +396,14 @@ export function useDocsPage(spaceId: string) {
     spaceId,
     treeNodes,
     selectedDocId,
+    selectedDocRelPath: selectedDoc?.relPath,
     selectedDocTitle: selectedDoc?.title,
   });
   stateRef.current = {
     spaceId,
     treeNodes,
     selectedDocId,
+    selectedDocRelPath: selectedDoc?.relPath,
     selectedDocTitle: selectedDoc?.title,
   };
   const createMutRef = useRef(createMutation);
@@ -296,7 +431,7 @@ export function useDocsPage(spaceId: string) {
           spaceId: id,
           type,
           title,
-          parentPath: parentId,
+          parentRelPath: parentId,
         });
       }
     },
@@ -310,12 +445,12 @@ export function useDocsPage(spaceId: string) {
       const baseName = template.title || t("docs.untitledDocument");
       const title = nextUniqueName(baseName, nodes, pendingParentId ?? null);
       createMutRef.current.mutate(
-        { spaceId: id, parentPath: pendingParentId, title },
+        { spaceId: id, type: "notion", parentRelPath: pendingParentId, title },
         {
-          onSuccess: (doc: DocNodeOutput) => {
+          onSuccess: (doc: DocNodeListItem) => {
             if (template.id !== "blank") {
               updateMutRef.current.mutate({
-                id: doc.id,
+                relPath: doc.relPath,
                 spaceId: stateRef.current.spaceId,
                 content: template.content,
               });
@@ -535,8 +670,8 @@ export function useDocsPage(spaceId: string) {
   const uploadAndInsertAttachment = useCallback(
     async (file: File, insertAt?: number) => {
       const editor = editorRef.current;
-      const nodeId = stateRef.current.selectedDocId;
-      if (!editor || !nodeId) return;
+      const relPath = stateRef.current.selectedDocRelPath;
+      if (!editor || !relPath) return;
 
       // Insert placeholder block with upload progress
       const placeholderId = crypto.randomUUID();
@@ -559,7 +694,8 @@ export function useDocsPage(spaceId: string) {
 
       try {
         const result = await docAttachmentApi.upload.mutate({
-          nodeId,
+          spaceId: stateRef.current.spaceId,
+          relPath,
           file,
           onProgress: (percent) => {
             // Update progress on the placeholder block (search whole doc)
@@ -711,6 +847,7 @@ export function useDocsPage(spaceId: string) {
     currentFolderId,
     selectedDoc,
     selectedMarkdown,
+    markdownText,
     selectedSheet,
     selectedMind,
     selectedSlide,

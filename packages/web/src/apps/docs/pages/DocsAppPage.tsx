@@ -145,7 +145,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
       {/* ── Sidebar ──────────────────────────────────────────────────── */}
       <DocSidebar
         spaceId={s.spaceId}
-        nodes={s.allNodes}
+        nodes={s.listQuery.data?.items ?? []}
         isLoadingNodes={s.listQuery.isLoading}
         selectedNodeId={s.selectedNodeId}
         onSelectNode={s.handleSelectNode}
@@ -165,11 +165,11 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             spaceId: s.spaceId,
             type: "folder",
             title,
-            parentPath: parentId ?? undefined,
+            parentRelPath: parentId ?? undefined,
           });
         }}
         onFavoriteNode={(id) =>
-          s.favoriteMutation.mutate({ id, spaceId: s.spaceId })
+          s.favoriteMutation.mutate({ relPath: id, spaceId: s.spaceId })
         }
         onDeleteNode={(node) => {
           if (
@@ -179,29 +179,27 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 : "确定删除？",
             )
           ) {
-            s.archiveMutation.mutate({ id: node.id, spaceId: s.spaceId });
-            if (s.selectedNodeId === node.id) {
+            s.archiveMutation.mutate({
+              relPath: node.relPath,
+              spaceId: s.spaceId,
+            });
+            if (s.selectedNodeId === node.relPath) {
               s.deselectNode();
             }
           }
         }}
         onUpdateNode={(id, title) =>
-          s.updateMutation.mutate({ id, spaceId: s.spaceId, title })
-        }
-        onMoveNode={(id, parentId, sortOrder) =>
-          s.moveMut.mutate({
-            id,
-            spaceId: s.spaceId,
-            newParentPath: parentId,
-            sortOrder,
-          })
+          s.updateMutation.mutate({ relPath: id, spaceId: s.spaceId, title })
         }
         onRestoreNode={(id) =>
-          s.restoreMutation.mutate({ id, spaceId: s.spaceId })
+          s.restoreMutation.mutate({ relPath: id, spaceId: s.spaceId })
         }
         onPermanentDeleteNode={(id) => {
           if (window.confirm("确定永久删除？此操作不可恢复。")) {
-            s.permanentDeleteMutation.mutate({ id, spaceId: s.spaceId });
+            s.permanentDeleteMutation.mutate({
+              relPath: id,
+              spaceId: s.spaceId,
+            });
           }
         }}
         sortField={s.sortField}
@@ -234,16 +232,20 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 onNavigateFolder={(fid) => s.navigateToNode(fid)}
               />
               <div className="flex-1" />
-              <CollabPresenceBar nodeId={s.selectedSheet.id} />
+              <CollabPresenceBar
+                spaceId={s.spaceId}
+                relPath={s.selectedSheet.relPath}
+              />
             </div>
             {s.detailQuery.isLoading ? (
               <Spin className="flex-1" />
             ) : (
               <SheetEditor
-                key={s.selectedSheet.id}
+                key={s.selectedSheet.relPath}
                 content={s.selectedSheet.content}
                 onChange={s.handleSheetContentChange}
-                nodeId={s.selectedSheet.id}
+                spaceId={s.spaceId}
+                relPath={s.selectedSheet.relPath}
                 userName={s.user?.name}
               />
             )}
@@ -266,16 +268,20 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 onNavigateFolder={(fid) => s.navigateToNode(fid)}
               />
               <div className="flex-1" />
-              <CollabPresenceBar nodeId={s.selectedMind.id} />
+              <CollabPresenceBar
+                spaceId={s.spaceId}
+                relPath={s.selectedMind.relPath}
+              />
             </div>
             {s.detailQuery.isLoading ? (
               <Spin className="flex-1" />
             ) : (
               <MindEditor
-                key={s.selectedMind.id}
+                key={s.selectedMind.relPath}
                 content={s.selectedMind.content}
                 onChange={s.handleMindContentChange}
-                nodeId={s.selectedMind.id}
+                spaceId={s.spaceId}
+                relPath={s.selectedMind.relPath}
                 userName={s.user?.name}
               />
             )}
@@ -297,16 +303,20 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 onNavigateFolder={(fid) => s.navigateToNode(fid)}
               />
               <div className="flex-1" />
-              <CollabPresenceBar nodeId={s.selectedSlide.id} />
+              <CollabPresenceBar
+                spaceId={s.spaceId}
+                relPath={s.selectedSlide.relPath}
+              />
             </div>
             {s.detailQuery.isLoading ? (
               <Spin className="flex-1" />
             ) : (
               <SlideEditor
-                key={s.selectedSlide.id}
+                key={s.selectedSlide.relPath}
                 content={s.selectedSlide.content}
                 onChange={s.handleSlideContentChange}
-                nodeId={s.selectedSlide.id}
+                spaceId={s.spaceId}
+                relPath={s.selectedSlide.relPath}
                 userName={s.user?.name}
               />
             )}
@@ -328,16 +338,20 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 onNavigateFolder={(fid) => s.navigateToNode(fid)}
               />
               <div className="flex-1" />
-              <CollabPresenceBar nodeId={s.selectedWhiteboard.id} />
+              <CollabPresenceBar
+                spaceId={s.spaceId}
+                relPath={s.selectedWhiteboard.relPath}
+              />
             </div>
             {s.detailQuery.isLoading ? (
               <Spin className="flex-1" />
             ) : (
               <WhiteboardEditor
-                key={s.selectedWhiteboard.id}
+                key={s.selectedWhiteboard.relPath}
                 content={s.selectedWhiteboard.content}
                 onChange={s.handleWhiteboardContentChange}
-                nodeId={s.selectedWhiteboard.id}
+                spaceId={s.spaceId}
+                relPath={s.selectedWhiteboard.relPath}
                 userName={s.user?.name}
               />
             )}
@@ -362,7 +376,11 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             {s.detailQuery.isLoading ? (
               <Spin className="flex-1" />
             ) : (
-              <BaseEditor key={s.selectedBase.id} nodeId={s.selectedBase.id} />
+              <BaseEditor
+                key={s.selectedBase.relPath}
+                spaceId={s.spaceId}
+                relPath={s.selectedBase.relPath}
+              />
             )}
           </>
         ) : s.selectedMarkdown ? (
@@ -388,12 +406,9 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             ) : (
               <MarkdownEditor
                 key={s.selectedMarkdown.id}
-                nodeId={s.selectedMarkdown.id}
-                content={
-                  typeof s.selectedMarkdown.content === "string"
-                    ? s.selectedMarkdown.content
-                    : ""
-                }
+                spaceId={s.spaceId}
+                relPath={s.selectedMarkdown.relPath}
+                content={s.markdownText}
                 title={s.selectedMarkdown.title}
                 onContentChange={s.handleMarkdownContentChange}
                 onTitleChange={s.handleMarkdownTitleChange}
@@ -418,7 +433,10 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 onNavigateFolder={(fid) => s.navigateToNode(fid)}
               />
               <div className="flex-1" />
-              <CollabPresenceBar nodeId={s.selectedDoc.id} />
+              <CollabPresenceBar
+                spaceId={s.spaceId}
+                relPath={s.selectedDoc.relPath}
+              />
               <button
                 type="button"
                 onClick={s.handleOpenAi}
@@ -464,7 +482,8 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 onRestore={() => {
                   if (s.selectedDocId && s.previewingVersionId) {
                     s.restoreVersionMutation.mutate({
-                      nodeId: s.selectedDocId,
+                      spaceId: s.spaceId,
+                      relPath: s.selectedDocId,
                       versionId: s.previewingVersionId,
                     });
                   }
@@ -522,7 +541,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 onContentChange={s.handleContentChange}
                 onTagsChange={(tags: string[]) => {
                   s.updateMutation.mutate({
-                    id: s.selectedDoc!.id,
+                    relPath: s.selectedDoc!.relPath,
                     spaceId: s.spaceId,
                     tags,
                   });
@@ -559,25 +578,29 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 spaceId: s.spaceId,
                 type: "folder",
                 title,
-                parentPath: parentId ?? undefined,
+                parentRelPath: parentId ?? undefined,
               });
             }}
             onFavoriteNode={(id) =>
-              s.favoriteMutation.mutate({ id, spaceId: s.spaceId })
+              s.favoriteMutation.mutate({ relPath: id, spaceId: s.spaceId })
             }
             onDeleteNode={(id) =>
-              s.archiveMutation.mutate({ id, spaceId: s.spaceId })
+              s.archiveMutation.mutate({ relPath: id, spaceId: s.spaceId })
             }
             onMoveNode={(id, parentId, sortOrder) =>
               s.moveMut.mutate({
                 id,
                 spaceId: s.spaceId,
-                newParentPath: parentId,
+                to: parentId ?? "",
                 sortOrder,
               })
             }
             onUpdateNode={(id, title) =>
-              s.updateMutation.mutate({ id, spaceId: s.spaceId, title })
+              s.updateMutation.mutate({
+                relPath: id,
+                spaceId: s.spaceId,
+                title,
+              })
             }
             sortField={s.effectiveSortField}
             sortDir={s.effectiveSortDir}
@@ -592,7 +615,8 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
       {/* ── Comment sidebar ──────────────────────────────────────────── */}
       {s.selectedDoc && (
         <CommentSidebar
-          nodeId={s.selectedDoc.id}
+          spaceId={s.spaceId}
+          relPath={s.selectedDoc.relPath}
           open={s.commentSidebarOpen}
           onClose={() => s.setCommentSidebarOpen(false)}
         />
@@ -601,7 +625,8 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
       {/* ── Version history sidebar ──────────────────────────────────── */}
       {s.selectedDoc && (
         <DocVersionHistory
-          nodeId={s.selectedDoc.id}
+          spaceId={s.spaceId}
+          relPath={s.selectedDoc.relPath}
           open={s.versionHistoryOpen}
           onClose={() => s.setVersionHistoryOpen(false)}
           onPreviewVersion={s.setPreviewingVersionId}

@@ -11,11 +11,11 @@ import type { SlidePresentation } from "./types";
 import { isSlidePresentation } from "./types";
 import { useSlideStore } from "./use-slide-store";
 
-function buildCollabWsUrl(): string {
+function buildCollabWsUrl(spaceId: string, relPath: string): string {
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host = window.location.hostname;
   const port = window.location.port === "5173" ? "5678" : window.location.port;
-  return `${proto}//${host}:${port}/api/apps/docs/collab`;
+  return `${proto}//${host}:${port}/api/apps/docs/spaces/${encodeURIComponent(spaceId)}/collab?relPath=${encodeURIComponent(relPath)}`;
 }
 
 const CURSOR_COLORS = [
@@ -41,7 +41,8 @@ function randomCursorColor(): string {
 }
 
 interface UseSlideCollabOptions {
-  nodeId: string | null;
+  spaceId: string | null;
+  relPath: string | null;
   userName: string;
   getPresentation: () => SlidePresentation;
   setPresentation: (p: SlidePresentation) => void;
@@ -49,7 +50,8 @@ interface UseSlideCollabOptions {
 }
 
 export function useSlideCollab({
-  nodeId,
+  spaceId,
+  relPath,
   userName,
   getPresentation,
   setPresentation,
@@ -61,23 +63,24 @@ export function useSlideCollab({
   setPresentationRef.current = setPresentation;
 
   useEffect(() => {
-    if (!nodeId) return;
+    if (!spaceId || !relPath) return;
 
     const doc = new Y.Doc();
     const awareness = new Awareness(doc);
-    const wsUrl = buildCollabWsUrl();
+    const roomKey = `${spaceId}:${relPath}`;
+    const wsUrl = buildCollabWsUrl(spaceId, relPath);
 
     awareness.setLocalStateField("user", {
       name: userName,
       color: randomCursorColor(),
     });
 
-    const wsProvider = new WebsocketProvider(wsUrl, nodeId, doc, {
+    const wsProvider = new WebsocketProvider(wsUrl, roomKey, doc, {
       connect: true,
       awareness,
     });
 
-    registerAwareness(nodeId, awareness, false);
+    registerAwareness(roomKey, awareness, false);
 
     const handleBeforeUnload = () => {
       awareness.setLocalState(null);
@@ -85,7 +88,7 @@ export function useSlideCollab({
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     wsProvider.on("status", ({ status }: { status: string }) => {
-      updateConnectionStatus(nodeId, status === "connected");
+      updateConnectionStatus(roomKey, status === "connected");
     });
 
     const slidesMap = doc.getMap("slides");
@@ -143,10 +146,10 @@ export function useSlideCollab({
       window.removeEventListener("beforeunload", handleBeforeUnload);
       storeUnsub?.();
       awareness.setLocalState(null);
-      unregisterAwareness(nodeId);
+      unregisterAwareness(roomKey);
       wsProvider.destroy();
       awareness.destroy();
       doc.destroy();
     };
-  }, [nodeId, userName, isReplayingRef]);
+  }, [spaceId, relPath, userName, isReplayingRef]);
 }

@@ -11,7 +11,8 @@ import remarkGfm from "remark-gfm";
 
 interface MarkdownEditorProps {
   /** Document node ID (used as React key externally) */
-  nodeId: string;
+  spaceId: string;
+  relPath: string;
   /** Raw markdown text (from doc_nodes.content parsed as JSON string) */
   content: string;
   /** Document title */
@@ -25,7 +26,8 @@ interface MarkdownEditorProps {
 }
 
 export function MarkdownEditor({
-  nodeId,
+  spaceId: _spaceId,
+  relPath,
   content,
   title,
   onContentChange,
@@ -35,11 +37,11 @@ export function MarkdownEditor({
   const [localContent, setLocalContent] = useState(content);
   const [localTitle, setLocalTitle] = useState(title);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const prevNodeIdRef = useRef(nodeId);
+  const prevNodeIdRef = useRef(relPath);
 
   // Reset local state when switching to a different document
-  if (prevNodeIdRef.current !== nodeId) {
-    prevNodeIdRef.current = nodeId;
+  if (prevNodeIdRef.current !== relPath) {
+    prevNodeIdRef.current = relPath;
     setLocalContent(content);
     setLocalTitle(title);
   }

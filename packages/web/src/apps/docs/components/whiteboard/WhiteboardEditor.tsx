@@ -41,7 +41,8 @@ interface WhiteboardData {
 interface WhiteboardEditorProps {
   content: unknown;
   onChange: (data: unknown) => void;
-  nodeId: string;
+  spaceId: string;
+  relPath: string;
   userName?: string;
 }
 
@@ -50,7 +51,8 @@ const SAVE_DEBOUNCE_MS = 800;
 export function WhiteboardEditor({
   content,
   onChange,
-  nodeId,
+  spaceId,
+  relPath,
 }: WhiteboardEditorProps) {
   const { theme } = useThemeCore();
   const { i18n } = useTranslation();
@@ -66,7 +68,7 @@ export function WhiteboardEditor({
     viewState: savedViewport,
     isLoading: viewportLoading,
     saveViewport,
-  } = useDocViewport(nodeId);
+  } = useDocViewport(spaceId, relPath);
   const viewportRestoredRef = useRef(false);
 
   const onChangeRef = useRef(onChange);
@@ -96,7 +98,7 @@ export function WhiteboardEditor({
       },
       files: c.files ?? undefined,
     };
-  }, [nodeId]);
+  }, [relPath]);
 
   // Cleanup timer on unmount
   useEffect(() => {

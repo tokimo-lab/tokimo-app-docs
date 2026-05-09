@@ -20,15 +20,15 @@ import { api } from "@/generated/rust-api";
 const MAX_TAG_LENGTH = 30;
 
 interface DocTagInputProps {
-  nodeId: string;
   spaceId: string;
+  relPath: string;
   tags: string[];
   onChange: (tags: string[]) => void;
 }
 
 export function DocTagInput({
-  nodeId: _nodeId,
   spaceId,
+  relPath: _relPath,
   tags,
   onChange,
 }: DocTagInputProps) {

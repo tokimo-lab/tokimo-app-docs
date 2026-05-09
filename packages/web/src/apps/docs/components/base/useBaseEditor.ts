@@ -36,7 +36,8 @@ import {
 } from "./utils";
 
 interface UseBaseEditorOptions {
-  nodeId: string;
+  spaceId: string;
+  relPath: string;
 }
 
 // ── Helpers to parse API response into typed local objects ──────────────────
@@ -57,32 +58,33 @@ function parseRecordData(raw: unknown): RecordData {
   return {};
 }
 
-export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
+export function useBaseEditor({ spaceId, relPath }: UseBaseEditorOptions) {
   const queryClient = useQueryClient();
   const defaults = useRef(createDefaultBaseContent());
 
   // ── Queries ─────────────────────────────────────────────────────────────
   const metaQuery = api.docs.bitable.getMeta.useQuery(
-    { nodeId },
-    { enabled: !!nodeId },
+    { spaceId, relPath },
+    { enabled: !!spaceId && !!relPath },
   );
 
   const recordsQuery = api.docs.bitable.listRecords.useQuery(
-    { nodeId, pageSize: 1000 },
-    { enabled: !!nodeId },
+    { spaceId, relPath, pageSize: 1000 },
+    { enabled: !!spaceId && !!relPath },
   );
 
   // ── Mutations ───────────────────────────────────────────────────────────
   const updateMetaMut = api.docs.bitable.updateMeta.useMutation({
     onSuccess: () => {
-      api.docs.bitable.getMeta.invalidate(queryClient, { nodeId });
+      api.docs.bitable.getMeta.invalidate(queryClient, { spaceId, relPath });
     },
   });
 
   const createRecordMut = api.docs.bitable.createRecord.useMutation({
     onSuccess: () => {
       api.docs.bitable.listRecords.invalidate(queryClient, {
-        nodeId,
+        spaceId,
+        relPath,
         pageSize: 1000,
       });
     },
@@ -91,7 +93,8 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
   const updateRecordMut = api.docs.bitable.updateRecord.useMutation({
     onSuccess: () => {
       api.docs.bitable.listRecords.invalidate(queryClient, {
-        nodeId,
+        spaceId,
+        relPath,
         pageSize: 1000,
       });
     },
@@ -100,7 +103,8 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
   const deleteRecordMut = api.docs.bitable.deleteRecord.useMutation({
     onSuccess: () => {
       api.docs.bitable.listRecords.invalidate(queryClient, {
-        nodeId,
+        spaceId,
+        relPath,
         pageSize: 1000,
       });
     },
@@ -182,13 +186,14 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
       activeViewId?: string;
     }) => {
       updateMetaMut.mutate({
-        nodeId,
+        spaceId,
+        relPath,
         fields: partial.fields,
         views: partial.views,
         activeViewId: partial.activeViewId,
       });
     },
-    [nodeId, updateMetaMut],
+    [spaceId, relPath, updateMetaMut],
   );
 
   // Snapshot refs for current fields/views to avoid stale closures
@@ -297,14 +302,14 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
 
   // ── Record helpers ────────────────────────────────────────────────────
   const addRecord = useCallback(() => {
-    createRecordMut.mutate({ nodeId, data: {} });
-  }, [nodeId, createRecordMut]);
+    createRecordMut.mutate({ spaceId, relPath, data: {} });
+  }, [spaceId, relPath, createRecordMut]);
 
   const deleteRecord = useCallback(
     (recordId: string) => {
-      deleteRecordMut.mutate(recordId);
+      deleteRecordMut.mutate({ spaceId, recordId });
     },
-    [deleteRecordMut],
+    [deleteRecordMut, spaceId],
   );
 
   const updateCell = useCallback(
@@ -312,21 +317,22 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
       // Find the current record to merge data
       const rec = records.find((r) => r.id === recordId);
       const newData = { ...(rec?.data ?? {}), [fieldId]: value };
-      updateRecordMut.mutate({ recordId, data: newData });
+      updateRecordMut.mutate({ spaceId, recordId, data: newData });
     },
-    [records, updateRecordMut],
+    [records, updateRecordMut, spaceId],
   );
 
   const updateRecordSortOrder = useCallback(
     (recordId: string, sortOrder: number) => {
       const rec = records.find((r) => r.id === recordId);
       updateRecordMut.mutate({
+        spaceId,
         recordId,
         data: rec?.data ?? {},
         sortOrder,
       });
     },
-    [records, updateRecordMut],
+    [records, updateRecordMut, spaceId],
   );
 
   // ── Filter/Sort/Group shortcuts ───────────────────────────────────────
@@ -536,13 +542,13 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
         (v) => v.id === activeViewIdRef.current,
       );
       if (!view?.kanbanConfig) {
-        createRecordMut.mutate({ nodeId, data: {} });
+        createRecordMut.mutate({ spaceId, relPath, data: {} });
         return;
       }
       const fieldId = view.kanbanConfig.groupFieldId;
       const field = fieldsRef.current.find((f) => f.id === fieldId);
       if (!field) {
-        createRecordMut.mutate({ nodeId, data: {} });
+        createRecordMut.mutate({ spaceId, relPath, data: {} });
         return;
       }
 
@@ -558,9 +564,9 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
           data = { [fieldId]: groupValue };
         }
       }
-      createRecordMut.mutate({ nodeId, data });
+      createRecordMut.mutate({ spaceId, relPath, data });
     },
-    [nodeId, createRecordMut],
+    [spaceId, relPath, createRecordMut],
   );
 
   const addKanbanGroup = useCallback(
@@ -692,12 +698,16 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
       );
       const dateFieldId = view?.calendarConfig?.dateFieldId;
       if (!dateFieldId) {
-        createRecordMut.mutate({ nodeId, data: {} });
+        createRecordMut.mutate({ spaceId, relPath, data: {} });
         return;
       }
-      createRecordMut.mutate({ nodeId, data: { [dateFieldId]: dateStr } });
+      createRecordMut.mutate({
+        spaceId,
+        relPath,
+        data: { [dateFieldId]: dateStr },
+      });
     },
-    [nodeId, createRecordMut],
+    [spaceId, relPath, createRecordMut],
   );
 
   // ── Gantt operations ─────────────────────────────────────────────────
@@ -736,9 +746,9 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
         [cfg.startDateFieldId]: startDate,
         [cfg.endDateFieldId]: endDate,
       };
-      updateRecordMut.mutate({ recordId, data: newData });
+      updateRecordMut.mutate({ spaceId, recordId, data: newData });
     },
-    [records, updateRecordMut],
+    [records, updateRecordMut, spaceId],
   );
 
   // ── Gallery operations ──────────────────────────────────────────────
@@ -850,9 +860,9 @@ export function useBaseEditor({ nodeId }: UseBaseEditorOptions) {
 
   const submitForm = useCallback(
     (data: RecordData) => {
-      createRecordMut.mutate({ nodeId, data });
+      createRecordMut.mutate({ spaceId, relPath, data });
     },
-    [nodeId, createRecordMut],
+    [spaceId, relPath, createRecordMut],
   );
 
   return {

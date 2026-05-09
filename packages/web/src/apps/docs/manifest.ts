@@ -15,6 +15,8 @@ export const manifest: AppManifest = {
   views: {
     "/": () => import("./components/DocsApp"),
     "/space/:spaceId": () => import("./components/DocsApp"),
+    "/space/:spaceId/node/:encodedRelPath": () =>
+      import("./components/DocsApp"),
   },
 
   userSettings: {

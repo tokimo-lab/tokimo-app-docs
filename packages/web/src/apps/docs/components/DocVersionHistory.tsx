@@ -7,7 +7,8 @@ import type { DocNodeVersionOutput } from "@/generated/rust-types/index";
 import { useDateFormat, useMessage } from "@/system";
 
 interface DocVersionHistoryProps {
-  nodeId: string;
+  spaceId: string;
+  relPath: string;
   open: boolean;
   onClose: () => void;
   onPreviewVersion: (versionId: string) => void;
@@ -16,7 +17,8 @@ interface DocVersionHistoryProps {
 }
 
 export function DocVersionHistory({
-  nodeId,
+  spaceId,
+  relPath,
   open,
   onClose,
   onPreviewVersion,
@@ -27,8 +29,8 @@ export function DocVersionHistory({
   const message = useMessage();
 
   const versionsQuery = api.docs.listVersions.useQuery(
-    { nodeId },
-    { enabled: open && !!nodeId },
+    { spaceId, relPath },
+    { enabled: open && !!spaceId && !!relPath },
   );
 
   const versions = versionsQuery.data ?? [];
@@ -37,17 +39,17 @@ export function DocVersionHistory({
     onSuccess: () => {
       message.success("版本已恢复");
       onClearPreview();
-      api.docs.getById.invalidate(queryClient, { id: nodeId });
-      api.docs.listVersions.invalidate(queryClient, { nodeId });
+      api.docs.getNode.invalidate(queryClient, { spaceId, relPath });
+      api.docs.listVersions.invalidate(queryClient, { spaceId, relPath });
     },
     onError: () => message.error("恢复失败"),
   });
 
   const handleRestore = useCallback(
     (versionId: string) => {
-      restoreMutation.mutate({ nodeId, versionId });
+      restoreMutation.mutate({ spaceId, relPath, versionId });
     },
-    [restoreMutation, nodeId],
+    [restoreMutation, spaceId, relPath],
   );
 
   if (!open) return null;

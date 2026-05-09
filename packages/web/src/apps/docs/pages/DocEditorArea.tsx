@@ -13,8 +13,8 @@ import {
   useScrollGuardProvider,
 } from "@/apps/docs/hooks/use-scroll-guard";
 import { untitledI18nKey } from "@/apps/docs/lib/doc-node";
-import type { DocNodeOutput } from "@/generated/rust-api";
 import { useAuth } from "@/system/auth/useAuth";
+import type { DocNodeDetail } from "./useDocsPage";
 
 const PLACEHOLDER_HEIGHT = 120;
 const PLACEHOLDER_ID = "doc-drag-placeholder";
@@ -142,7 +142,7 @@ export function DocEditorArea({
   onDropFiles,
   readOnly,
 }: {
-  doc: DocNodeOutput;
+  doc: DocNodeDetail;
   spaceId: string;
   isLoading: boolean;
   onTitleChange: (title: string) => void;
@@ -172,14 +172,17 @@ export function DocEditorArea({
     viewState: savedViewport,
     isLoading: viewportLoading,
     saveViewport,
-  } = useDocViewport(readOnly ? undefined : doc.id);
+  } = useDocViewport(
+    readOnly ? undefined : spaceId,
+    readOnly ? undefined : doc.relPath,
+  );
   const viewportRestoredRef = useRef(false);
 
   // Sync title when doc changes
-  const [prevId, setPrevId] = useState(doc.id);
+  const [prevId, setPrevId] = useState(doc.relPath);
   const [prevTitle, setPrevTitle] = useState(doc.title);
-  if (doc.id !== prevId || doc.title !== prevTitle) {
-    setPrevId(doc.id);
+  if (doc.relPath !== prevId || doc.title !== prevTitle) {
+    setPrevId(doc.relPath);
     setPrevTitle(doc.title);
     setTitle(doc.title);
   }
@@ -334,9 +337,9 @@ export function DocEditorArea({
           {!readOnly && (
             <div className="w-full pl-[22px] pr-3 pb-2">
               <DocTagInput
-                nodeId={doc.id}
                 spaceId={spaceId}
-                tags={doc.tags}
+                relPath={doc.relPath}
+                tags={doc.tags ?? []}
                 onChange={onTagsChange}
               />
             </div>
@@ -345,7 +348,7 @@ export function DocEditorArea({
           {/* Plate editor */}
           <div className="flex-1">
             <DocEditor
-              key={readOnly ? `preview-${doc.id}` : doc.id}
+              key={readOnly ? `preview-${doc.relPath}` : doc.relPath}
               value={doc.content as Value | null}
               onChange={readOnly ? () => {} : onContentChange}
               editorRef={readOnly ? undefined : editorRef}
@@ -355,7 +358,8 @@ export function DocEditorArea({
               onInsertVfsFile={readOnly ? undefined : onInsertVfsFile}
               onAttachmentUpload={readOnly ? undefined : onAttachmentUpload}
               readOnly={readOnly}
-              nodeId={readOnly ? undefined : doc.id}
+              spaceId={readOnly ? undefined : spaceId}
+              relPath={readOnly ? undefined : doc.relPath}
               userName={user?.name}
             />
           </div>

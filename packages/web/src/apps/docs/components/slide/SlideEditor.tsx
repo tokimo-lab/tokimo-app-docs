@@ -18,14 +18,16 @@ import { useSlideStore } from "./use-slide-store";
 interface SlideEditorProps {
   content: unknown;
   onChange: (data: unknown) => void;
-  nodeId: string;
+  spaceId: string;
+  relPath: string;
   userName?: string;
 }
 
 export function SlideEditor({
   content,
   onChange,
-  nodeId,
+  spaceId,
+  relPath,
   userName,
 }: SlideEditorProps) {
   const presentation = useSlideStore((s) => s.presentation);
@@ -47,7 +49,7 @@ export function SlideEditor({
     viewState: savedViewport,
     isLoading: viewportLoading,
     saveViewport,
-  } = useDocViewport(nodeId);
+  } = useDocViewport(spaceId, relPath);
   const viewportRestoredRef = useRef(false);
 
   // Init from content — intentionally run only once on mount.
@@ -77,7 +79,8 @@ export function SlideEditor({
 
   // Collab
   useSlideCollab({
-    nodeId,
+    spaceId,
+    relPath,
     userName: userName ?? "Anonymous",
     getPresentation: () => useSlideStore.getState().presentation,
     setPresentation: (p) => {

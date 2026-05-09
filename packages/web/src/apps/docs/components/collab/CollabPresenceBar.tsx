@@ -12,17 +12,20 @@ import { useTranslation } from "react-i18next";
 import { useCollabPresence } from "./awareness-store";
 
 interface CollabPresenceBarProps {
-  /** Doc node ID to observe. null disables. */
-  nodeId: string | null;
+  spaceId: string;
+  relPath: string;
 }
 
 const MAX_AVATARS = 5;
 
-export function CollabPresenceBar({ nodeId }: CollabPresenceBarProps) {
-  const { users, connected } = useCollabPresence(nodeId);
+export function CollabPresenceBar({
+  spaceId,
+  relPath,
+}: CollabPresenceBarProps) {
+  const { users, connected } = useCollabPresence(`${spaceId}:${relPath}`);
   const { t } = useTranslation();
 
-  if (!nodeId) return null;
+  if (!spaceId || !relPath) return null;
 
   const visibleUsers = users.slice(0, MAX_AVATARS);
   const overflow = users.length - MAX_AVATARS;

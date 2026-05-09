@@ -129,7 +129,8 @@ interface DocEditorCtx {
   /** Doc node ID — consumed by child elements (e.g. attachment-element) that
    * need to fall back to REST API when Yjs state is stale (e.g. after a VFS
    * shell write repopulated docs_node_attachments rows). */
-  nodeId?: string;
+  spaceId?: string;
+  relPath?: string;
 }
 const DocEditorContext = createContext<DocEditorCtx>({});
 export function useDocEditorContext() {
@@ -148,7 +149,8 @@ export interface DocEditorProps {
   onInsertVfsFile?: () => void;
   onAttachmentUpload?: () => void;
   /** Doc node ID — when provided, enables real-time collaborative editing. */
-  nodeId?: string;
+  spaceId?: string;
+  relPath?: string;
   /** User display name for remote cursor labels. */
   userName?: string;
 }
@@ -371,24 +373,28 @@ export function DocEditor({
   onAiAction,
   onInsertVfsFile,
   onAttachmentUpload,
-  nodeId,
+  spaceId,
+  relPath,
   userName,
 }: DocEditorProps) {
-  const initialValue = useMemo(() => value ?? EMPTY_VALUE, [value]);
-  const collabEnabled = !!nodeId && !readOnly;
+  const initialValue = useMemo(
+    () => (Array.isArray(value) && value.length > 0 ? value : EMPTY_VALUE),
+    [value],
+  );
+  const collabEnabled = !!spaceId && !!relPath && !readOnly;
 
   // Stable random color for this tab instance (different across multi-tab)
   const tabColor = useMemo(() => randomCursorColor(), []);
 
   // Build plugin list — add Yjs collab plugin when nodeId is provided
   const allPlugins = useMemo(() => {
-    if (!collabEnabled || !nodeId) return plugins;
+    if (!collabEnabled || !spaceId || !relPath) return plugins;
 
     const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.hostname;
     const port =
       window.location.port === "5173" ? "5678" : window.location.port;
-    const wsUrl = `${proto}//${host}:${port}/api/apps/docs/collab`;
+    const wsUrl = `${proto}//${host}:${port}/api/apps/docs/spaces/${encodeURIComponent(spaceId)}/collab?relPath=${encodeURIComponent(relPath)}`;
 
     return [
       ...plugins,
@@ -403,7 +409,7 @@ export function DocEditor({
           providers: [
             {
               options: {
-                roomName: nodeId,
+                roomName: `${spaceId}:${relPath}`,
                 url: wsUrl,
               } satisfies TokimoWsProviderOptions,
               type: PROVIDER_TYPE,
@@ -412,11 +418,11 @@ export function DocEditor({
         },
       }),
     ];
-  }, [collabEnabled, nodeId, userName, tabColor]);
+  }, [collabEnabled, spaceId, relPath, userName, tabColor]);
 
   const editor = usePlateEditor(
     { plugins: allPlugins, value: initialValue },
-    collabEnabled ? [nodeId] : [initialValue],
+    collabEnabled ? [`${spaceId}:${relPath}`] : [initialValue],
   );
 
   // Initialize Yjs collab plugin — must be called explicitly after editor creation.
@@ -488,8 +494,8 @@ export function DocEditor({
 
       // Soft-delete removed attachments
       for (const id of prevIds) {
-        if (!newIds.has(id)) {
-          docAttachmentApi.delete.mutate({ id }).catch((err) => {
+        if (!newIds.has(id) && spaceId) {
+          docAttachmentApi.delete.mutate({ spaceId, id }).catch((err) => {
             console.warn("[docs] Failed to soft-delete attachment:", err);
           });
         }
@@ -497,8 +503,8 @@ export function DocEditor({
 
       // Restore re-added attachments (e.g. undo after delete)
       for (const id of newIds) {
-        if (!prevIds.has(id)) {
-          docAttachmentApi.restore.mutate({ id }).catch(() => {
+        if (!prevIds.has(id) && spaceId) {
+          docAttachmentApi.restore.mutate({ spaceId, id }).catch(() => {
             // Ignore — may be a newly uploaded attachment (no soft-delete record)
           });
         }
@@ -506,7 +512,7 @@ export function DocEditor({
 
       prevAttachmentIdsRef.current = newIds;
     },
-    [onChange, readOnly],
+    [onChange, readOnly, spaceId],
   );
 
   const editorCtx = useMemo(
@@ -515,9 +521,17 @@ export function DocEditor({
       onOpenAi,
       onInsertVfsFile,
       onAttachmentUpload,
-      nodeId,
+      spaceId,
+      relPath,
     }),
-    [onAiAction, onOpenAi, onInsertVfsFile, onAttachmentUpload, nodeId],
+    [
+      onAiAction,
+      onOpenAi,
+      onInsertVfsFile,
+      onAttachmentUpload,
+      spaceId,
+      relPath,
+    ],
   );
 
   if (!editor) {

@@ -2,21 +2,22 @@ import { Folder } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { untitledI18nKey } from "@/apps/docs/lib/doc-node";
-import type { DocNodeListItem, DocNodeOutput } from "@/generated/rust-api";
+import type { DocNodeListItem } from "@/generated/rust-api";
+import type { DocNodeDetail } from "./useDocsPage";
 
 export function DocBreadcrumb({
   doc,
   allNodes,
   onNavigateFolder,
 }: {
-  doc: DocNodeOutput;
+  doc: DocNodeDetail;
   allNodes: DocNodeListItem[];
   onNavigateFolder?: (folderId: string | null) => void;
 }) {
   const { t } = useTranslation();
   const path = useMemo(() => {
     if (!doc.parentId) return [];
-    const nodeMap = new Map(allNodes.map((n) => [n.id, n]));
+    const nodeMap = new Map(allNodes.map((n) => [n.relPath, n]));
     const result: DocNodeListItem[] = [];
     let current = nodeMap.get(doc.parentId);
     while (current) {
@@ -37,12 +38,12 @@ export function DocBreadcrumb({
         文档
       </button>
       {path.map((node) => (
-        <span key={node.id} className="flex items-center gap-1">
+        <span key={node.relPath} className="flex items-center gap-1">
           <span className="text-fg-muted">/</span>
           <button
             type="button"
             className="hover:text-fg-secondary cursor-pointer"
-            onClick={() => onNavigateFolder?.(node.id)}
+            onClick={() => onNavigateFolder?.(node.relPath)}
           >
             {node.icon ? `${node.icon} ` : ""}
             {node.title}

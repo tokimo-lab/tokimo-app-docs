@@ -15,18 +15,24 @@ import type { DocNodeCommentOutput } from "@/generated/rust-types/index";
 import { useAuth, useDateFormat } from "@/system";
 
 interface CommentSidebarProps {
-  nodeId: string;
+  spaceId: string;
+  relPath: string;
   open: boolean;
   onClose: () => void;
 }
 
-export function CommentSidebar({ nodeId, open, onClose }: CommentSidebarProps) {
+export function CommentSidebar({
+  spaceId,
+  relPath,
+  open,
+  onClose,
+}: CommentSidebarProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const commentsQuery = api.docs.listComments.useQuery(
-    { nodeId },
-    { enabled: open && !!nodeId },
+    { spaceId, relPath },
+    { enabled: open && !!spaceId && !!relPath },
   );
 
   const comments = commentsQuery.data ?? [];
@@ -36,8 +42,8 @@ export function CommentSidebar({ nodeId, open, onClose }: CommentSidebarProps) {
   const resolvedComments = comments.filter((c) => c.isResolved);
 
   const invalidateComments = useCallback(() => {
-    api.docs.listComments.invalidate(queryClient, { nodeId });
-  }, [queryClient, nodeId]);
+    api.docs.listComments.invalidate(queryClient, { spaceId, relPath });
+  }, [queryClient, spaceId, relPath]);
 
   if (!open) return null;
 
@@ -85,7 +91,8 @@ export function CommentSidebar({ nodeId, open, onClose }: CommentSidebarProps) {
                 key={comment.id}
                 comment={comment}
                 currentUserId={user?.id ?? ""}
-                nodeId={nodeId}
+                spaceId={spaceId}
+                relPath={relPath}
                 onMutated={invalidateComments}
               />
             ))}
@@ -112,7 +119,8 @@ export function CommentSidebar({ nodeId, open, onClose }: CommentSidebarProps) {
                       key={comment.id}
                       comment={comment}
                       currentUserId={user?.id ?? ""}
-                      nodeId={nodeId}
+                      spaceId={spaceId}
+                      relPath={relPath}
                       onMutated={invalidateComments}
                       resolved
                     />
@@ -131,7 +139,8 @@ export function CommentSidebar({ nodeId, open, onClose }: CommentSidebarProps) {
 interface CommentThreadProps {
   comment: DocNodeCommentOutput;
   currentUserId: string;
-  nodeId: string;
+  spaceId: string;
+  relPath: string;
   onMutated: () => void;
   resolved?: boolean;
 }
@@ -139,7 +148,8 @@ interface CommentThreadProps {
 function CommentThread({
   comment,
   currentUserId,
-  nodeId,
+  spaceId,
+  relPath,
   onMutated,
   resolved,
 }: CommentThreadProps) {
@@ -165,22 +175,34 @@ function CommentThread({
   const handleReply = useCallback(() => {
     if (!replyText.trim()) return;
     createMutation.mutate({
-      nodeId,
+      spaceId,
+      relPath,
       commentKey: comment.commentKey,
       content: replyText.trim(),
       parentId: comment.id,
     });
-  }, [createMutation, nodeId, comment.commentKey, comment.id, replyText]);
+  }, [
+    createMutation,
+    spaceId,
+    relPath,
+    comment.commentKey,
+    comment.id,
+    replyText,
+  ]);
 
   const handleResolve = useCallback(() => {
-    resolveMutation.mutate({ id: comment.id, resolved: !comment.isResolved });
-  }, [resolveMutation, comment.id, comment.isResolved]);
+    resolveMutation.mutate({
+      spaceId,
+      id: comment.id,
+      resolved: !comment.isResolved,
+    });
+  }, [resolveMutation, spaceId, comment.id, comment.isResolved]);
 
   const handleDelete = useCallback(
     (id: string) => {
-      deleteMutation.mutate({ id });
+      deleteMutation.mutate({ spaceId, id });
     },
-    [deleteMutation],
+    [deleteMutation, spaceId],
   );
 
   return (

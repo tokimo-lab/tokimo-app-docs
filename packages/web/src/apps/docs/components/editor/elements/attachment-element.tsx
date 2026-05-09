@@ -582,12 +582,12 @@ export function AttachmentElement(props: PlateElementProps) {
   // Fallback: if Yjs-synced plate node lacks enrichment fields (e.g. after VFS
   // shell write where the Y.Doc cache overrode freshly-enriched content),
   // look up the canonical DocNodeAttachment record via REST and use it.
-  const { nodeId } = useDocEditorContext();
+  const { spaceId, relPath } = useDocEditorContext();
   const needsEnrichmentFallback =
     !!storageKey && (!el.attachmentId || !el.fileCategory);
   const { data: attachmentList } = docAttachmentApi.list.useQuery(
-    { nodeId: nodeId || "" },
-    { enabled: !!nodeId && needsEnrichmentFallback },
+    { spaceId: spaceId || "", relPath: relPath || "" },
+    { enabled: !!spaceId && !!relPath && needsEnrichmentFallback },
   );
   const fallback = needsEnrichmentFallback
     ? attachmentList?.find((a) => a.storageKey === storageKey)

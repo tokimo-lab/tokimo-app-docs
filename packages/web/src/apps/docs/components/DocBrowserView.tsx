@@ -39,7 +39,7 @@ interface DocBrowserViewProps {
   onSetSortField: (field: SortField) => void;
   onSetSortDir: (dir: SortDir) => void;
   isLoading: boolean;
-  viewMode: "all" | "recent" | "favorites" | "trash";
+  viewMode: "all" | "favorites" | "archived";
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -143,7 +143,7 @@ export function DocBrowserView({
               </button>
             </span>
           ))}
-          {viewMode === "recent" && (
+          {false && (
             <>
               <ChevronRight size={14} className="text-fg-muted" />
               <span className="font-medium text-fg-primary">最近编辑</span>
@@ -155,7 +155,7 @@ export function DocBrowserView({
               <span className="font-medium text-fg-primary">收藏</span>
             </>
           )}
-          {viewMode === "trash" && (
+          {viewMode === "archived" && (
             <>
               <ChevronRight size={14} className="text-fg-muted" />
               <span className="font-medium text-fg-primary">回收站</span>
@@ -165,7 +165,7 @@ export function DocBrowserView({
       </div>
 
       {/* ── Action bar ──────────────────────────────────────────────── */}
-      {viewMode !== "trash" && (
+      {viewMode !== "archived" && (
         <div className="flex items-center gap-2 border-b border-border-subtle px-4 py-2">
           <button
             type="button"
@@ -198,7 +198,7 @@ export function DocBrowserView({
           <div className="flex h-full items-center justify-center">
             <Empty
               description={
-                viewMode === "trash"
+                viewMode === "archived"
                   ? "回收站为空"
                   : viewMode === "favorites"
                     ? "暂无收藏文档"
@@ -282,7 +282,7 @@ export function DocBrowserView({
                       navigator.clipboard.writeText(doc.id);
                       message.success("已复制 ID");
                     }}
-                    isTrash={viewMode === "trash"}
+                    isTrash={viewMode === "archived"}
                   />
                 ))}
               </div>
