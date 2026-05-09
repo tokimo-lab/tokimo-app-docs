@@ -17,6 +17,7 @@ pub struct CreateSpaceInput {
     pub slug: String,
     pub avatar: Option<serde_json::Value>,
     pub description: Option<String>,
+    pub local_path: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -28,6 +29,8 @@ pub struct UpdateSpaceInput {
     pub avatar: Option<Option<serde_json::Value>>,
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub description: Option<Option<String>>,
+    #[serde(default, with = "::serde_with::rust::double_option")]
+    pub local_path: Option<Option<String>>,
     pub sort_order: Option<i32>,
 }
 
@@ -49,7 +52,23 @@ pub async fn create_space(
         return Err(AppError::BadRequest("space name cannot be empty".into()));
     }
     validate_slug(&input.slug)?;
-    let model = DocSpaceRepo::create(&state.db, input.name, Some(input.slug), input.avatar, input.description).await?;
+
+    // Ensure local_path directory exists if provided.
+    if let Some(ref lp) = input.local_path {
+        tokio::fs::create_dir_all(lp)
+            .await
+            .map_err(|e| AppError::Internal(format!("cannot create space directory: {e}")))?;
+    }
+
+    let model = DocSpaceRepo::create(
+        &state.db,
+        input.name,
+        Some(input.slug),
+        input.avatar,
+        input.description,
+        input.local_path,
+    )
+    .await?;
     Ok(ok(DocSpaceOutput::from(model)))
 }
 
@@ -63,6 +82,14 @@ pub async fn update_space(
     if let Some(ref slug) = input.slug {
         validate_slug(slug)?;
     }
+
+    // Ensure new local_path directory exists if being set.
+    if let Some(Some(ref lp)) = input.local_path {
+        tokio::fs::create_dir_all(lp)
+            .await
+            .map_err(|e| AppError::Internal(format!("cannot create space directory: {e}")))?;
+    }
+
     let model = DocSpaceRepo::update(
         &state.db,
         uid,
@@ -71,6 +98,7 @@ pub async fn update_space(
             slug: input.slug,
             avatar: input.avatar,
             description: input.description,
+            local_path: input.local_path,
             sort_order: input.sort_order,
         },
     )

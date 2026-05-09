@@ -11,6 +11,7 @@ pub struct UpdateSpaceParams {
     pub slug: Option<String>,
     pub avatar: Option<Option<serde_json::Value>>,
     pub description: Option<Option<String>>,
+    pub local_path: Option<Option<String>>,
     pub sort_order: Option<i32>,
 }
 
@@ -33,6 +34,7 @@ impl DocSpaceRepo {
         slug: Option<String>,
         avatar: Option<serde_json::Value>,
         description: Option<String>,
+        local_path: Option<String>,
     ) -> Result<docs_spaces::Model, AppError> {
         use crate::error::OptionExt;
 
@@ -51,7 +53,7 @@ impl DocSpaceRepo {
             slug: Set(slug),
             avatar: Set(avatar),
             description: Set(description),
-            local_path: Set(None),
+            local_path: Set(local_path),
             sort_order: Set(max_order),
             created_at: Set(Some(now)),
             updated_at: Set(Some(now)),
@@ -91,6 +93,9 @@ impl DocSpaceRepo {
         }
         if let Some(o) = params.sort_order {
             active.sort_order = Set(o);
+        }
+        if let Some(lp) = params.local_path {
+            active.local_path = Set(lp);
         }
         active.updated_at = Set(Some(now));
 
