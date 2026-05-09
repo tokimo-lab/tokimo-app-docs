@@ -345,6 +345,11 @@ export function useDocsPage(spaceId: string) {
         spaceId: spaceId ?? "",
         relPath: selectedDocId ?? "",
       });
+      // Force editor remount so the collab session is dropped and the doc is
+      // reloaded from VFS (the Yjs cache otherwise still holds the pre-restore
+      // content). See `reloadCurrentDoc` below — declared later but in scope
+      // by the time this callback runs.
+      reloadCurrentDoc();
     },
     onError: () => message.error("恢复失败"),
   });
@@ -442,6 +447,24 @@ export function useDocsPage(spaceId: string) {
   updateMutRef.current = updateMutation;
   const detailQueryRef = useRef(detailQuery);
   detailQueryRef.current = detailQuery;
+
+  // Close-and-reopen the currently selected doc to force the editor (and its
+  // Yjs collab provider) to remount. Used after destructive operations like
+  // version restore where the on-disk content changes but the collab session
+  // would otherwise keep serving the stale Yjs doc.
+  const reloadCurrentDoc = useCallback(() => {
+    const sid = stateRef.current.spaceId;
+    const relPath = stateRef.current.selectedDocId;
+    const title = stateRef.current.selectedDocTitle;
+    if (!sid || !relPath) return;
+    navigate(`/space/${encodeURIComponent(sid)}`);
+    setTimeout(() => {
+      navigate(
+        buildNodePath(sid, relPath),
+        `TokimoDocs · ${title ?? relPath}`,
+      );
+    }, 200);
+  }, [navigate]);
 
   // ── Handlers ────────────────────────────────────────────────────────
   const handleCreate = useCallback(
@@ -900,6 +923,7 @@ export function useDocsPage(spaceId: string) {
     favoriteMutation,
     moveMut,
     restoreVersionMutation,
+    reloadCurrentDoc,
     selectNode,
     deselectNode,
     navigateToNode,

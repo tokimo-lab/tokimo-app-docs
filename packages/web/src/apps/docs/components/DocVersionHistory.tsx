@@ -14,6 +14,8 @@ interface DocVersionHistoryProps {
   onPreviewVersion: (versionId: string) => void;
   onClearPreview: () => void;
   previewingVersionId: string | null;
+  /** Called after a successful restore so the parent can force-reload the editor. */
+  onRestored?: () => void;
 }
 
 export function DocVersionHistory({
@@ -24,6 +26,7 @@ export function DocVersionHistory({
   onPreviewVersion,
   onClearPreview,
   previewingVersionId,
+  onRestored,
 }: DocVersionHistoryProps) {
   const queryClient = useQueryClient();
   const message = useMessage();
@@ -41,6 +44,7 @@ export function DocVersionHistory({
       onClearPreview();
       api.docs.getNode.invalidate(queryClient, { spaceId, relPath });
       api.docs.listVersions.invalidate(queryClient, { spaceId, relPath });
+      onRestored?.();
     },
     onError: () => message.error("恢复失败"),
   });

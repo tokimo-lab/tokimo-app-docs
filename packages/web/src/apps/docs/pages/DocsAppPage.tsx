@@ -251,6 +251,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
           onPreviewVersion={s.setPreviewingVersionId}
           onClearPreview={() => s.setPreviewingVersionId(null)}
           previewingVersionId={s.previewingVersionId}
+          onRestored={s.reloadCurrentDoc}
         />
       )}
 
