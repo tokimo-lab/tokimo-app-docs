@@ -17,11 +17,11 @@ pub struct ListNodesQuery {
     pub page_size: Option<u64>,
     pub parent_id: Option<String>,
     pub r#type: Option<String>,
-    pub is_archived: Option<bool>,
-    pub is_favorite: Option<bool>,
+    pub archived: Option<bool>,
+    pub favorites_only: Option<bool>,
     pub search: Option<String>,
-    pub sort: Option<String>,
-    pub direction: Option<String>,
+    pub sort_by: Option<String>,
+    pub sort_dir: Option<String>,
     pub tags: Option<String>,
 }
 
@@ -55,14 +55,14 @@ pub async fn list_nodes(
         ListDocNodesInput {
             space_id,
             page: page_input,
-            sort_by: q.sort.clone().unwrap_or_else(|| "updatedAt".to_string()),
-            sort_dir: q.direction.clone().unwrap_or_else(|| "desc".to_string()),
+            sort_by: q.sort_by.clone().unwrap_or_else(|| "updatedAt".to_string()),
+            sort_dir: q.sort_dir.clone().unwrap_or_else(|| "desc".to_string()),
             search: q.search.clone(),
             parent_id,
             node_type: q.r#type.clone(),
-            favorites_only: q.is_favorite.unwrap_or(false),
+            favorites_only: q.favorites_only.unwrap_or(false),
             tags_filter,
-            archived: q.is_archived.unwrap_or(false),
+            archived: q.archived.unwrap_or(false),
         },
     )
     .await?;
