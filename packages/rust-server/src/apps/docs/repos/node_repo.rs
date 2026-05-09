@@ -158,6 +158,7 @@ impl DocNodeRepo {
             r#type: Set(node_type),
             title: Set(title),
             content: Set(None),
+            relative_path: Set(None),
             icon: Set(None),
             cover_image: Set(None),
             tags: Set(Some(vec![])),

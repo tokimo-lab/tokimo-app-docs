@@ -51,6 +51,7 @@ impl DocSpaceRepo {
             slug: Set(slug),
             avatar: Set(avatar),
             description: Set(description),
+            local_path: Set(None),
             sort_order: Set(max_order),
             created_at: Set(Some(now)),
             updated_at: Set(Some(now)),
