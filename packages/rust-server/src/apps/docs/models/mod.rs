@@ -1,8 +1,5 @@
-use sea_orm::DerivePartialModel;
-use sea_orm::entity::prelude::DateTimeWithTimeZone;
 use serde::Serialize;
 use ts_rs::TS;
-use uuid::Uuid;
 
 use crate::db::entities::{docs_node_attachments, docs_node_versions, docs_nodes, docs_spaces};
 
@@ -36,18 +33,14 @@ impl From<docs_spaces::Model> for DocSpaceOutput {
     }
 }
 
-/// Node list item (sidebar/tree — no content)
-#[derive(Debug, Clone, Serialize, DerivePartialModel, TS)]
-#[sea_orm(entity = "docs_nodes::Entity")]
+/// Node list item (Phase 3: built from filesystem walk, sidebar/tree — no content)
+#[derive(Debug, Clone, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct DocNodeListItem {
-    #[ts(type = "string")]
-    pub id: Uuid,
-    #[ts(type = "string")]
-    pub space_id: Uuid,
-    #[ts(type = "string | null")]
-    pub parent_id: Option<Uuid>,
+    pub id: String,
+    pub space_id: String,
+    pub parent_id: Option<String>,
     pub r#type: String,
     pub title: String,
     pub icon: Option<String>,
@@ -57,10 +50,9 @@ pub struct DocNodeListItem {
     pub is_archived: bool,
     pub word_count: i32,
     pub sort_order: i32,
-    #[ts(type = "string")]
-    pub created_at: DateTimeWithTimeZone,
-    #[ts(type = "string")]
-    pub updated_at: DateTimeWithTimeZone,
+    pub last_opened_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 /// Full node detail (includes content)
@@ -82,6 +74,7 @@ pub struct DocNodeOutput {
     pub is_archived: bool,
     pub word_count: i32,
     pub sort_order: i32,
+    pub last_opened_at: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -103,6 +96,7 @@ impl From<docs_nodes::Model> for DocNodeOutput {
             is_archived: m.is_archived,
             word_count: m.word_count,
             sort_order: m.sort_order,
+            last_opened_at: m.last_opened_at.map(|d| d.to_rfc3339()),
             created_at: m.created_at.to_rfc3339(),
             updated_at: m.updated_at.to_rfc3339(),
         }
