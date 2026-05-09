@@ -89,11 +89,6 @@ export default function DocsAppPage({ spaceId }: { spaceId: string }) {
 function DocsAppPageInner({ spaceId }: { spaceId: string }) {
   const s = useDocsPage(spaceId);
 
-  const goToParent = (relPath: string) => {
-    const i = relPath.lastIndexOf("/");
-    s.navigateToNode(i > 0 ? relPath.slice(0, i) : null);
-  };
-
   // ── Menu bar ───────────────────────────────────────────────────────
   useMenuBar(
     useMemo(
