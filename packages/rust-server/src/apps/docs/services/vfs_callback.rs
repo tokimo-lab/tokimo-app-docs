@@ -1,6 +1,6 @@
-//! Callback that reacts to VFS writes on the docs FUSE mount at `/mnt/docs`.
+//! Callback that reacts to VFS writes on the docs mount at `/mnt/docs`.
 //!
-//! When a markdown file is written via VFS/FUSE, this callback resolves the
+//! When a markdown file is written via VFS, this callback resolves the
 //! target space from the slug directory in the path, then updates (or creates)
 //! the corresponding `docs_nodes` record in the database.
 //!
@@ -18,12 +18,13 @@ use uuid::Uuid;
 
 use crate::apps::docs::repos::attachment_repo::{AttachmentRepo, CreateAttachmentParams};
 use crate::apps::docs::services::collab::CollabService;
-use crate::apps::docs::services::markdown_sync::{NOTION_BODY_FILENAME, sanitize_path_component};
+use crate::apps::docs::services::local_fs::sanitize_path_component;
+use crate::apps::docs::services::markdown_sync::NOTION_BODY_FILENAME;
 use crate::db::entities::{docs_node_attachments, docs_nodes, docs_spaces};
 use crate::services::media::source::storage_driver::WriteCallback;
 use crate::services::storage::StorageProvider;
 
-/// Callback attached to the docs FUSE mount.
+/// Callback attached to the docs VFS mount.
 pub struct DocSpaceWriteCallback {
     db: DatabaseConnection,
     collab: Arc<CollabService>,

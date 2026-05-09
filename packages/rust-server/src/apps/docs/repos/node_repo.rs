@@ -1,5 +1,6 @@
 use sea_orm::prelude::Expr;
 use sea_orm::*;
+use std::collections::HashSet;
 use uuid::Uuid;
 
 use crate::apps::docs::models::DocNodeListItem;
@@ -135,6 +136,7 @@ impl DocNodeRepo {
         node_type: String,
         title: String,
         parent_id: Option<Uuid>,
+        relative_path: Option<String>,
     ) -> Result<docs_nodes::Model, AppError> {
         let now = chrono::Utc::now().fixed_offset();
         let id = Uuid::new_v4();
@@ -158,7 +160,7 @@ impl DocNodeRepo {
             r#type: Set(node_type),
             title: Set(title),
             content: Set(None),
-            relative_path: Set(None),
+            relative_path: Set(relative_path),
             icon: Set(None),
             cover_image: Set(None),
             tags: Set(Some(vec![])),
@@ -326,5 +328,146 @@ impl DocNodeRepo {
             active.update(db).await?;
         }
         Ok(true)
+    }
+
+    /// Get all non-archived sibling titles for uniqueness checking.
+    pub async fn get_sibling_titles(
+        db: &DatabaseConnection,
+        space_id: Uuid,
+        parent_id: Option<Uuid>,
+        exclude_id: Option<Uuid>,
+    ) -> Result<HashSet<String>, AppError> {
+        let mut q = docs_nodes::Entity::find()
+            .filter(docs_nodes::Column::SpaceId.eq(space_id))
+            .filter(docs_nodes::Column::IsArchived.eq(false));
+        q = if let Some(pid) = parent_id {
+            q.filter(docs_nodes::Column::ParentId.eq(pid))
+        } else {
+            q.filter(docs_nodes::Column::ParentId.is_null())
+        };
+        if let Some(eid) = exclude_id {
+            q = q.filter(docs_nodes::Column::Id.ne(eid));
+        }
+        let nodes = q.all(db).await?;
+        Ok(nodes.into_iter().map(|n| n.title).collect())
+    }
+
+    /// Recursively collect all descendant nodes (BFS) for a given parent node.
+    pub async fn get_descendants(db: &DatabaseConnection, node_id: Uuid) -> Result<Vec<docs_nodes::Model>, AppError> {
+        let mut result = Vec::new();
+        let mut frontier = vec![node_id];
+        while !frontier.is_empty() {
+            let children = docs_nodes::Entity::find()
+                .filter(docs_nodes::Column::ParentId.is_in(frontier))
+                .all(db)
+                .await?;
+            frontier = children.iter().map(|n| n.id).collect();
+            result.extend(children);
+        }
+        Ok(result)
+    }
+
+    /// Update only `relative_path` (and `updated_at`) for a node.
+    pub async fn set_relative_path<C: ConnectionTrait>(
+        db: &C,
+        id: Uuid,
+        relative_path: Option<String>,
+    ) -> Result<(), AppError> {
+        let now = chrono::Utc::now().fixed_offset();
+        docs_nodes::Entity::update_many()
+            .filter(docs_nodes::Column::Id.eq(id))
+            .col_expr(docs_nodes::Column::RelativePath, Expr::value(relative_path))
+            .col_expr(docs_nodes::Column::UpdatedAt, Expr::value(now))
+            .exec(db)
+            .await?;
+        Ok(())
+    }
+
+    /// Bulk-update `relative_path` for a list of (id, new_path) pairs within a transaction.
+    pub async fn bulk_set_relative_paths<C: ConnectionTrait>(
+        db: &C,
+        updates: &[(Uuid, Option<String>)],
+    ) -> Result<(), AppError> {
+        let now = chrono::Utc::now().fixed_offset();
+        for (id, new_path) in updates {
+            docs_nodes::Entity::update_many()
+                .filter(docs_nodes::Column::Id.eq(*id))
+                .col_expr(docs_nodes::Column::RelativePath, Expr::value(new_path.clone()))
+                .col_expr(docs_nodes::Column::UpdatedAt, Expr::value(now))
+                .exec(db)
+                .await?;
+        }
+        Ok(())
+    }
+
+    /// Archive a node together with pre-read content (for file-backed nodes).
+    ///
+    /// Sets `is_archived = true` and stores `content` (the file's content read before deletion).
+    pub async fn archive_with_content<C: ConnectionTrait>(
+        db: &C,
+        id: Uuid,
+        content: Option<serde_json::Value>,
+    ) -> Result<(), AppError> {
+        let now = chrono::Utc::now().fixed_offset();
+        docs_nodes::Entity::update_many()
+            .filter(docs_nodes::Column::Id.eq(id))
+            .col_expr(docs_nodes::Column::IsArchived, Expr::value(true))
+            .col_expr(docs_nodes::Column::Content, Expr::value(content))
+            .col_expr(docs_nodes::Column::UpdatedAt, Expr::value(now))
+            .exec(db)
+            .await?;
+        Ok(())
+    }
+
+    /// Restore a node: clear archived state, clear content, optionally update relative_path.
+    pub async fn restore_node<C: ConnectionTrait>(
+        db: &C,
+        id: Uuid,
+        new_relative_path: Option<String>,
+    ) -> Result<(), AppError> {
+        let now = chrono::Utc::now().fixed_offset();
+        let mut stmt = docs_nodes::Entity::update_many()
+            .filter(docs_nodes::Column::Id.eq(id))
+            .col_expr(docs_nodes::Column::IsArchived, Expr::value(false))
+            .col_expr(
+                docs_nodes::Column::Content,
+                Expr::value(Option::<serde_json::Value>::None),
+            )
+            .col_expr(docs_nodes::Column::UpdatedAt, Expr::value(now));
+        if let Some(rp) = new_relative_path {
+            stmt = stmt.col_expr(docs_nodes::Column::RelativePath, Expr::value(rp));
+        }
+        stmt.exec(db).await?;
+        Ok(())
+    }
+
+    /// Update only the title (and updated_at) of a node.
+    pub async fn set_title<C: ConnectionTrait>(db: &C, id: Uuid, title: String) -> Result<(), AppError> {
+        let now = chrono::Utc::now().fixed_offset();
+        docs_nodes::Entity::update_many()
+            .filter(docs_nodes::Column::Id.eq(id))
+            .col_expr(docs_nodes::Column::Title, Expr::value(title))
+            .col_expr(docs_nodes::Column::UpdatedAt, Expr::value(now))
+            .exec(db)
+            .await?;
+        Ok(())
+    }
+
+    /// Update word_count and search_text (used after writing content to file).
+    pub async fn update_word_count<C: ConnectionTrait>(
+        db: &C,
+        id: Uuid,
+        word_count: i32,
+        search_text: Option<String>,
+    ) -> Result<(), AppError> {
+        let now = chrono::Utc::now().fixed_offset();
+        docs_nodes::Entity::update_many()
+            .filter(docs_nodes::Column::Id.eq(id))
+            .col_expr(docs_nodes::Column::WordCount, Expr::value(word_count))
+            .col_expr(docs_nodes::Column::SearchText, Expr::value(search_text))
+            .col_expr(docs_nodes::Column::UpdatedAt, Expr::value(now))
+            .exec(db)
+            .await?;
+        Ok(())
     }
 }
