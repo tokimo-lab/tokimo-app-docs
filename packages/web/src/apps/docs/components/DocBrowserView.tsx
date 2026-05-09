@@ -4,22 +4,19 @@
 
 import {
   type ContextMenuItem,
-  cn,
   Empty,
   type FileNode,
   Spin,
   useContextMenu,
 } from "@tokimo/ui";
-import { ChevronRight, FileText, FolderPlus } from "lucide-react";
+import { FileText, FolderPlus } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { FinderFileGridView } from "@/apps/finder/components/FinderFileGrid";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
-import { getAncestorChain } from "../lib/doc-node";
 import { DocNodeIcon } from "./DocNodeIcon";
 
 interface DocBrowserViewProps {
   nodes: DocNode[];
-  allNodes: DocNode[];
   currentFolderId: string | null;
   onNavigateFolder: (folderId: string | null) => void;
   onOpenDoc: (docId: string, type: DocNodeType) => void;
@@ -54,7 +51,6 @@ function getEmptyDescription(
 
 export function DocBrowserView({
   nodes,
-  allNodes,
   currentFolderId,
   onNavigateFolder,
   onOpenDoc,
@@ -71,11 +67,6 @@ export function DocBrowserView({
   const [renaming, setRenaming] = useState<string | null>(null);
   const { open, contextMenu } = useContextMenu();
 
-  const breadcrumbPath = useMemo(() => {
-    if (!currentFolderId) return [];
-    return getAncestorChain(allNodes, currentFolderId);
-  }, [allNodes, currentFolderId]);
-
   const nodeByPath = useMemo(
     () => new Map(nodes.map((node) => [node.relPath, node])),
     [nodes],
@@ -83,7 +74,11 @@ export function DocBrowserView({
 
   const fileNodes = useMemo(() => nodes.map(nodeToFileNode), [nodes]);
 
-  const parentFolderId = breadcrumbPath.at(-1)?.parentId ?? null;
+  const parentFolderId = useMemo(() => {
+    if (!currentFolderId) return null;
+    const idx = currentFolderId.lastIndexOf("/");
+    return idx > 0 ? currentFolderId.slice(0, idx) : null;
+  }, [currentFolderId]);
 
   const openNode = useCallback(
     (node: DocNode) => {
@@ -182,53 +177,6 @@ export function DocBrowserView({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="flex items-center gap-1 border-b border-border-subtle px-4 py-2.5">
-        <div className="flex flex-1 items-center gap-1 text-sm">
-          <button
-            type="button"
-            onClick={() => onNavigateFolder(null)}
-            className={cn(
-              "cursor-pointer rounded px-1 py-0.5 transition-colors hover:bg-fill-tertiary",
-              !currentFolderId
-                ? "font-medium text-fg-primary"
-                : "text-fg-muted hover:text-fg-secondary",
-            )}
-          >
-            文档
-          </button>
-          {breadcrumbPath.map((node) => (
-            <span key={node.id} className="flex items-center gap-1">
-              <ChevronRight size={14} className="text-fg-muted" />
-              <button
-                type="button"
-                onClick={() => onNavigateFolder(node.id)}
-                className={cn(
-                  "cursor-pointer rounded px-1 py-0.5 transition-colors hover:bg-fill-tertiary",
-                  node.id === currentFolderId
-                    ? "font-medium text-fg-primary"
-                    : "text-fg-muted hover:text-fg-secondary",
-                )}
-              >
-                {node.icon ? `${node.icon} ` : ""}
-                {node.title}
-              </button>
-            </span>
-          ))}
-          {viewMode === "favorites" && (
-            <>
-              <ChevronRight size={14} className="text-fg-muted" />
-              <span className="font-medium text-fg-primary">收藏</span>
-            </>
-          )}
-          {viewMode === "archived" && (
-            <>
-              <ChevronRight size={14} className="text-fg-muted" />
-              <span className="font-medium text-fg-primary">回收站</span>
-            </>
-          )}
-        </div>
-      </div>
-
       {viewMode !== "archived" && (
         <div className="flex items-center gap-2 border-b border-border-subtle px-4 py-2">
           <button
