@@ -96,11 +96,31 @@ impl DocNodeRepo {
         };
 
         let total = query.clone().count(db).await? as i64;
-        let items = query
-            .into_partial_model::<DocNodeListItem>()
+        let models = query
             .paginate(db, input.page.page_size)
             .fetch_page(input.page.page.saturating_sub(1))
             .await?;
+
+        let items = models
+            .into_iter()
+            .map(|m: docs_nodes::Model| DocNodeListItem {
+                id: m.id.to_string(),
+                space_id: m.space_id.to_string(),
+                parent_id: m.parent_id.map(|p| p.to_string()),
+                r#type: m.r#type,
+                title: m.title,
+                icon: m.icon,
+                tags: m.tags,
+                is_favorite: m.is_favorite,
+                is_pinned: m.is_pinned,
+                is_archived: m.is_archived,
+                word_count: m.word_count,
+                sort_order: m.sort_order,
+                last_opened_at: m.last_opened_at.as_ref().map(chrono::DateTime::to_rfc3339),
+                created_at: m.created_at.to_rfc3339(),
+                updated_at: m.updated_at.to_rfc3339(),
+            })
+            .collect();
 
         Ok(Page::new(items, total, &input.page))
     }
@@ -170,6 +190,7 @@ impl DocNodeRepo {
             is_archived: Set(false),
             word_count: Set(0),
             sort_order: Set(max_order),
+            last_opened_at: Set(None),
             yjs_state: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
@@ -400,6 +421,31 @@ impl DocNodeRepo {
         Ok(())
     }
 
+    /// Rebase descendant metadata paths from one folder prefix to another.
+    pub async fn rebase_relative_path_prefix<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        old_prefix: &str,
+        new_prefix: &str,
+    ) -> Result<(), AppError> {
+        let old_descendant_prefix = format!("{old_prefix}/");
+        let new_descendant_prefix = format!("{new_prefix}/");
+        let rows = docs_nodes::Entity::find()
+            .filter(docs_nodes::Column::SpaceId.eq(space_id))
+            .filter(docs_nodes::Column::RelativePath.starts_with(&old_descendant_prefix))
+            .all(db)
+            .await?;
+        let updates: Vec<_> = rows
+            .into_iter()
+            .filter_map(|row| {
+                let relative_path = row.relative_path?;
+                let suffix = relative_path.strip_prefix(&old_descendant_prefix)?;
+                Some((row.id, Some(format!("{new_descendant_prefix}{suffix}"))))
+            })
+            .collect();
+        Self::bulk_set_relative_paths(db, &updates).await
+    }
+
     /// Archive a node together with pre-read content (for file-backed nodes).
     ///
     /// Sets `is_archived = true` and stores `content` (the file's content read before deletion).
@@ -469,5 +515,187 @@ impl DocNodeRepo {
             .exec(db)
             .await?;
         Ok(())
+    }
+}
+
+impl DocNodeRepo {
+    /// Find metadata by (space_id, relative_path).
+    pub async fn find_by_path<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        relative_path: &str,
+    ) -> Result<Option<docs_nodes::Model>, AppError> {
+        Ok(docs_nodes::Entity::find()
+            .filter(docs_nodes::Column::SpaceId.eq(space_id))
+            .filter(docs_nodes::Column::RelativePath.eq(relative_path))
+            .one(db)
+            .await?)
+    }
+
+    /// List favorites for a space (returns metadata only).
+    /// Orders by last opened desc, then RelativePath asc.
+    pub async fn list_favorites<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+    ) -> Result<Vec<docs_nodes::Model>, AppError> {
+        Ok(docs_nodes::Entity::find()
+            .filter(docs_nodes::Column::SpaceId.eq(space_id))
+            .filter(docs_nodes::Column::IsFavorite.eq(true))
+            .order_by_desc(docs_nodes::Column::LastOpenedAt)
+            .order_by_asc(docs_nodes::Column::RelativePath)
+            .all(db)
+            .await?)
+    }
+
+    /// Toggle favorite status by path, creating metadata row if needed.
+    pub async fn toggle_favorite_by_path<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        relative_path: &str,
+    ) -> Result<bool, AppError> {
+        let now = chrono::Utc::now().fixed_offset();
+
+        let id = Uuid::new_v4();
+        let node = docs_nodes::Entity::insert(docs_nodes::ActiveModel {
+            id: Set(id),
+            space_id: Set(space_id),
+            parent_id: Set(None),
+            r#type: Set("unknown".to_string()),
+            title: Set(String::new()),
+            content: Set(None),
+            relative_path: Set(Some(relative_path.to_string())),
+            icon: Set(None),
+            cover_image: Set(None),
+            tags: Set(None),
+            search_text: Set(None),
+            is_favorite: Set(true),
+            is_pinned: Set(false),
+            is_archived: Set(false),
+            word_count: Set(0),
+            sort_order: Set(0),
+            last_opened_at: Set(None),
+            yjs_state: Set(None),
+            created_at: Set(now),
+            updated_at: Set(now),
+        })
+        .on_conflict(
+            sea_orm::sea_query::OnConflict::columns([docs_nodes::Column::SpaceId, docs_nodes::Column::RelativePath])
+                .value(docs_nodes::Column::IsFavorite, Expr::cust("NOT docs_nodes.is_favorite"))
+                .value(docs_nodes::Column::UpdatedAt, Expr::current_timestamp())
+                .to_owned(),
+        )
+        .exec_with_returning(db)
+        .await?;
+
+        Ok(node.is_favorite)
+    }
+
+    /// Set archived status by path, creating metadata row if needed.
+    pub async fn set_archived_by_path<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        relative_path: &str,
+        archived: bool,
+    ) -> Result<(), AppError> {
+        let now = chrono::Utc::now().fixed_offset();
+        let id = Uuid::new_v4();
+        docs_nodes::Entity::insert(docs_nodes::ActiveModel {
+            id: Set(id),
+            space_id: Set(space_id),
+            parent_id: Set(None),
+            r#type: Set("unknown".to_string()),
+            title: Set(String::new()),
+            content: Set(None),
+            relative_path: Set(Some(relative_path.to_string())),
+            icon: Set(None),
+            cover_image: Set(None),
+            tags: Set(None),
+            search_text: Set(None),
+            is_favorite: Set(false),
+            is_pinned: Set(false),
+            is_archived: Set(archived),
+            word_count: Set(0),
+            sort_order: Set(0),
+            last_opened_at: Set(None),
+            yjs_state: Set(None),
+            created_at: Set(now),
+            updated_at: Set(now),
+        })
+        .on_conflict(
+            sea_orm::sea_query::OnConflict::columns([docs_nodes::Column::SpaceId, docs_nodes::Column::RelativePath])
+                .update_columns([docs_nodes::Column::IsArchived])
+                .value(docs_nodes::Column::UpdatedAt, Expr::current_timestamp())
+                .to_owned(),
+        )
+        .exec(db)
+        .await?;
+        Ok(())
+    }
+
+    /// Delete metadata by path.
+    pub async fn delete_by_path<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        relative_path: &str,
+    ) -> Result<bool, AppError> {
+        let result = docs_nodes::Entity::delete_many()
+            .filter(docs_nodes::Column::SpaceId.eq(space_id))
+            .filter(docs_nodes::Column::RelativePath.eq(relative_path))
+            .exec(db)
+            .await?;
+        Ok(result.rows_affected > 0)
+    }
+
+    /// Touch metadata for a path, creating row if needed (updates `last_opened_at` and `updated_at`).
+    pub async fn touch_opened<C: ConnectionTrait>(db: &C, space_id: Uuid, relative_path: &str) -> Result<(), AppError> {
+        let now = chrono::Utc::now().fixed_offset();
+        let id = Uuid::new_v4();
+        docs_nodes::Entity::insert(docs_nodes::ActiveModel {
+            id: Set(id),
+            space_id: Set(space_id),
+            parent_id: Set(None),
+            r#type: Set("unknown".to_string()),
+            title: Set(String::new()),
+            content: Set(None),
+            relative_path: Set(Some(relative_path.to_string())),
+            icon: Set(None),
+            cover_image: Set(None),
+            tags: Set(None),
+            search_text: Set(None),
+            is_favorite: Set(false),
+            is_pinned: Set(false),
+            is_archived: Set(false),
+            word_count: Set(0),
+            sort_order: Set(0),
+            last_opened_at: Set(Some(now)),
+            yjs_state: Set(None),
+            created_at: Set(now),
+            updated_at: Set(now),
+        })
+        .on_conflict(
+            sea_orm::sea_query::OnConflict::columns([docs_nodes::Column::SpaceId, docs_nodes::Column::RelativePath])
+                .value(docs_nodes::Column::LastOpenedAt, Expr::current_timestamp())
+                .value(docs_nodes::Column::UpdatedAt, Expr::current_timestamp())
+                .to_owned(),
+        )
+        .exec(db)
+        .await?;
+        Ok(())
+    }
+
+    /// Batch load metadata by paths (for N+1 avoidance).
+    pub async fn find_by_paths<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        paths: &[String],
+    ) -> Result<Vec<docs_nodes::Model>, AppError> {
+        if paths.is_empty() {
+            return Ok(Vec::new());
+        }
+        Ok(docs_nodes::Entity::find()
+            .filter(docs_nodes::Column::SpaceId.eq(space_id))
+            .filter(docs_nodes::Column::RelativePath.is_in(paths.iter().cloned()))
+            .all(db)
+            .await?)
     }
 }
