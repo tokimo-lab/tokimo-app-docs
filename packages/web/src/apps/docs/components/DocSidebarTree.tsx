@@ -326,6 +326,7 @@ export function NodeTreeItem({
           role="button"
           tabIndex={0}
           draggable={!isRenaming}
+          data-draggable={!isRenaming || undefined}
           className={cn(
             "group w-full cursor-pointer items-center gap-1 rounded-md py-1 pr-2 text-left text-sm transition-colors",
             isDropTarget

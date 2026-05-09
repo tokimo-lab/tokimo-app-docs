@@ -204,7 +204,9 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
         }}
         onMoveNode={(from, to) => {
           if (!s.spaceId) return;
-          s.moveMut.mutate({ spaceId: s.spaceId, from, to: to ?? "" });
+          const basename = from.split("/").pop() ?? from;
+          const target = to ? `${to}/${basename}` : basename;
+          s.moveMut.mutate({ spaceId: s.spaceId, from, to: target });
         }}
         sortField={s.sortField}
         sortDir={s.sortDir}
@@ -602,6 +604,12 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             }
             isLoading={s.browserIsLoading}
             viewMode={s.tab}
+            onMoveNode={(from, to) => {
+              if (!s.spaceId) return;
+              const basename = from.split("/").pop() ?? from;
+              const target = to ? `${to}/${basename}` : basename;
+              s.moveMut.mutate({ spaceId: s.spaceId, from, to: target });
+            }}
           />
         )}
       </div>

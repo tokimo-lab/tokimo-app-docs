@@ -15,6 +15,7 @@ import { useCallback, useMemo, useState } from "react";
 import { FinderFileGridView } from "@/apps/finder/components/FinderFileGrid";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
 import { getAncestorChain } from "../lib/doc-node";
+import { DocNodeIcon } from "./DocNodeIcon";
 
 interface DocBrowserViewProps {
   nodes: DocNode[];
@@ -26,9 +27,12 @@ interface DocBrowserViewProps {
   onCreateFolder: (parentId?: string) => void;
   onDeleteNode: (id: string) => void;
   onUpdateNode: (id: string, title: string) => void;
+  onMoveNode?: (srcRelPath: string, destFolderRelPath: string | null) => void;
   isLoading: boolean;
   viewMode: "all" | "favorites" | "archived";
 }
+
+const TREE_DRAG_MIME = "application/x-tokimo-doc-relpath";
 
 function nodeToFileNode(node: DocNode): FileNode {
   return {
@@ -58,10 +62,12 @@ export function DocBrowserView({
   onCreateFolder,
   onDeleteNode,
   onUpdateNode,
+  onMoveNode,
   isLoading,
   viewMode,
 }: DocBrowserViewProps) {
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+  const [draggingPaths, setDraggingPaths] = useState<Set<string>>(new Set());
   const [renaming, setRenaming] = useState<string | null>(null);
   const { open, contextMenu } = useContextMenu();
 
@@ -254,7 +260,7 @@ export function DocBrowserView({
         ) : fileNodes.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <Empty
-              className="text-[var(--text-quaternary)]"
+              className="opacity-50"
               description={getEmptyDescription(viewMode)}
             />
           </div>
@@ -278,13 +284,35 @@ export function DocBrowserView({
             onRenameCancel={() => setRenaming(null)}
             onClearSelection={() => setSelectedPaths(new Set())}
             onSelectPaths={setSelectedPaths}
-            onDragStart={(eventNode, _contextNodes, event) => {
-              event.preventDefault();
-              setSelectedPaths(new Set([eventNode.path]));
+            onDragStart={(eventNode, contextNodes, event) => {
+              if (!onMoveNode) return;
+              const selected = selectedPaths.has(eventNode.path)
+                ? contextNodes.filter((n) => selectedPaths.has(n.path))
+                : [eventNode];
+              const paths = selected.length > 0 ? selected : [eventNode];
+              event.dataTransfer.setData(TREE_DRAG_MIME, eventNode.path);
+              event.dataTransfer.setData("text/plain", eventNode.path);
+              event.dataTransfer.effectAllowed = "move";
+              setDraggingPaths(new Set(paths.map((n) => n.path)));
             }}
-            onDragEnd={() => {}}
-            onDropToFolder={(_targetNode, event) => event.preventDefault()}
-            draggingPaths={new Set()}
+            onDragEnd={() => setDraggingPaths(new Set())}
+            onDropToFolder={(targetNode, event) => {
+              if (!onMoveNode) return;
+              const src = event.dataTransfer.getData(TREE_DRAG_MIME);
+              if (!src) return;
+              event.preventDefault();
+              event.stopPropagation();
+              if (src === targetNode.path) return;
+              if (targetNode.path.startsWith(`${src}/`)) return;
+              onMoveNode(src, targetNode.path);
+              setDraggingPaths(new Set());
+            }}
+            draggingPaths={draggingPaths}
+            renderIcon={(file) => {
+              const docNode = nodeByPath.get(file.path);
+              if (!docNode) return null;
+              return <DocNodeIcon node={docNode} size={16} />;
+            }}
           />
         )}
       </div>
