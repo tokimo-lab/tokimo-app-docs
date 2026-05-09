@@ -382,8 +382,23 @@ export function useDocsPage(spaceId: string) {
   });
 
   const updateMutation = api.docs.update.useMutation({
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       refetchNodeQueries();
+      // If the update renamed the file (title change → new rel_path),
+      // bring the URL along so the still-mounted route doesn't deselect
+      // the node and bounce the user back to the folder root.
+      const oldRel = variables.relPath ?? variables.nodeId ?? variables.id;
+      const newRel = (data as { relPath?: string } | null | undefined)?.relPath;
+      if (newRel && oldRel && newRel !== oldRel) {
+        const sid = stateRef.current.spaceId;
+        const oldUrl = buildNodePath(sid, oldRel);
+        // Only redirect if we still own the URL (user hasn't navigated away).
+        if (routeRef.current === oldUrl) {
+          const newTitle =
+            (data as { title?: string } | null | undefined)?.title ?? newRel;
+          replace(buildNodePath(sid, newRel), `TokimoDocs · ${newTitle}`);
+        }
+      }
     },
   });
 
@@ -447,6 +462,8 @@ export function useDocsPage(spaceId: string) {
   updateMutRef.current = updateMutation;
   const detailQueryRef = useRef(detailQuery);
   detailQueryRef.current = detailQuery;
+  const routeRef = useRef(route);
+  routeRef.current = route;
 
   // Close-and-reopen the currently selected doc to force the editor (and its
   // Yjs collab provider) to remount. Used after destructive operations like
@@ -459,10 +476,7 @@ export function useDocsPage(spaceId: string) {
     if (!sid || !relPath) return;
     navigate(`/space/${encodeURIComponent(sid)}`);
     setTimeout(() => {
-      navigate(
-        buildNodePath(sid, relPath),
-        `TokimoDocs · ${title ?? relPath}`,
-      );
+      navigate(buildNodePath(sid, relPath), `TokimoDocs · ${title ?? relPath}`);
     }, 200);
   }, [navigate]);
 
