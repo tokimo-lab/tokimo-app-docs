@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { cn } from "@tokimo/ui";
+import { cn, Modal } from "@tokimo/ui";
 import { Clock, RotateCcw, X } from "lucide-react";
 import { useCallback, useState } from "react";
 import { api } from "@/generated/rust-api";
@@ -51,7 +51,16 @@ export function DocVersionHistory({
 
   const handleRestore = useCallback(
     (versionId: string) => {
-      restoreMutation.mutate({ spaceId, relPath, versionId });
+      Modal.confirm({
+        title: "恢复到此版本",
+        content: "当前文档将被这个版本的内容覆盖，是否继续？",
+        okText: "恢复",
+        cancelText: "取消",
+        variant: "warning",
+        onOk: () => {
+          restoreMutation.mutate({ spaceId, relPath, versionId });
+        },
+      });
     },
     [restoreMutation, spaceId, relPath],
   );

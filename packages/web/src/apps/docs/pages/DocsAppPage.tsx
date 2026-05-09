@@ -5,7 +5,7 @@
  * Right area: Plate editor for the selected doc
  */
 
-import { Empty, Spin } from "@tokimo/ui";
+import { Empty, Modal, Spin } from "@tokimo/ui";
 import {
   Clock,
   Download,
@@ -498,10 +498,21 @@ function DocsMainBody({ s }: { s: DocsPageState }) {
             createdAt={s.versionQuery.data.createdAt}
             onRestore={() => {
               if (s.selectedDocId && s.previewingVersionId) {
-                s.restoreVersionMutation.mutate({
-                  spaceId: s.spaceId,
-                  relPath: s.selectedDocId,
-                  versionId: s.previewingVersionId,
+                const docId = s.selectedDocId;
+                const versionId = s.previewingVersionId;
+                Modal.confirm({
+                  title: "恢复到此版本",
+                  content: "当前文档将被这个版本的内容覆盖，是否继续？",
+                  okText: "恢复",
+                  cancelText: "取消",
+                  variant: "warning",
+                  onOk: () => {
+                    s.restoreVersionMutation.mutate({
+                      spaceId: s.spaceId,
+                      relPath: docId,
+                      versionId,
+                    });
+                  },
                 });
               }
             }}
