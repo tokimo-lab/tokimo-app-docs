@@ -13,7 +13,6 @@ use crate::db::entities::{docs_node_attachments, docs_node_versions, docs_nodes,
 pub struct DocSpaceOutput {
     pub id: String,
     pub name: String,
-    pub slug: Option<String>,
     pub avatar: Option<serde_json::Value>,
     pub description: Option<String>,
     pub local_path: Option<String>,
@@ -27,7 +26,6 @@ impl From<docs_spaces::Model> for DocSpaceOutput {
         Self {
             id: m.id.to_string(),
             name: m.name,
-            slug: m.slug,
             avatar: m.avatar,
             description: m.description,
             local_path: m.local_path,

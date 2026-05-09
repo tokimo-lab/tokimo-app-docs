@@ -39,9 +39,8 @@ impl DocMarkdownSyncService {
         space: &docs_spaces::Model,
         node: &docs_nodes::Model,
     ) -> Result<(), String> {
-        let Some(ref slug) = space.slug else {
-            return Err("space has no slug, cannot sync to S3".into());
-        };
+        let slug = space.id.to_string();
+        let slug = slug.as_str();
 
         match node.r#type.as_str() {
             "notion" => Self::sync_notion_node(storage, slug, node).await,

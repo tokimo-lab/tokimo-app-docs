@@ -14,7 +14,6 @@ use crate::handlers::{ApiResponse, ok, ok_empty};
 #[serde(rename_all = "camelCase")]
 pub struct CreateSpaceInput {
     pub name: String,
-    pub slug: String,
     pub avatar: Option<serde_json::Value>,
     pub description: Option<String>,
     pub local_path: Option<String>,
@@ -24,7 +23,6 @@ pub struct CreateSpaceInput {
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSpaceInput {
     pub name: Option<String>,
-    pub slug: Option<String>,
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub avatar: Option<Option<serde_json::Value>>,
     #[serde(default, with = "::serde_with::rust::double_option")]
@@ -51,8 +49,6 @@ pub async fn create_space(
     if input.name.trim().is_empty() {
         return Err(AppError::BadRequest("space name cannot be empty".into()));
     }
-    validate_slug(&input.slug)?;
-
     // Ensure local_path directory exists if provided.
     if let Some(ref lp) = input.local_path {
         tokio::fs::create_dir_all(lp)
@@ -60,15 +56,7 @@ pub async fn create_space(
             .map_err(|e| AppError::Internal(format!("cannot create space directory: {e}")))?;
     }
 
-    let model = DocSpaceRepo::create(
-        &state.db,
-        input.name,
-        Some(input.slug),
-        input.avatar,
-        input.description,
-        input.local_path,
-    )
-    .await?;
+    let model = DocSpaceRepo::create(&state.db, input.name, input.avatar, input.description, input.local_path).await?;
     Ok(ok(DocSpaceOutput::from(model)))
 }
 
@@ -79,10 +67,6 @@ pub async fn update_space(
     Json(input): Json<UpdateSpaceInput>,
 ) -> Result<Json<ApiResponse<DocSpaceOutput>>, AppError> {
     let uid = parse_uuid(&id)?;
-    if let Some(ref slug) = input.slug {
-        validate_slug(slug)?;
-    }
-
     // Ensure new local_path directory exists if being set.
     if let Some(Some(ref lp)) = input.local_path {
         tokio::fs::create_dir_all(lp)
@@ -95,7 +79,6 @@ pub async fn update_space(
         uid,
         space_repo::UpdateSpaceParams {
             name: input.name,
-            slug: input.slug,
             avatar: input.avatar,
             description: input.description,
             local_path: input.local_path,
@@ -118,25 +101,4 @@ pub async fn delete_space(
         return Err(AppError::NotFound("doc space not found".into()));
     }
     Ok(ok_empty())
-}
-
-/// Validate that a slug is filesystem-safe: [a-z0-9-_], 2-50 chars, no leading/trailing dash/underscore.
-fn validate_slug(slug: &str) -> Result<(), AppError> {
-    if slug.len() < 2 || slug.len() > 50 {
-        return Err(AppError::BadRequest("slug must be 2-50 characters".into()));
-    }
-    if !slug
-        .chars()
-        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_')
-    {
-        return Err(AppError::BadRequest(
-            "slug must contain only lowercase letters, digits, hyphens, and underscores".into(),
-        ));
-    }
-    if slug.starts_with('-') || slug.starts_with('_') || slug.ends_with('-') || slug.ends_with('_') {
-        return Err(AppError::BadRequest(
-            "slug must not start or end with a hyphen or underscore".into(),
-        ));
-    }
-    Ok(())
 }

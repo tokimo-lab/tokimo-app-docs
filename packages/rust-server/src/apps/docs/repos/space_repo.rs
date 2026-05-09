@@ -8,7 +8,6 @@ pub struct DocSpaceRepo;
 
 pub struct UpdateSpaceParams {
     pub name: Option<String>,
-    pub slug: Option<String>,
     pub avatar: Option<Option<serde_json::Value>>,
     pub description: Option<Option<String>>,
     pub local_path: Option<Option<String>>,
@@ -31,7 +30,6 @@ impl DocSpaceRepo {
     pub async fn create(
         db: &DatabaseConnection,
         name: String,
-        slug: Option<String>,
         avatar: Option<serde_json::Value>,
         description: Option<String>,
         local_path: Option<String>,
@@ -50,7 +48,6 @@ impl DocSpaceRepo {
         let model = docs_spaces::ActiveModel {
             id: Set(id),
             name: Set(name),
-            slug: Set(slug),
             avatar: Set(avatar),
             description: Set(description),
             local_path: Set(local_path),
@@ -82,9 +79,6 @@ impl DocSpaceRepo {
         if let Some(n) = params.name {
             active.name = Set(n);
         }
-        if let Some(s) = params.slug {
-            active.slug = Set(Some(s));
-        }
         if let Some(a) = params.avatar {
             active.avatar = Set(a);
         }
@@ -101,14 +95,6 @@ impl DocSpaceRepo {
 
         let updated = active.update(db).await?;
         Ok(Some(updated))
-    }
-
-    /// List all spaces with a valid slug (for VFS mounting).
-    pub async fn list_with_slug(db: &DatabaseConnection) -> Result<Vec<docs_spaces::Model>, AppError> {
-        Ok(docs_spaces::Entity::find()
-            .filter(docs_spaces::Column::Slug.is_not_null())
-            .all(db)
-            .await?)
     }
 
     pub async fn delete(db: &DatabaseConnection, id: Uuid) -> Result<bool, AppError> {
