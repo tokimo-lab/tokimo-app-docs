@@ -86,6 +86,11 @@ export default function DocsAppPage({ spaceId }: { spaceId: string }) {
 function DocsAppPageInner({ spaceId }: { spaceId: string }) {
   const s = useDocsPage(spaceId);
 
+  const goToParent = (relPath: string) => {
+    const i = relPath.lastIndexOf("/");
+    s.navigateToNode(i > 0 ? relPath.slice(0, i) : null);
+  };
+
   // ── Menu bar ───────────────────────────────────────────────────────
   useMenuBar(
     useMemo(
@@ -228,7 +233,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
               <button
                 type="button"
-                onClick={() => s.deselectNode()}
+                onClick={() => goToParent(s.selectedSheet?.relPath ?? "")}
                 className="mr-1 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary cursor-pointer"
                 title={s.t("docs.backToList")}
               >
@@ -264,7 +269,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
               <button
                 type="button"
-                onClick={() => s.deselectNode()}
+                onClick={() => goToParent(s.selectedMind?.relPath ?? "")}
                 className="mr-1 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary cursor-pointer"
                 title={s.t("docs.backToList")}
               >
@@ -299,7 +304,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
               <button
                 type="button"
-                onClick={() => s.deselectNode()}
+                onClick={() => goToParent(s.selectedSlide?.relPath ?? "")}
                 className="mr-1 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary cursor-pointer"
                 title={s.t("docs.backToList")}
               >
@@ -334,7 +339,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
               <button
                 type="button"
-                onClick={() => s.deselectNode()}
+                onClick={() => goToParent(s.selectedWhiteboard?.relPath ?? "")}
                 className="mr-1 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary cursor-pointer"
                 title={s.t("docs.backToList")}
               >
@@ -369,7 +374,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
               <button
                 type="button"
-                onClick={() => s.deselectNode()}
+                onClick={() => goToParent(s.selectedBase?.relPath ?? "")}
                 className="mr-1 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary cursor-pointer"
                 title={s.t("docs.backToList")}
               >
@@ -397,7 +402,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
               <button
                 type="button"
-                onClick={() => s.deselectNode()}
+                onClick={() => goToParent(s.selectedMarkdown?.relPath ?? "")}
                 className="mr-1 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary cursor-pointer"
                 title="返回文档列表"
               >
@@ -429,7 +434,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
               <button
                 type="button"
-                onClick={() => s.deselectNode()}
+                onClick={() => goToParent(s.selectedDoc?.relPath ?? "")}
                 className="mr-1 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary cursor-pointer"
                 title="返回文档列表"
               >

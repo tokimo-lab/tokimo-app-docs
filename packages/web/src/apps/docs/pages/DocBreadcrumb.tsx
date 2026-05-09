@@ -15,17 +15,27 @@ export function DocBreadcrumb({
   onNavigateFolder?: (folderId: string | null) => void;
 }) {
   const { t } = useTranslation();
-  const path = useMemo(() => {
-    if (!doc.parentId) return [];
-    const nodeMap = new Map(allNodes.map((n) => [n.relPath, n]));
-    const result: DocNodeListItem[] = [];
-    let current = nodeMap.get(doc.parentId);
-    while (current) {
-      result.unshift(current);
-      current = current.parentId ? nodeMap.get(current.parentId) : undefined;
-    }
-    return result;
-  }, [doc.parentId, allNodes]);
+
+  const crumbs = useMemo(() => {
+    const segments = doc.relPath.split("/").filter(Boolean);
+    if (segments.length <= 1) return [];
+
+    const ancestorPaths = segments.slice(0, -1).map((_, i) => {
+      const relPath = segments.slice(0, i + 1).join("/");
+      return relPath;
+    });
+
+    const nodeByPath = new Map(allNodes.map((n) => [n.relPath, n]));
+    return ancestorPaths.map((relPath) => {
+      const node = nodeByPath.get(relPath);
+      const segment = relPath.split("/").pop() ?? relPath;
+      return {
+        relPath,
+        title: node?.title ?? segment,
+        icon: node?.icon ?? null,
+      };
+    });
+  }, [doc.relPath, allNodes]);
 
   return (
     <div className="flex items-center gap-1 text-xs text-fg-muted">
@@ -37,16 +47,16 @@ export function DocBreadcrumb({
       >
         文档
       </button>
-      {path.map((node) => (
-        <span key={node.relPath} className="flex items-center gap-1">
+      {crumbs.map((crumb) => (
+        <span key={crumb.relPath} className="flex items-center gap-1">
           <span className="text-fg-muted">/</span>
           <button
             type="button"
             className="hover:text-fg-secondary cursor-pointer"
-            onClick={() => onNavigateFolder?.(node.relPath)}
+            onClick={() => onNavigateFolder?.(crumb.relPath)}
           >
-            {node.icon ? `${node.icon} ` : ""}
-            {node.title}
+            {crumb.icon ? `${crumb.icon} ` : ""}
+            {crumb.title}
           </button>
         </span>
       ))}
