@@ -1,68 +1,65 @@
 use axum::Json;
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use ts_rs::TS;
 
-use super::parse_uuid;
+use super::{ensure_space_vfs, get_space, vfs_err};
 use crate::AppState;
-use crate::db::entities::docs_nodes;
-use crate::error::{AppError, OptionExt};
+use crate::apps::docs::services::path_utils;
+use crate::error::AppError;
 use crate::handlers::user::AuthUser;
 use crate::handlers::{ApiResponse, ok};
-use sea_orm::*;
 
-// ── Output DTOs ──────────────────────────────────────────────────────────────
-
-/// Full base metadata: fields + views + activeViewId
 #[derive(Debug, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct BaseMetaOutput {
-    pub node_id: String,
-    /// Fields array from docs_nodes.content
+    pub rel_path: String,
     pub fields: serde_json::Value,
-    /// Views array from docs_nodes.content
     pub views: serde_json::Value,
-    /// Currently active view id
     pub active_view_id: Option<String>,
 }
-
-// ── Input ────────────────────────────────────────────────────────────────────
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateBaseMetaInput {
-    /// Full replacement of fields array (optional)
     pub fields: Option<serde_json::Value>,
-    /// Full replacement of views array (optional)
     pub views: Option<serde_json::Value>,
-    /// Update active view id (optional)
     pub active_view_id: Option<String>,
 }
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RelPathQuery {
+    pub rel_path: String,
+}
 
-// ── Handlers ─────────────────────────────────────────────────────────────────
+fn default_content() -> serde_json::Value {
+    let field_id = uuid::Uuid::new_v4().to_string();
+    let view_id = uuid::Uuid::new_v4().to_string();
+    serde_json::json!({"fields":[{"id":field_id,"name":"文本","type":"text","width":200}],"views":[{"id":view_id,"name":"表格","type":"grid","filters":{"conjunction":"and","conditions":[]},"sorts":[],"groups":[],"hiddenFieldIds":[],"fieldOrder":[field_id]}],"activeViewId":view_id})
+}
+fn output(rel_path: &str, content: &serde_json::Value) -> BaseMetaOutput {
+    BaseMetaOutput {
+        rel_path: rel_path.to_string(),
+        fields: content.get("fields").cloned().unwrap_or(serde_json::json!([])),
+        views: content.get("views").cloned().unwrap_or(serde_json::json!([])),
+        active_view_id: content.get("activeViewId").and_then(|v| v.as_str()).map(String::from),
+    }
+}
 
-/// GET /api/apps/docs/base/{nodeId} — get base metadata (fields + views)
-///
-/// If content is null or fields/views are empty, auto-initializes with defaults
-/// (one "文本" text column + one "表格" grid view) and persists to DB.
 pub async fn get_base_meta(
     State(state): State<Arc<AppState>>,
-    AuthUser(_auth): AuthUser,
-    Path(node_id): Path<String>,
+    AuthUser(_): AuthUser,
+    Path(id): Path<String>,
+    Query(q): Query<RelPathQuery>,
 ) -> Result<Json<ApiResponse<BaseMetaOutput>>, AppError> {
-    let uid = parse_uuid(&node_id)?;
-    let node = docs_nodes::Entity::find_by_id(uid)
-        .one(&state.db)
-        .await?
-        .not_found("node not found")?;
-
-    if node.r#type != "base" {
+    let space = get_space(&state, &id).await?;
+    let (vfs, root) = ensure_space_vfs(&state, &space).await?;
+    let path = path_utils::vfs_path(&root, &q.rel_path);
+    if path_utils::type_for_path(&q.rel_path, false) != "base" {
         return Err(AppError::BadRequest("node is not a base type".into()));
     }
-
-    let content = node.content.clone().unwrap_or(serde_json::json!({}));
+    let mut content = path_utils::content_from_bytes("base", vfs.read_bytes(&path, 0, None).await.map_err(vfs_err)?)?;
     let needs_init = content
         .get("fields")
         .and_then(|v| v.as_array())
@@ -71,96 +68,40 @@ pub async fn get_base_meta(
             .get("views")
             .and_then(|v| v.as_array())
             .is_none_or(Vec::is_empty);
-
-    let content = if needs_init {
-        let default_content = create_default_content();
-        let mut active: docs_nodes::ActiveModel = node.into();
-        active.content = Set(Some(default_content.clone()));
-        active.update(&state.db).await?;
-        default_content
-    } else {
-        content
-    };
-
-    let output = extract_meta(&node_id, &content);
-    Ok(ok(output))
+    if needs_init {
+        content = default_content();
+        vfs.put(&path, path_utils::content_to_bytes("base", &content)?)
+            .await
+            .map_err(vfs_err)?;
+    }
+    Ok(ok(output(&q.rel_path, &content)))
 }
-
-/// PATCH /api/apps/docs/base/{nodeId} — update base metadata
 pub async fn update_base_meta(
     State(state): State<Arc<AppState>>,
-    AuthUser(_auth): AuthUser,
-    Path(node_id): Path<String>,
+    AuthUser(_): AuthUser,
+    Path(id): Path<String>,
+    Query(q): Query<RelPathQuery>,
     Json(body): Json<UpdateBaseMetaInput>,
 ) -> Result<Json<ApiResponse<BaseMetaOutput>>, AppError> {
-    let uid = parse_uuid(&node_id)?;
-    let node = docs_nodes::Entity::find_by_id(uid)
-        .one(&state.db)
-        .await?
-        .not_found("node not found")?;
-
-    if node.r#type != "base" {
-        return Err(AppError::BadRequest("node is not a base type".into()));
+    let space = get_space(&state, &id).await?;
+    let (vfs, root) = ensure_space_vfs(&state, &space).await?;
+    let path = path_utils::vfs_path(&root, &q.rel_path);
+    let mut content = path_utils::content_from_bytes("base", vfs.read_bytes(&path, 0, None).await.map_err(vfs_err)?)?;
+    if !content.is_object() {
+        content = serde_json::json!({});
     }
-
-    let mut content = node.content.clone().unwrap_or(serde_json::json!({}));
     let obj = content
         .as_object_mut()
-        .ok_or_else(|| AppError::Internal("node content is not a JSON object".into()))?;
-
+        .ok_or_else(|| AppError::Internal("base content is not object".into()))?;
     if let Some(fields) = body.fields {
         obj.insert("fields".to_string(), fields);
-    }
-    if let Some(views) = body.views {
+    } else if let Some(views) = body.views {
         obj.insert("views".to_string(), views);
+    } else if let Some(active) = body.active_view_id {
+        obj.insert("activeViewId".to_string(), serde_json::Value::String(active));
     }
-    if let Some(active_view_id) = body.active_view_id {
-        obj.insert("activeViewId".to_string(), serde_json::Value::String(active_view_id));
-    }
-
-    let mut active: docs_nodes::ActiveModel = node.into();
-    active.content = Set(Some(content.clone()));
-    active.update(&state.db).await?;
-
-    let output = extract_meta(&node_id, &content);
-    Ok(ok(output))
-}
-
-fn extract_meta(node_id: &str, content: &serde_json::Value) -> BaseMetaOutput {
-    BaseMetaOutput {
-        node_id: node_id.to_string(),
-        fields: content.get("fields").cloned().unwrap_or(serde_json::json!([])),
-        views: content.get("views").cloned().unwrap_or(serde_json::json!([])),
-        active_view_id: content.get("activeViewId").and_then(|v| v.as_str()).map(String::from),
-    }
-}
-
-/// Creates default base content with one "文本" text field and one grid view.
-fn create_default_content() -> serde_json::Value {
-    let field_id = uuid::Uuid::new_v4().to_string();
-    let view_id = uuid::Uuid::new_v4().to_string();
-
-    serde_json::json!({
-        "fields": [
-            {
-                "id": field_id,
-                "name": "文本",
-                "type": "text",
-                "width": 200
-            }
-        ],
-        "views": [
-            {
-                "id": view_id,
-                "name": "表格",
-                "type": "grid",
-                "filters": { "conjunction": "and", "conditions": [] },
-                "sorts": [],
-                "groups": [],
-                "hiddenFieldIds": [],
-                "fieldOrder": [field_id]
-            }
-        ],
-        "activeViewId": view_id
-    })
+    vfs.put(&path, path_utils::content_to_bytes("base", &content)?)
+        .await
+        .map_err(vfs_err)?;
+    Ok(ok(output(&q.rel_path, &content)))
 }

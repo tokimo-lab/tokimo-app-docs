@@ -1,3 +1,5 @@
+use sea_orm::prelude::*;
+use sea_orm::sea_query::Expr;
 use sea_orm::*;
 use uuid::Uuid;
 
@@ -8,14 +10,16 @@ use crate::error::{AppError, OptionExt};
 pub struct BaseRecordRepo;
 
 impl BaseRecordRepo {
-    /// List records for a base node with pagination, ordered by sort_order.
-    pub async fn list(
-        db: &DatabaseConnection,
-        node_id: Uuid,
+    /// List records for a base doc path with pagination, ordered by sort_order.
+    pub async fn list<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        rel_path: &str,
         page: &PageInput,
     ) -> Result<Page<docs_base_records::Model>, AppError> {
         let query = docs_base_records::Entity::find()
-            .filter(docs_base_records::Column::NodeId.eq(node_id))
+            .filter(docs_base_records::Column::SpaceId.eq(space_id))
+            .filter(docs_base_records::Column::RelPath.eq(rel_path))
             .order_by_asc(docs_base_records::Column::SortOrder)
             .order_by_asc(docs_base_records::Column::CreatedAt);
 
@@ -29,7 +33,7 @@ impl BaseRecordRepo {
     }
 
     /// Get a single record by id.
-    pub async fn get_by_id(db: &DatabaseConnection, id: Uuid) -> Result<docs_base_records::Model, AppError> {
+    pub async fn get_by_id<C: ConnectionTrait>(db: &C, id: Uuid) -> Result<docs_base_records::Model, AppError> {
         docs_base_records::Entity::find_by_id(id)
             .one(db)
             .await?
@@ -37,16 +41,18 @@ impl BaseRecordRepo {
     }
 
     /// Create a new record.
-    pub async fn create(
-        db: &DatabaseConnection,
-        node_id: Uuid,
+    pub async fn create<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        rel_path: &str,
         data: serde_json::Value,
         sort_order: i32,
     ) -> Result<docs_base_records::Model, AppError> {
         let id = Uuid::new_v4();
         let model = docs_base_records::ActiveModel {
             id: Set(id),
-            node_id: Set(node_id),
+            space_id: Set(space_id),
+            rel_path: Set(rel_path.to_string()),
             data: Set(data),
             sort_order: Set(sort_order),
             ..Default::default()
@@ -56,11 +62,16 @@ impl BaseRecordRepo {
     }
 
     /// Batch-create multiple records. Returns all created models.
-    pub async fn batch_create(
-        db: &DatabaseConnection,
-        node_id: Uuid,
+    pub async fn batch_create<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        rel_path: &str,
         items: Vec<(serde_json::Value, i32)>,
     ) -> Result<Vec<docs_base_records::Model>, AppError> {
+        if items.is_empty() {
+            return Ok(Vec::new());
+        }
+
         let mut ids = Vec::with_capacity(items.len());
         let models: Vec<docs_base_records::ActiveModel> = items
             .into_iter()
@@ -69,7 +80,8 @@ impl BaseRecordRepo {
                 ids.push(id);
                 docs_base_records::ActiveModel {
                     id: Set(id),
-                    node_id: Set(node_id),
+                    space_id: Set(space_id),
+                    rel_path: Set(rel_path.to_string()),
                     data: Set(data),
                     sort_order: Set(sort_order),
                     ..Default::default()
@@ -79,17 +91,16 @@ impl BaseRecordRepo {
 
         docs_base_records::Entity::insert_many(models).exec(db).await?;
 
-        docs_base_records::Entity::find()
+        Ok(docs_base_records::Entity::find()
             .filter(docs_base_records::Column::Id.is_in(ids))
             .order_by_asc(docs_base_records::Column::SortOrder)
             .all(db)
-            .await
-            .map_err(AppError::Database)
+            .await?)
     }
 
     /// Update a record's data and/or sort_order.
-    pub async fn update(
-        db: &DatabaseConnection,
+    pub async fn update<C: ConnectionTrait>(
+        db: &C,
         id: Uuid,
         data: Option<serde_json::Value>,
         sort_order: Option<i32>,
@@ -103,11 +114,11 @@ impl BaseRecordRepo {
         if let Some(s) = sort_order {
             active.sort_order = Set(s);
         }
-        active.update(db).await.map_err(AppError::Database)
+        Ok(active.update(db).await?)
     }
 
     /// Delete a single record. Returns error if not found.
-    pub async fn delete(db: &DatabaseConnection, id: Uuid) -> Result<(), AppError> {
+    pub async fn delete<C: ConnectionTrait>(db: &C, id: Uuid) -> Result<(), AppError> {
         let rows = docs_base_records::Entity::delete_by_id(id)
             .exec(db)
             .await?
@@ -119,7 +130,7 @@ impl BaseRecordRepo {
     }
 
     /// Batch-delete records by ids. Returns the number of deleted rows.
-    pub async fn batch_delete(db: &DatabaseConnection, ids: Vec<Uuid>) -> Result<u64, AppError> {
+    pub async fn batch_delete<C: ConnectionTrait>(db: &C, ids: Vec<Uuid>) -> Result<u64, AppError> {
         let result = docs_base_records::Entity::delete_many()
             .filter(docs_base_records::Column::Id.is_in(ids))
             .exec(db)
@@ -127,22 +138,52 @@ impl BaseRecordRepo {
         Ok(result.rows_affected)
     }
 
-    /// Get the maximum sort_order for a node (used to append new records).
-    pub async fn max_sort_order(db: &DatabaseConnection, node_id: Uuid) -> Result<i32, AppError> {
-        use sea_orm::{ConnectionTrait, DatabaseBackend, Statement};
+    /// Get the maximum sort_order for a base doc path (used to append new records).
+    pub async fn max_sort_order<C: ConnectionTrait>(db: &C, space_id: Uuid, rel_path: &str) -> Result<i32, AppError> {
+        let max = docs_base_records::Entity::find()
+            .filter(docs_base_records::Column::SpaceId.eq(space_id))
+            .filter(docs_base_records::Column::RelPath.eq(rel_path))
+            .order_by_desc(docs_base_records::Column::SortOrder)
+            .one(db)
+            .await?
+            .map_or(0, |r| r.sort_order);
+        Ok(max)
+    }
 
-        let stmt = Statement::from_sql_and_values(
+    pub async fn rename_path<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        old_rel: &str,
+        new_rel: &str,
+    ) -> Result<(), AppError> {
+        docs_base_records::Entity::update_many()
+            .filter(docs_base_records::Column::SpaceId.eq(space_id))
+            .filter(docs_base_records::Column::RelPath.eq(old_rel))
+            .col_expr(docs_base_records::Column::RelPath, Expr::value(new_rel.to_string()))
+            .col_expr(docs_base_records::Column::UpdatedAt, Expr::current_timestamp())
+            .exec(db)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn rename_path_prefix<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        old_prefix: &str,
+        new_prefix: &str,
+    ) -> Result<(), AppError> {
+        db.execute_raw(Statement::from_sql_and_values(
             DatabaseBackend::Postgres,
-            "SELECT COALESCE(MAX(sort_order), 0) as max_sort FROM docs_base_records WHERE node_id = $1",
-            [node_id.into()],
-        );
-        let row = db.query_one_raw(stmt).await?;
-        match row {
-            Some(r) => {
-                let val: i32 = r.try_get_by_index(0)?;
-                Ok(val)
-            }
-            None => Ok(0),
-        }
+            r"UPDATE docs_base_records
+               SET rel_path = $3 || substring(rel_path from char_length($2) + 1), updated_at = NOW()
+               WHERE space_id = $1 AND left(rel_path, char_length($2)) = $2",
+            vec![
+                space_id.into(),
+                old_prefix.to_string().into(),
+                new_prefix.to_string().into(),
+            ],
+        ))
+        .await?;
+        Ok(())
     }
 }

@@ -1,3 +1,5 @@
+use sea_orm::prelude::*;
+use sea_orm::sea_query::Expr;
 use sea_orm::*;
 use uuid::Uuid;
 
@@ -9,10 +11,15 @@ use crate::error::OptionExt;
 pub struct DocNodeCommentRepo;
 
 impl DocNodeCommentRepo {
-    /// List comments for a node (top-level + replies).
-    pub async fn list_by_node(db: &DatabaseConnection, node_id: Uuid) -> Result<Vec<DocNodeCommentOutput>, AppError> {
+    /// List comments for a doc path (top-level + replies).
+    pub async fn list_by_node<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        rel_path: &str,
+    ) -> Result<Vec<DocNodeCommentOutput>, AppError> {
         let comments = docs_node_comments::Entity::find()
-            .filter(docs_node_comments::Column::NodeId.eq(node_id))
+            .filter(docs_node_comments::Column::SpaceId.eq(space_id))
+            .filter(docs_node_comments::Column::RelPath.eq(rel_path))
             .find_also_related(users::Entity)
             .order_by_asc(docs_node_comments::Column::CreatedAt)
             .all(db)
@@ -26,7 +33,8 @@ impl DocNodeCommentRepo {
             let user_name = user.as_ref().map_or_else(|| "Unknown".to_string(), |u| u.name.clone());
             let output = DocNodeCommentOutput {
                 id: comment.id.to_string(),
-                node_id: comment.node_id.to_string(),
+                space_id: comment.space_id.to_string(),
+                rel_path: comment.rel_path.clone(),
                 user_id: comment.user_id.to_string(),
                 user_name,
                 comment_key: comment.comment_key.clone(),
@@ -56,9 +64,10 @@ impl DocNodeCommentRepo {
     }
 
     /// Create a comment.
-    pub async fn create(
-        db: &DatabaseConnection,
-        node_id: Uuid,
+    pub async fn create<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        rel_path: &str,
         user_id: Uuid,
         comment_key: String,
         content: String,
@@ -68,7 +77,8 @@ impl DocNodeCommentRepo {
         let id = Uuid::new_v4();
         let model = docs_node_comments::ActiveModel {
             id: Set(id),
-            node_id: Set(node_id),
+            space_id: Set(space_id),
+            rel_path: Set(rel_path.to_string()),
             user_id: Set(user_id),
             comment_key: Set(comment_key),
             content: Set(content),
@@ -85,7 +95,7 @@ impl DocNodeCommentRepo {
     }
 
     /// Resolve/unresolve a comment.
-    pub async fn resolve(db: &DatabaseConnection, id: Uuid, resolved: bool) -> Result<bool, AppError> {
+    pub async fn resolve<C: ConnectionTrait>(db: &C, id: Uuid, resolved: bool) -> Result<bool, AppError> {
         let comment = docs_node_comments::Entity::find_by_id(id).one(db).await?;
         let Some(comment) = comment else {
             return Ok(false);
@@ -99,8 +109,45 @@ impl DocNodeCommentRepo {
     }
 
     /// Delete a comment.
-    pub async fn delete(db: &DatabaseConnection, id: Uuid) -> Result<bool, AppError> {
+    pub async fn delete<C: ConnectionTrait>(db: &C, id: Uuid) -> Result<bool, AppError> {
         let result = docs_node_comments::Entity::delete_by_id(id).exec(db).await?;
         Ok(result.rows_affected > 0)
+    }
+
+    pub async fn rename_path<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        old_rel: &str,
+        new_rel: &str,
+    ) -> Result<(), AppError> {
+        docs_node_comments::Entity::update_many()
+            .filter(docs_node_comments::Column::SpaceId.eq(space_id))
+            .filter(docs_node_comments::Column::RelPath.eq(old_rel))
+            .col_expr(docs_node_comments::Column::RelPath, Expr::value(new_rel.to_string()))
+            .col_expr(docs_node_comments::Column::UpdatedAt, Expr::current_timestamp())
+            .exec(db)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn rename_path_prefix<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        old_prefix: &str,
+        new_prefix: &str,
+    ) -> Result<(), AppError> {
+        db.execute_raw(Statement::from_sql_and_values(
+            DatabaseBackend::Postgres,
+            r"UPDATE docs_node_comments
+               SET rel_path = $3 || substring(rel_path from char_length($2) + 1), updated_at = NOW()
+               WHERE space_id = $1 AND left(rel_path, char_length($2)) = $2",
+            vec![
+                space_id.into(),
+                old_prefix.to_string().into(),
+                new_prefix.to_string().into(),
+            ],
+        ))
+        .await?;
+        Ok(())
     }
 }

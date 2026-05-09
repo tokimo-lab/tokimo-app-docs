@@ -3,64 +3,96 @@ use axum::extract::{Path, Query, State};
 use serde::Deserialize;
 use std::sync::Arc;
 
+use super::{ensure_space_vfs, get_space, parse_uuid, validate_node_name, vfs_err};
 use crate::AppState;
-use crate::apps::docs::models::DocNodeOutput;
-use crate::apps::docs::repos::node_repo::DocNodeRepo;
-use crate::apps::docs::repos::space_repo::DocSpaceRepo;
-use crate::apps::docs::services::local_fs;
-use crate::error::{AppError, OptionExt};
+use crate::apps::docs::models::DocNodeListItem;
+use crate::apps::docs::repos::attachment_repo::AttachmentRepo;
+use crate::apps::docs::repos::base_record_repo::BaseRecordRepo;
+use crate::apps::docs::repos::comment_repo::DocNodeCommentRepo;
+use crate::apps::docs::repos::node_meta_repo::{DocNodeMetaRepo, UpsertDocNodeMetaInput};
+use crate::apps::docs::repos::version_repo::DocNodeVersionRepo;
+use crate::apps::docs::repos::view_state_repo::DocNodeViewStateRepo;
+use crate::apps::docs::services::docs_service::DocsService;
+use crate::apps::docs::services::path_utils;
+use crate::error::AppError;
 use crate::handlers::{ApiResponse, ok, ok_empty};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateNodeInput {
-    pub r#type: Option<String>,
-    pub title: Option<String>,
-    pub parent_path: Option<String>,
-    #[serde(alias = "parentId", alias = "parent_id")]
-    pub parent_id: Option<String>,
+    pub space_id: Option<String>,
+    pub parent_rel_path: Option<String>,
+    pub r#type: String,
+    pub title: String,
+    pub content: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeQuery {
+    pub rel_path: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateNodeInput {
+    pub content: Option<serde_json::Value>,
     pub title: Option<String>,
-    #[serde(default, with = "::serde_with::rust::double_option")]
-    pub content: Option<Option<serde_json::Value>>,
+    pub tags: Option<Vec<String>>,
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub icon: Option<Option<String>>,
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub cover_image: Option<Option<String>>,
-    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SpaceIdQuery {
-    #[serde(alias = "space_id")]
-    pub space_id: String,
+pub struct MoveNodeQuery {
+    pub from: String,
+    pub to: String,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MoveNodeInput {
-    pub new_parent_path: Option<String>,
-    #[serde(alias = "parent_id")]
-    pub parent_id: Option<String>,
-    #[serde(alias = "sort_order")]
-    pub sort_order: Option<i32>,
-}
-
-fn parse_space_uuid(id: &str) -> Result<uuid::Uuid, AppError> {
-    uuid::Uuid::parse_str(id).map_err(|_| AppError::BadRequest(format!("invalid space UUID: {id}")))
-}
-
-fn validate_relative_path(path: &str) -> Result<(), AppError> {
-    if path.starts_with('/') || path.starts_with('\\') {
-        return Err(AppError::BadRequest("absolute paths not allowed".into()));
+fn item_from_meta(space_id: uuid::Uuid, rel_path: String, is_dir: bool) -> DocNodeListItem {
+    DocNodeListItem {
+        rel_path: rel_path.clone(),
+        space_id: space_id.to_string(),
+        parent_id: path_utils::parent_of(&rel_path),
+        r#type: path_utils::type_for_path(&rel_path, is_dir).to_string(),
+        title: path_utils::title_for_path(&rel_path, is_dir),
+        icon: None,
+        tags: None,
+        is_favorite: false,
+        is_pinned: false,
+        is_archived: false,
+        word_count: 0,
+        sort_order: 0,
+        last_opened_at: None,
+        created_at: chrono::Utc::now().to_rfc3339(),
+        updated_at: chrono::Utc::now().to_rfc3339(),
     }
-    if path.contains("..") {
-        return Err(AppError::BadRequest(".. not allowed in paths".into()));
+}
+
+async fn rename_related(
+    state: &Arc<AppState>,
+    space_id: uuid::Uuid,
+    old_rel: &str,
+    new_rel: &str,
+    is_dir: bool,
+) -> Result<(), AppError> {
+    if is_dir {
+        DocNodeMetaRepo::rename_path_prefix(&state.db, space_id, old_rel, new_rel).await?;
+        DocNodeVersionRepo::rename_path_prefix(&state.db, space_id, old_rel, new_rel).await?;
+        DocNodeCommentRepo::rename_path_prefix(&state.db, space_id, old_rel, new_rel).await?;
+        AttachmentRepo::rename_path_prefix(&state.db, space_id, old_rel, new_rel).await?;
+        DocNodeViewStateRepo::rename_path_prefix(&state.db, space_id, old_rel, new_rel).await?;
+        BaseRecordRepo::rename_path_prefix(&state.db, space_id, old_rel, new_rel).await?;
+    } else {
+        DocNodeMetaRepo::rename_path(&state.db, space_id, old_rel, new_rel).await?;
+        DocNodeVersionRepo::rename_path(&state.db, space_id, old_rel, new_rel).await?;
+        DocNodeCommentRepo::rename_path(&state.db, space_id, old_rel, new_rel).await?;
+        AttachmentRepo::rename_path(&state.db, space_id, old_rel, new_rel).await?;
+        DocNodeViewStateRepo::rename_path(&state.db, space_id, old_rel, new_rel).await?;
+        BaseRecordRepo::rename_path(&state.db, space_id, old_rel, new_rel).await?;
     }
     Ok(())
 }
@@ -69,410 +101,225 @@ pub async fn create_node(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
     Json(input): Json<CreateNodeInput>,
-) -> Result<Json<ApiResponse<DocNodeOutput>>, AppError> {
-    let space_id = parse_space_uuid(&id)?;
-    let space = DocSpaceRepo::get_by_id(&state.db, space_id)
-        .await?
-        .not_found("space not found")?;
-    let Some(ref local_path) = space.local_path else {
-        return Err(AppError::BadRequest("space has no local_path".into()));
-    };
-
-    let node_type = input.r#type.unwrap_or_else(|| "notion".to_string());
-    let title = input.title.unwrap_or_else(|| "Untitled".to_string());
-    let parent = input.parent_path.as_deref().unwrap_or("");
-
-    if !parent.is_empty() {
-        validate_relative_path(parent)?;
-    }
-
-    super::validate_node_name(&title)?;
-    let sanitized_title = local_fs::sanitize_path_component(&title);
-
-    let parent_full = if parent.is_empty() {
-        std::path::PathBuf::from(local_path)
-    } else {
-        local_fs::resolve_path(local_path, parent)
-    };
-
-    let mut existing_titles = std::collections::HashSet::new();
-    if let Ok(mut entries) = tokio::fs::read_dir(&parent_full).await {
-        while let Ok(Some(entry)) = entries.next_entry().await {
-            let name = entry.file_name();
-            let name_str = name.to_string_lossy();
-            if let Ok(meta) = entry.metadata().await {
-                let is_dir = meta.is_dir();
-                let entry_title = local_fs::title_for_path(&name_str, is_dir);
-                existing_titles.insert(entry_title);
+) -> Result<Json<ApiResponse<DocNodeListItem>>, AppError> {
+    let space_id = parse_uuid(input.space_id.as_deref().unwrap_or(&id))?;
+    let space = get_space(&state, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    validate_node_name(&input.title)?;
+    let parent = input.parent_rel_path.as_deref().unwrap_or("");
+    path_utils::validate_relative_path(parent)?;
+    let rel_path = match path_utils::extension_for_type(&input.r#type) {
+        Some(ext) => {
+            if parent.is_empty() {
+                format!("{}{}", input.title, ext)
+            } else {
+                format!("{}/{}{}", parent, input.title, ext)
             }
         }
-    }
-
-    let unique_title = local_fs::unique_title(&sanitized_title, &existing_titles);
-    let relative_path = local_fs::compute_relative_path(
-        if parent.is_empty() { None } else { Some(parent) },
-        &unique_title,
-        &node_type,
-    );
-
-    let full_path = local_fs::resolve_path(local_path, &relative_path);
-    local_fs::create_node_artifact(&full_path, &node_type).await?;
-
-    let content = if node_type == "folder" {
-        None
-    } else {
-        let default_content = local_fs::default_content_for_type(&node_type);
-        if node_type == "markdown" {
-            Some(serde_json::Value::String(default_content.to_string()))
-        } else {
-            serde_json::from_str(default_content).ok()
+        None => {
+            if parent.is_empty() {
+                input.title.clone()
+            } else {
+                format!("{}/{}", parent, input.title)
+            }
         }
     };
-
-    let meta = tokio::fs::metadata(&full_path)
-        .await
-        .map_err(|e| AppError::Internal(format!("metadata: {e}")))?;
-    let modified = meta.modified().unwrap_or_else(|_| std::time::SystemTime::now());
-    let created = meta.created().unwrap_or(modified);
-    let parent_id = local_fs::parent_of(&relative_path);
-
-    Ok(ok(DocNodeOutput {
-        id: relative_path,
-        space_id: space_id.to_string(),
-        parent_id,
-        r#type: node_type,
-        title: unique_title,
-        content,
-        icon: None,
-        cover_image: None,
-        tags: vec![],
-        is_favorite: false,
-        is_pinned: false,
-        is_archived: false,
-        word_count: 0,
-        sort_order: 0,
-        last_opened_at: None,
-        created_at: chrono::DateTime::<chrono::Utc>::from(created).to_rfc3339(),
-        updated_at: chrono::DateTime::<chrono::Utc>::from(modified).to_rfc3339(),
-    }))
+    let target = path_utils::vfs_path(&root_path, &rel_path);
+    if vfs.stat(&target).await.is_ok() {
+        return Err(AppError::BadRequest("node already exists".into()));
+    }
+    if input.r#type == "folder" {
+        vfs.mkdir(&target).await.map_err(vfs_err)?;
+    } else {
+        let data = path_utils::default_content_for_type(&input.r#type, &input.title, input.content);
+        vfs.put(&target, data).await.map_err(vfs_err)?;
+    }
+    DocNodeMetaRepo::upsert(&state.db, space_id, &rel_path, UpsertDocNodeMetaInput::default()).await?;
+    Ok(ok(item_from_meta(space_id, rel_path, input.r#type == "folder")))
 }
 
 pub async fn get_node(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-    Query(q): Query<SpaceIdQuery>,
-) -> Result<Json<ApiResponse<DocNodeOutput>>, AppError> {
-    validate_relative_path(&id)?;
-    let space_id = parse_space_uuid(&q.space_id)?;
-    let space = DocSpaceRepo::get_by_id(&state.db, space_id)
-        .await?
-        .not_found("space not found")?;
-    let Some(ref local_path) = space.local_path else {
-        return Err(AppError::BadRequest("space has no local_path".into()));
-    };
-
-    let full_path = local_fs::resolve_path(local_path, &id);
-    if !full_path.exists() {
-        return Err(AppError::NotFound("file not found".into()));
-    }
-
-    DocNodeRepo::touch_opened(&state.db, space_id, &id).await?;
-
-    let meta = tokio::fs::metadata(&full_path)
-        .await
-        .map_err(|e| AppError::Internal(format!("metadata: {e}")))?;
-    let is_dir = meta.is_dir();
-    let modified = meta.modified().unwrap_or_else(|_| std::time::SystemTime::now());
-    let created = meta.created().unwrap_or(modified);
-
-    let node_type = local_fs::type_for_path(&id, is_dir);
-
-    let content = if is_dir {
-        None
+    Query(q): Query<NodeQuery>,
+) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+    let space_id = parse_uuid(&id)?;
+    path_utils::validate_relative_path(&q.rel_path)?;
+    let space = get_space(&state, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let path = path_utils::vfs_path(&root_path, &q.rel_path);
+    let info = vfs.stat(&path).await.map_err(vfs_err)?;
+    DocNodeMetaRepo::update_last_opened(&state.db, space_id, &q.rel_path).await?;
+    let node_type = path_utils::type_for_path(&q.rel_path, info.is_dir);
+    let content = if info.is_dir {
+        serde_json::Value::Null
     } else {
-        local_fs::read_node_file(&full_path, &node_type).await.ok()
+        path_utils::content_from_bytes(node_type, vfs.read_bytes(&path, 0, None).await.map_err(vfs_err)?)?
     };
-
-    let metadata_row = DocNodeRepo::find_by_path(&state.db, space_id, &id).await?;
-    let title = local_fs::title_for_path(&id, is_dir);
-    let parent_id = local_fs::parent_of(&id);
-
-    Ok(ok(DocNodeOutput {
-        id: id.clone(),
-        space_id: space_id.to_string(),
-        parent_id,
-        r#type: node_type,
-        title,
-        content,
-        icon: None,
-        cover_image: None,
-        tags: vec![],
-        is_favorite: metadata_row.as_ref().is_some_and(|m| m.is_favorite),
-        is_pinned: false,
-        is_archived: false,
-        word_count: 0,
-        sort_order: 0,
-        last_opened_at: metadata_row
-            .as_ref()
-            .and_then(|m| m.last_opened_at.as_ref().map(chrono::DateTime::to_rfc3339)),
-        created_at: chrono::DateTime::<chrono::Utc>::from(created).to_rfc3339(),
-        updated_at: chrono::DateTime::<chrono::Utc>::from(modified).to_rfc3339(),
-    }))
+    let meta = DocNodeMetaRepo::find(&state.db, space_id, &q.rel_path).await?;
+    Ok(ok(serde_json::json!({
+        "spaceId": id,
+        "relPath": q.rel_path,
+        "parentId": path_utils::parent_of(&info.path),
+        "type": node_type,
+        "title": path_utils::title_for_path(&info.name, info.is_dir),
+        "content": content,
+        "meta": meta.map(crate::apps::docs::models::DocNodeMetaOutput::from),
+        "updatedAt": info.modified.map_or_else(|| chrono::Utc::now().to_rfc3339(), |d| d.to_rfc3339())
+    })))
 }
 
 pub async fn update_node(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-    Query(q): Query<SpaceIdQuery>,
+    Query(q): Query<NodeQuery>,
     Json(input): Json<UpdateNodeInput>,
-) -> Result<Json<ApiResponse<DocNodeOutput>>, AppError> {
-    validate_relative_path(&id)?;
-    let space_id = parse_space_uuid(&q.space_id)?;
-    let space = DocSpaceRepo::get_by_id(&state.db, space_id)
-        .await?
-        .not_found("space not found")?;
-    let Some(ref local_path) = space.local_path else {
-        return Err(AppError::BadRequest("space has no local_path".into()));
-    };
-
-    let old_full = local_fs::resolve_path(local_path, &id);
-    if !old_full.exists() {
-        return Err(AppError::NotFound("file not found".into()));
-    }
-
-    let was_dir = old_full.is_dir();
-    let node_type = local_fs::type_for_path(&id, was_dir);
-
-    let mut final_id = id.clone();
-
-    if let Some(ref new_title) = input.title {
-        super::validate_node_name(new_title)?;
-        let parent = local_fs::parent_of(&id);
-        let ext = local_fs::ext_for_type(&node_type);
-        let sanitized = local_fs::sanitize_path_component(new_title);
-        let new_filename = if let Some(e) = ext {
-            format!("{sanitized}{e}")
-        } else {
-            sanitized
-        };
-        let new_rel = if let Some(p) = parent {
-            format!("{p}/{new_filename}")
-        } else {
-            new_filename
-        };
-        let new_full = local_fs::resolve_path(local_path, &new_rel);
-        if new_full != old_full {
-            tokio::fs::rename(&old_full, &new_full)
-                .await
-                .map_err(|e| AppError::Internal(format!("rename: {e}")))?;
-            final_id = new_rel.clone();
-            if let Some(meta) = DocNodeRepo::find_by_path(&state.db, space_id, &id).await? {
-                DocNodeRepo::set_relative_path(&state.db, meta.id, Some(new_rel.clone())).await?;
+) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+    let space_id = parse_uuid(&id)?;
+    path_utils::validate_relative_path(&q.rel_path)?;
+    let space = get_space(&state, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let old_path = path_utils::vfs_path(&root_path, &q.rel_path);
+    let info = vfs.stat(&old_path).await.map_err(vfs_err)?;
+    let node_type = path_utils::type_for_path(&q.rel_path, info.is_dir).to_string();
+    let mut final_rel = q.rel_path.clone();
+    if let Some(title) = input.title.as_ref() {
+        validate_node_name(title)?;
+        let ext = path_utils::extension_for_type(&node_type).unwrap_or("");
+        let filename = format!("{title}{ext}");
+        let new_rel = path_utils::parent_of(&q.rel_path).map_or(filename.clone(), |p| format!("{p}/{filename}"));
+        if new_rel != q.rel_path {
+            let new_path = path_utils::vfs_path(&root_path, &new_rel);
+            if vfs.stat(&new_path).await.is_ok() {
+                return Err(AppError::BadRequest("target already exists".into()));
             }
-            if was_dir {
-                DocNodeRepo::rebase_relative_path_prefix(&state.db, space_id, &id, &new_rel).await?;
-            }
+            vfs.rename(&old_path, &new_path).await.map_err(vfs_err)?;
+            rename_related(&state, space_id, &q.rel_path, &new_rel, info.is_dir).await?;
+            final_rel = new_rel;
         }
     }
-
-    if let Some(Some(ref content)) = input.content {
-        let full_path = local_fs::resolve_path(local_path, &final_id);
-        local_fs::write_node_file(&full_path, &node_type, content).await?;
+    if let Some(content) = input.content.as_ref() {
+        let data = path_utils::content_to_bytes(&node_type, content)?;
+        vfs.put(&path_utils::vfs_path(&root_path, &final_rel), data)
+            .await
+            .map_err(vfs_err)?;
+        let word_count = DocsService::count_words(content);
+        DocNodeVersionRepo::create_if_due(
+            &state.db,
+            space_id,
+            &final_rel,
+            path_utils::title_for_path(&final_rel, false),
+            Some(content.clone()),
+            word_count,
+        )
+        .await?;
     }
+    if input.tags.is_some() || input.icon.is_some() || input.cover_image.is_some() {
+        DocNodeMetaRepo::upsert(
+            &state.db,
+            space_id,
+            &final_rel,
+            UpsertDocNodeMetaInput {
+                tags: input.tags,
+                icon: input.icon,
+                cover_image: input.cover_image,
+                ..Default::default()
+            },
+        )
+        .await?;
+    }
+    get_node(State(state), Path(id), Query(NodeQuery { rel_path: final_rel })).await
+}
 
-    get_node(State(state), Path(final_id), Query(q)).await
+pub async fn move_node(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Query(q): Query<MoveNodeQuery>,
+) -> Result<Json<ApiResponse<()>>, AppError> {
+    let space_id = parse_uuid(&id)?;
+    path_utils::validate_relative_path(&q.from)?;
+    path_utils::validate_relative_path(&q.to)?;
+    if q.to == q.from || q.to.starts_with(&format!("{}/", q.from)) {
+        return Err(AppError::BadRequest("cannot move node into itself".into()));
+    }
+    let space = get_space(&state, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let from = path_utils::vfs_path(&root_path, &q.from);
+    let info = vfs.stat(&from).await.map_err(vfs_err)?;
+    let to = path_utils::vfs_path(&root_path, &q.to);
+    if vfs.stat(&to).await.is_ok() {
+        return Err(AppError::BadRequest("target already exists".into()));
+    }
+    vfs.rename(&from, &to).await.map_err(vfs_err)?;
+    rename_related(&state, space_id, &q.from, &q.to, info.is_dir).await?;
+    Ok(ok_empty())
 }
 
 pub async fn archive_node(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-    Query(q): Query<SpaceIdQuery>,
+    Query(q): Query<NodeQuery>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
-    validate_relative_path(&id)?;
-    let space_id = parse_space_uuid(&q.space_id)?;
-    let space = DocSpaceRepo::get_by_id(&state.db, space_id)
-        .await?
-        .not_found("space not found")?;
-    let Some(ref local_path) = space.local_path else {
-        return Err(AppError::BadRequest("space has no local_path".into()));
-    };
-
-    let full_path = local_fs::resolve_path(local_path, &id);
-    if !full_path.exists() {
-        return Err(AppError::NotFound("file not found".into()));
+    let space_id = parse_uuid(&id)?;
+    path_utils::validate_relative_path(&q.rel_path)?;
+    let space = get_space(&state, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let from = path_utils::vfs_path(&root_path, &q.rel_path);
+    let info = vfs.stat(&from).await.map_err(vfs_err)?;
+    let mut trash_rel = format!(".trash/{}", q.rel_path);
+    if vfs.stat(&path_utils::vfs_path(&root_path, &trash_rel)).await.is_ok() {
+        trash_rel = format!(".trash/{}.{}", chrono::Utc::now().timestamp(), q.rel_path);
     }
-
-    let trash_base = std::path::PathBuf::from(local_path).join(".trash");
-    let trash_path = trash_base.join(&id);
-    if let Some(parent) = trash_path.parent() {
-        tokio::fs::create_dir_all(parent)
-            .await
-            .map_err(|e| AppError::Internal(format!("create trash parent: {e}")))?;
-    }
-    tokio::fs::rename(&full_path, &trash_path)
+    vfs.rename(&from, &path_utils::vfs_path(&root_path, &trash_rel))
         .await
-        .map_err(|e| AppError::Internal(format!("move to trash: {e}")))?;
-
-    DocNodeRepo::set_archived_by_path(&state.db, space_id, &id, true).await?;
-
+        .map_err(vfs_err)?;
+    rename_related(&state, space_id, &q.rel_path, &trash_rel, info.is_dir).await?;
+    DocNodeMetaRepo::set_archived(&state.db, space_id, &trash_rel, true).await?;
     Ok(ok_empty())
 }
 
 pub async fn restore_node(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-    Query(q): Query<SpaceIdQuery>,
+    Query(q): Query<NodeQuery>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
-    validate_relative_path(&id)?;
-    let space_id = parse_space_uuid(&q.space_id)?;
-    let space = DocSpaceRepo::get_by_id(&state.db, space_id)
-        .await?
-        .not_found("space not found")?;
-    let Some(ref local_path) = space.local_path else {
-        return Err(AppError::BadRequest("space has no local_path".into()));
+    let space_id = parse_uuid(&id)?;
+    let trash_rel = if q.rel_path.starts_with(".trash/") {
+        q.rel_path.clone()
+    } else {
+        format!(".trash/{}", q.rel_path)
     };
-
-    let trash_base = std::path::PathBuf::from(local_path).join(".trash");
-    let trash_path = trash_base.join(&id);
-    if !trash_path.exists() {
-        return Err(AppError::NotFound("file not in trash".into()));
+    let restore_rel = trash_rel.trim_start_matches(".trash/").to_string();
+    let space = get_space(&state, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let from = path_utils::vfs_path(&root_path, &trash_rel);
+    let info = vfs.stat(&from).await.map_err(vfs_err)?;
+    let to = path_utils::vfs_path(&root_path, &restore_rel);
+    if vfs.stat(&to).await.is_ok() {
+        return Err(AppError::BadRequest("restore target already exists".into()));
     }
-
-    let mut final_id = id.clone();
-    let mut restore_path = local_fs::resolve_path(local_path, &id);
-    if restore_path.exists() {
-        let name_part = if let Some(stem) = restore_path.file_stem().and_then(|s| s.to_str()) {
-            let ext_part = restore_path.extension().and_then(|s| s.to_str()).unwrap_or("");
-            if ext_part.is_empty() {
-                format!("{stem} (restored)")
-            } else {
-                format!("{stem} (restored).{ext_part}")
-            }
-        } else {
-            let id_name = id.rsplit('/').next().unwrap_or(&id);
-            format!("{id_name} (restored)")
-        };
-        restore_path = restore_path.with_file_name(name_part);
-        let parent_path = local_fs::parent_of(&id);
-        final_id = if let Some(p) = parent_path {
-            let filename = restore_path.file_name().unwrap().to_str().unwrap();
-            format!("{p}/{filename}")
-        } else {
-            restore_path.file_name().unwrap().to_str().unwrap().to_string()
-        };
-    }
-
-    if let Some(parent) = restore_path.parent() {
-        tokio::fs::create_dir_all(parent)
-            .await
-            .map_err(|e| AppError::Internal(format!("create restore parent: {e}")))?;
-    }
-    tokio::fs::rename(&trash_path, &restore_path)
-        .await
-        .map_err(|e| AppError::Internal(format!("restore: {e}")))?;
-
-    if final_id != id
-        && let Ok(Some(meta)) = DocNodeRepo::find_by_path(&state.db, space_id, &id).await
-    {
-        DocNodeRepo::set_relative_path(&state.db, meta.id, Some(final_id.clone())).await?;
-    }
-    DocNodeRepo::set_archived_by_path(&state.db, space_id, &final_id, false).await?;
-
+    vfs.rename(&from, &to).await.map_err(vfs_err)?;
+    rename_related(&state, space_id, &trash_rel, &restore_rel, info.is_dir).await?;
+    DocNodeMetaRepo::set_archived(&state.db, space_id, &restore_rel, false).await?;
     Ok(ok_empty())
 }
 
 pub async fn delete_node(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-    Query(q): Query<SpaceIdQuery>,
+    Query(q): Query<NodeQuery>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
-    validate_relative_path(&id)?;
-    let space_id = parse_space_uuid(&q.space_id)?;
-    let space = DocSpaceRepo::get_by_id(&state.db, space_id)
-        .await?
-        .not_found("space not found")?;
-    let Some(ref local_path) = space.local_path else {
-        return Err(AppError::BadRequest("space has no local_path".into()));
-    };
-
-    let trash_base = std::path::PathBuf::from(local_path).join(".trash");
-    let trash_path = trash_base.join(&id);
-    if !trash_path.exists() {
-        return Err(AppError::NotFound("file not in trash".into()));
-    }
-
-    if trash_path.is_dir() {
-        tokio::fs::remove_dir_all(&trash_path)
-            .await
-            .map_err(|e| AppError::Internal(format!("delete dir: {e}")))?;
+    let space_id = parse_uuid(&id)?;
+    path_utils::validate_relative_path(&q.rel_path)?;
+    let space = get_space(&state, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let path = path_utils::vfs_path(&root_path, &q.rel_path);
+    let info = vfs.stat(&path).await.map_err(vfs_err)?;
+    if info.is_dir {
+        vfs.delete_dir(&path).await.map_err(vfs_err)?;
     } else {
-        tokio::fs::remove_file(&trash_path)
-            .await
-            .map_err(|e| AppError::Internal(format!("delete file: {e}")))?;
+        vfs.delete_file(&path).await.map_err(vfs_err)?;
     }
-
-    DocNodeRepo::delete_by_path(&state.db, space_id, &id).await?;
-
-    Ok(ok_empty())
-}
-
-pub async fn move_node(
-    State(state): State<Arc<AppState>>,
-    Path(id): Path<String>,
-    Query(q): Query<SpaceIdQuery>,
-    Json(input): Json<MoveNodeInput>,
-) -> Result<Json<ApiResponse<()>>, AppError> {
-    validate_relative_path(&id)?;
-    let space_id = parse_space_uuid(&q.space_id)?;
-    let space = DocSpaceRepo::get_by_id(&state.db, space_id)
-        .await?
-        .not_found("space not found")?;
-    let Some(ref local_path) = space.local_path else {
-        return Err(AppError::BadRequest("space has no local_path".into()));
-    };
-
-    let MoveNodeInput { new_parent_path, .. } = input;
-    let new_parent = new_parent_path.as_deref().unwrap_or("");
-    if !new_parent.is_empty() {
-        validate_relative_path(new_parent)?;
-    }
-
-    let old_full = local_fs::resolve_path(local_path, &id);
-    if !old_full.exists() {
-        return Err(AppError::NotFound("file not found".into()));
-    }
-    let was_dir = old_full.is_dir();
-
-    let basename = id.rsplit('/').next().unwrap_or(&id);
-    let node_type = local_fs::type_for_path(&id, was_dir);
-    let title = local_fs::title_for_path(basename, was_dir);
-    let target = local_fs::compute_relative_path(
-        if new_parent.is_empty() { None } else { Some(new_parent) },
-        &title,
-        &node_type,
-    );
-    validate_relative_path(&target)?;
-
-    let new_full = local_fs::resolve_path(local_path, &target);
-    if new_full.exists() {
-        return Err(AppError::BadRequest("target already exists".into()));
-    }
-
-    if let Some(parent) = new_full.parent() {
-        tokio::fs::create_dir_all(parent)
-            .await
-            .map_err(|e| AppError::Internal(format!("create parent: {e}")))?;
-    }
-    tokio::fs::rename(&old_full, &new_full)
-        .await
-        .map_err(|e| AppError::Internal(format!("move: {e}")))?;
-
-    if let Some(meta) = DocNodeRepo::find_by_path(&state.db, space_id, &id).await? {
-        DocNodeRepo::set_relative_path(&state.db, meta.id, Some(target.clone())).await?;
-    }
-    if was_dir {
-        DocNodeRepo::rebase_relative_path_prefix(&state.db, space_id, &id, &target).await?;
-    }
-
+    DocNodeMetaRepo::delete(&state.db, space_id, &q.rel_path).await?;
     Ok(ok_empty())
 }

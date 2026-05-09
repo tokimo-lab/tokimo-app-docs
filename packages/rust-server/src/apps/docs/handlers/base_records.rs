@@ -13,25 +13,24 @@ use crate::error::AppError;
 use crate::handlers::user::AuthUser;
 use crate::handlers::{ApiResponse, ok, ok_empty};
 
-// ── Output DTOs ──────────────────────────────────────────────────────────────
-
 #[derive(Debug, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct BaseRecordOutput {
     pub id: String,
-    pub node_id: String,
+    pub space_id: String,
+    pub rel_path: String,
     pub data: serde_json::Value,
     pub sort_order: i32,
     pub created_at: String,
     pub updated_at: String,
 }
-
 impl From<docs_base_records::Model> for BaseRecordOutput {
     fn from(m: docs_base_records::Model) -> Self {
         Self {
             id: m.id.to_string(),
-            node_id: m.node_id.to_string(),
+            space_id: m.space_id.to_string(),
+            rel_path: m.rel_path,
             data: m.data,
             sort_order: m.sort_order,
             created_at: m.created_at.to_rfc3339(),
@@ -39,103 +38,98 @@ impl From<docs_base_records::Model> for BaseRecordOutput {
         }
     }
 }
-
-// ── Input ────────────────────────────────────────────────────────────────────
-
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RelPathQuery {
+    pub rel_path: String,
+    #[serde(flatten)]
+    pub page: PageInput,
+}
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateRecordInput {
     pub data: Option<serde_json::Value>,
 }
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateRecordInput {
     pub data: Option<serde_json::Value>,
     pub sort_order: Option<i32>,
 }
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BatchDeleteInput {
     pub ids: Vec<String>,
 }
-
-// ── Handlers ─────────────────────────────────────────────────────────────────
-
-/// GET /api/apps/docs/base/{nodeId}/records
-pub async fn list_records(
-    State(state): State<Arc<AppState>>,
-    AuthUser(_auth): AuthUser,
-    Path(node_id): Path<String>,
-    Query(page): Query<PageInput>,
-) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
-    let uid = parse_uuid(&node_id)?;
-    let result: Page<docs_base_records::Model> = BaseRecordRepo::list(&state.db, uid, &page).await?;
-
-    let output = Page::new(
-        result.items.into_iter().map(BaseRecordOutput::from).collect(),
-        result.total,
-        &page,
-    );
-    Ok(ok(serde_json::to_value(output)?))
-}
-
-/// POST /api/apps/docs/base/{nodeId}/records
-pub async fn create_record(
-    State(state): State<Arc<AppState>>,
-    AuthUser(_auth): AuthUser,
-    Path(node_id): Path<String>,
-    Json(body): Json<CreateRecordInput>,
-) -> Result<Json<ApiResponse<BaseRecordOutput>>, AppError> {
-    let uid = parse_uuid(&node_id)?;
-    let data = body.data.unwrap_or(serde_json::json!({}));
-    let max_sort = BaseRecordRepo::max_sort_order(&state.db, uid).await?;
-    let record = BaseRecordRepo::create(&state.db, uid, data, max_sort + 1).await?;
-    Ok(ok(BaseRecordOutput::from(record)))
-}
-
-/// PATCH /api/apps/docs/base/records/{recordId}
-pub async fn update_record(
-    State(state): State<Arc<AppState>>,
-    AuthUser(_auth): AuthUser,
-    Path(record_id): Path<String>,
-    Json(body): Json<UpdateRecordInput>,
-) -> Result<Json<ApiResponse<BaseRecordOutput>>, AppError> {
-    let uid = parse_uuid(&record_id)?;
-    let record = BaseRecordRepo::update(&state.db, uid, body.data, body.sort_order).await?;
-    Ok(ok(BaseRecordOutput::from(record)))
-}
-
-/// DELETE /api/apps/docs/base/records/{recordId}
-pub async fn delete_record(
-    State(state): State<Arc<AppState>>,
-    AuthUser(_auth): AuthUser,
-    Path(record_id): Path<String>,
-) -> Result<Json<ApiResponse<()>>, AppError> {
-    let uid = parse_uuid(&record_id)?;
-    BaseRecordRepo::delete(&state.db, uid).await?;
-    Ok(ok_empty())
-}
-
-/// POST /api/apps/docs/base/{nodeId}/records/batch-delete
-pub async fn batch_delete_records(
-    State(state): State<Arc<AppState>>,
-    AuthUser(_auth): AuthUser,
-    Path(_node_id): Path<String>,
-    Json(body): Json<BatchDeleteInput>,
-) -> Result<Json<ApiResponse<BatchDeleteOutput>>, AppError> {
-    let ids: Vec<uuid::Uuid> = body.ids.iter().map(|s| parse_uuid(s)).collect::<Result<Vec<_>, _>>()?;
-    let deleted = BaseRecordRepo::batch_delete(&state.db, ids).await?;
-    Ok(ok(BatchDeleteOutput {
-        deleted: deleted as i64,
-    }))
-}
-
 #[derive(Debug, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct BatchDeleteOutput {
     #[ts(type = "number")]
     pub deleted: i64,
+}
+
+pub async fn list_records(
+    State(state): State<Arc<AppState>>,
+    AuthUser(_): AuthUser,
+    Path(id): Path<String>,
+    Query(q): Query<RelPathQuery>,
+) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+    let result: Page<docs_base_records::Model> =
+        BaseRecordRepo::list(&state.db, parse_uuid(&id)?, &q.rel_path, &q.page).await?;
+    let output = Page::new(
+        result.items.into_iter().map(BaseRecordOutput::from).collect(),
+        result.total,
+        &q.page,
+    );
+    Ok(ok(serde_json::to_value(output)?))
+}
+pub async fn create_record(
+    State(state): State<Arc<AppState>>,
+    AuthUser(_): AuthUser,
+    Path(id): Path<String>,
+    Query(q): Query<RelPathQuery>,
+    Json(body): Json<CreateRecordInput>,
+) -> Result<Json<ApiResponse<BaseRecordOutput>>, AppError> {
+    let space_id = parse_uuid(&id)?;
+    let max = BaseRecordRepo::max_sort_order(&state.db, space_id, &q.rel_path).await?;
+    Ok(ok(BaseRecordOutput::from(
+        BaseRecordRepo::create(
+            &state.db,
+            space_id,
+            &q.rel_path,
+            body.data.unwrap_or(serde_json::json!({})),
+            max + 1,
+        )
+        .await?,
+    )))
+}
+pub async fn update_record(
+    State(state): State<Arc<AppState>>,
+    AuthUser(_): AuthUser,
+    Path((_space_id, record_id)): Path<(String, String)>,
+    Json(body): Json<UpdateRecordInput>,
+) -> Result<Json<ApiResponse<BaseRecordOutput>>, AppError> {
+    Ok(ok(BaseRecordOutput::from(
+        BaseRecordRepo::update(&state.db, parse_uuid(&record_id)?, body.data, body.sort_order).await?,
+    )))
+}
+pub async fn delete_record(
+    State(state): State<Arc<AppState>>,
+    AuthUser(_): AuthUser,
+    Path((_space_id, record_id)): Path<(String, String)>,
+) -> Result<Json<ApiResponse<()>>, AppError> {
+    BaseRecordRepo::delete(&state.db, parse_uuid(&record_id)?).await?;
+    Ok(ok_empty())
+}
+pub async fn batch_delete_records(
+    State(state): State<Arc<AppState>>,
+    AuthUser(_): AuthUser,
+    Path(_id): Path<String>,
+    Json(body): Json<BatchDeleteInput>,
+) -> Result<Json<ApiResponse<BatchDeleteOutput>>, AppError> {
+    let ids = body.ids.iter().map(|s| parse_uuid(s)).collect::<Result<Vec<_>, _>>()?;
+    Ok(ok(BatchDeleteOutput {
+        deleted: BaseRecordRepo::batch_delete(&state.db, ids).await? as i64,
+    }))
 }

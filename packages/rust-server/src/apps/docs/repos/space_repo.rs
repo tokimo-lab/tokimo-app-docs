@@ -10,12 +10,19 @@ pub struct UpdateSpaceParams {
     pub name: Option<String>,
     pub avatar: Option<Option<serde_json::Value>>,
     pub description: Option<Option<String>>,
-    pub local_path: Option<Option<String>>,
+    pub vfs_id: Option<Option<String>>,
+    pub root_path: Option<Option<String>>,
     pub sort_order: Option<i32>,
 }
 
+fn parse_optional_uuid(value: Option<String>, field: &str) -> Result<Option<Uuid>, AppError> {
+    value
+        .map(|id| Uuid::parse_str(&id).map_err(|_| AppError::BadRequest(format!("invalid {field}"))))
+        .transpose()
+}
+
 impl DocSpaceRepo {
-    pub async fn list_all(db: &DatabaseConnection) -> Result<Vec<docs_spaces::Model>, AppError> {
+    pub async fn list_all<C: ConnectionTrait>(db: &C) -> Result<Vec<docs_spaces::Model>, AppError> {
         Ok(docs_spaces::Entity::find()
             .order_by_asc(docs_spaces::Column::SortOrder)
             .order_by_asc(docs_spaces::Column::CreatedAt)
@@ -23,21 +30,23 @@ impl DocSpaceRepo {
             .await?)
     }
 
-    pub async fn get_by_id(db: &DatabaseConnection, id: Uuid) -> Result<Option<docs_spaces::Model>, AppError> {
+    pub async fn get_by_id<C: ConnectionTrait>(db: &C, id: Uuid) -> Result<Option<docs_spaces::Model>, AppError> {
         Ok(docs_spaces::Entity::find_by_id(id).one(db).await?)
     }
 
-    pub async fn create(
-        db: &DatabaseConnection,
+    pub async fn create<C: ConnectionTrait>(
+        db: &C,
         name: String,
         avatar: Option<serde_json::Value>,
         description: Option<String>,
-        local_path: Option<String>,
+        vfs_id: Option<String>,
+        root_path: Option<String>,
     ) -> Result<docs_spaces::Model, AppError> {
         use crate::error::OptionExt;
 
         let now = chrono::Utc::now().fixed_offset();
         let id = Uuid::new_v4();
+        let vfs_id = parse_optional_uuid(vfs_id, "vfs_id")?;
 
         let max_order = docs_spaces::Entity::find()
             .order_by_desc(docs_spaces::Column::SortOrder)
@@ -50,7 +59,8 @@ impl DocSpaceRepo {
             name: Set(name),
             avatar: Set(avatar),
             description: Set(description),
-            local_path: Set(local_path),
+            vfs_id: Set(vfs_id),
+            root_path: Set(root_path),
             sort_order: Set(max_order),
             created_at: Set(Some(now)),
             updated_at: Set(Some(now)),
@@ -63,8 +73,8 @@ impl DocSpaceRepo {
             .internal("failed to fetch created doc space")
     }
 
-    pub async fn update(
-        db: &DatabaseConnection,
+    pub async fn update<C: ConnectionTrait>(
+        db: &C,
         id: Uuid,
         params: UpdateSpaceParams,
     ) -> Result<Option<docs_spaces::Model>, AppError> {
@@ -88,8 +98,11 @@ impl DocSpaceRepo {
         if let Some(o) = params.sort_order {
             active.sort_order = Set(o);
         }
-        if let Some(lp) = params.local_path {
-            active.local_path = Set(lp);
+        if let Some(vfs_id) = params.vfs_id {
+            active.vfs_id = Set(parse_optional_uuid(vfs_id, "vfs_id")?);
+        }
+        if let Some(root_path) = params.root_path {
+            active.root_path = Set(root_path);
         }
         active.updated_at = Set(Some(now));
 
@@ -97,7 +110,7 @@ impl DocSpaceRepo {
         Ok(Some(updated))
     }
 
-    pub async fn delete(db: &DatabaseConnection, id: Uuid) -> Result<bool, AppError> {
+    pub async fn delete<C: ConnectionTrait>(db: &C, id: Uuid) -> Result<bool, AppError> {
         let result = docs_spaces::Entity::delete_by_id(id).exec(db).await?;
         Ok(result.rows_affected > 0)
     }
