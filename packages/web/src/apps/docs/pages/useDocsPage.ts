@@ -159,8 +159,8 @@ export function useDocsPage(spaceId: string) {
 
   // ── Selected node detail ────────────────────────────────────────────
   const detailQuery = api.docs.getById.useQuery(
-    { id: selectedContentNodeId ?? "" },
-    { enabled: !!selectedContentNodeId },
+    { id: selectedContentNodeId ?? "", spaceId: spaceId ?? "" },
+    { enabled: !!selectedContentNodeId && !!spaceId },
   );
   const selectedDoc = selectedDocId ? (detailQuery.data ?? null) : null;
   const selectedMarkdown = selectedMarkdownId
@@ -292,7 +292,12 @@ export function useDocsPage(spaceId: string) {
           nodes,
           parentId ?? null,
         );
-        createMutRef.current.mutate({ spaceId: id, type, title, parentId });
+        createMutRef.current.mutate({
+          spaceId: id,
+          type,
+          title,
+          parentPath: parentId,
+        });
       }
     },
     [t],
@@ -305,12 +310,13 @@ export function useDocsPage(spaceId: string) {
       const baseName = template.title || t("docs.untitledDocument");
       const title = nextUniqueName(baseName, nodes, pendingParentId ?? null);
       createMutRef.current.mutate(
-        { spaceId: id, parentId: pendingParentId, title },
+        { spaceId: id, parentPath: pendingParentId, title },
         {
           onSuccess: (doc: DocNodeOutput) => {
             if (template.id !== "blank") {
               updateMutRef.current.mutate({
                 id: doc.id,
+                spaceId: stateRef.current.spaceId,
                 content: template.content,
               });
             }
@@ -329,7 +335,11 @@ export function useDocsPage(spaceId: string) {
       if (!selectedDocId) return;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
-        updateMutRef.current.mutate({ id: selectedDocId, content: value });
+        updateMutRef.current.mutate({
+          id: selectedDocId,
+          spaceId: stateRef.current.spaceId,
+          content: value,
+        });
       }, 800);
     },
     [selectedDocId],
@@ -338,7 +348,11 @@ export function useDocsPage(spaceId: string) {
   const handleTitleChange = useCallback(
     (title: string) => {
       if (!selectedDocId) return;
-      updateMutRef.current.mutate({ id: selectedDocId, title });
+      updateMutRef.current.mutate({
+        id: selectedDocId,
+        spaceId: stateRef.current.spaceId,
+        title,
+      });
     },
     [selectedDocId],
   );
@@ -350,6 +364,7 @@ export function useDocsPage(spaceId: string) {
       saveTimerRef.current = setTimeout(() => {
         updateMutRef.current.mutate({
           id: selectedMarkdownId,
+          spaceId: stateRef.current.spaceId,
           content: text,
         });
       }, 800);
@@ -360,7 +375,11 @@ export function useDocsPage(spaceId: string) {
   const handleMarkdownTitleChange = useCallback(
     (title: string) => {
       if (!selectedMarkdownId) return;
-      updateMutRef.current.mutate({ id: selectedMarkdownId, title });
+      updateMutRef.current.mutate({
+        id: selectedMarkdownId,
+        spaceId: stateRef.current.spaceId,
+        title,
+      });
     },
     [selectedMarkdownId],
   );
@@ -368,7 +387,11 @@ export function useDocsPage(spaceId: string) {
   const handleSheetContentChange = useCallback(
     (snapshot: unknown) => {
       if (!selectedSheetId) return;
-      updateMutRef.current.mutate({ id: selectedSheetId, content: snapshot });
+      updateMutRef.current.mutate({
+        id: selectedSheetId,
+        spaceId: stateRef.current.spaceId,
+        content: snapshot,
+      });
     },
     [selectedSheetId],
   );
@@ -376,7 +399,11 @@ export function useDocsPage(spaceId: string) {
   const handleMindContentChange = useCallback(
     (data: unknown) => {
       if (!selectedMindId) return;
-      updateMutRef.current.mutate({ id: selectedMindId, content: data });
+      updateMutRef.current.mutate({
+        id: selectedMindId,
+        spaceId: stateRef.current.spaceId,
+        content: data,
+      });
     },
     [selectedMindId],
   );
@@ -384,7 +411,11 @@ export function useDocsPage(spaceId: string) {
   const handleSlideContentChange = useCallback(
     (data: unknown) => {
       if (!selectedSlideId) return;
-      updateMutRef.current.mutate({ id: selectedSlideId, content: data });
+      updateMutRef.current.mutate({
+        id: selectedSlideId,
+        spaceId: stateRef.current.spaceId,
+        content: data,
+      });
     },
     [selectedSlideId],
   );
@@ -392,7 +423,11 @@ export function useDocsPage(spaceId: string) {
   const handleWhiteboardContentChange = useCallback(
     (data: unknown) => {
       if (!selectedWhiteboardId) return;
-      updateMutRef.current.mutate({ id: selectedWhiteboardId, content: data });
+      updateMutRef.current.mutate({
+        id: selectedWhiteboardId,
+        spaceId: stateRef.current.spaceId,
+        content: data,
+      });
     },
     [selectedWhiteboardId],
   );
@@ -400,7 +435,11 @@ export function useDocsPage(spaceId: string) {
   const handleBaseContentChange = useCallback(
     (data: unknown) => {
       if (!selectedBaseId) return;
-      updateMutRef.current.mutate({ id: selectedBaseId, content: data });
+      updateMutRef.current.mutate({
+        id: selectedBaseId,
+        spaceId: stateRef.current.spaceId,
+        content: data,
+      });
     },
     [selectedBaseId],
   );
@@ -417,7 +456,11 @@ export function useDocsPage(spaceId: string) {
       const value = deserializeMd(editor, mdText);
       const docId = stateRef.current.selectedDocId;
       if (docId) {
-        await updateMutRef.current.mutateAsync({ id: docId, content: value });
+        await updateMutRef.current.mutateAsync({
+          id: docId,
+          spaceId: stateRef.current.spaceId,
+          content: value,
+        });
         await detailQueryRef.current.refetch();
       }
     });
@@ -605,7 +648,11 @@ export function useDocsPage(spaceId: string) {
       setAiUndoContent([...editor.children] as Value);
       setAiUndoSummary(summary);
       const newValue = deserializeMd(editor, content);
-      await updateMutRef.current.mutateAsync({ id: docId, content: newValue });
+      await updateMutRef.current.mutateAsync({
+        id: docId,
+        spaceId: stateRef.current.spaceId,
+        content: newValue,
+      });
       await detailQueryRef.current.refetch();
     });
   }, []);
@@ -616,6 +663,7 @@ export function useDocsPage(spaceId: string) {
     if (docId) {
       await updateMutRef.current.mutateAsync({
         id: docId,
+        spaceId: stateRef.current.spaceId,
         content: aiUndoContent,
       });
       await detailQueryRef.current.refetch();

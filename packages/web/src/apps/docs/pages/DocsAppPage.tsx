@@ -165,10 +165,12 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             spaceId: s.spaceId,
             type: "folder",
             title,
-            parentId: parentId ?? undefined,
+            parentPath: parentId ?? undefined,
           });
         }}
-        onFavoriteNode={(id) => s.favoriteMutation.mutate({ id })}
+        onFavoriteNode={(id) =>
+          s.favoriteMutation.mutate({ id, spaceId: s.spaceId })
+        }
         onDeleteNode={(node) => {
           if (
             window.confirm(
@@ -177,20 +179,29 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 : "确定删除？",
             )
           ) {
-            s.archiveMutation.mutate({ id: node.id });
+            s.archiveMutation.mutate({ id: node.id, spaceId: s.spaceId });
             if (s.selectedNodeId === node.id) {
               s.deselectNode();
             }
           }
         }}
-        onUpdateNode={(id, title) => s.updateMutation.mutate({ id, title })}
-        onMoveNode={(id, parentId, sortOrder) =>
-          s.moveMut.mutate({ id, parentId, sortOrder })
+        onUpdateNode={(id, title) =>
+          s.updateMutation.mutate({ id, spaceId: s.spaceId, title })
         }
-        onRestoreNode={(id) => s.restoreMutation.mutate({ id })}
+        onMoveNode={(id, parentId, sortOrder) =>
+          s.moveMut.mutate({
+            id,
+            spaceId: s.spaceId,
+            newParentPath: parentId,
+            sortOrder,
+          })
+        }
+        onRestoreNode={(id) =>
+          s.restoreMutation.mutate({ id, spaceId: s.spaceId })
+        }
         onPermanentDeleteNode={(id) => {
           if (window.confirm("确定永久删除？此操作不可恢复。")) {
-            s.permanentDeleteMutation.mutate({ id });
+            s.permanentDeleteMutation.mutate({ id, spaceId: s.spaceId });
           }
         }}
         sortField={s.sortField}
@@ -510,7 +521,11 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 onTitleChange={s.handleTitleChange}
                 onContentChange={s.handleContentChange}
                 onTagsChange={(tags: string[]) => {
-                  s.updateMutation.mutate({ id: s.selectedDoc!.id, tags });
+                  s.updateMutation.mutate({
+                    id: s.selectedDoc!.id,
+                    spaceId: s.spaceId,
+                    tags,
+                  });
                 }}
                 editorRef={s.editorRef}
                 onAddComment={s.handleAddComment}
@@ -544,15 +559,26 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 spaceId: s.spaceId,
                 type: "folder",
                 title,
-                parentId: parentId ?? undefined,
+                parentPath: parentId ?? undefined,
               });
             }}
-            onFavoriteNode={(id) => s.favoriteMutation.mutate({ id })}
-            onDeleteNode={(id) => s.archiveMutation.mutate({ id })}
-            onMoveNode={(id, parentId, sortOrder) =>
-              s.moveMut.mutate({ id, parentId, sortOrder })
+            onFavoriteNode={(id) =>
+              s.favoriteMutation.mutate({ id, spaceId: s.spaceId })
             }
-            onUpdateNode={(id, title) => s.updateMutation.mutate({ id, title })}
+            onDeleteNode={(id) =>
+              s.archiveMutation.mutate({ id, spaceId: s.spaceId })
+            }
+            onMoveNode={(id, parentId, sortOrder) =>
+              s.moveMut.mutate({
+                id,
+                spaceId: s.spaceId,
+                newParentPath: parentId,
+                sortOrder,
+              })
+            }
+            onUpdateNode={(id, title) =>
+              s.updateMutation.mutate({ id, spaceId: s.spaceId, title })
+            }
             sortField={s.effectiveSortField}
             sortDir={s.effectiveSortDir}
             onSetSortField={s.setSortField}
