@@ -239,7 +239,9 @@ export function useDocsPage(spaceId: string) {
       tab: "all",
       pageSize: 500,
     },
-    { enabled: !!spaceId && selectedNodeType === "folder" },
+    {
+      enabled: !!spaceId && (!selectedNodeId || selectedNodeType === "folder"),
+    },
   );
   const treeNodes = useMemo(
     () =>
@@ -259,6 +261,16 @@ export function useDocsPage(spaceId: string) {
       ),
     [listQuery.data, selectedFolderListQuery.data, browserQuery.data],
   );
+  const browserNodes = useMemo(() => {
+    if (tab !== "all") return listQuery.data?.items ?? [];
+    const nodes = browserQuery.data?.items ?? listQuery.data?.items ?? [];
+    if (currentFolderId) return nodes;
+    return nodes.filter((node) => node.parentId === null);
+  }, [browserQuery.data, currentFolderId, listQuery.data, tab]);
+  const browserIsLoading =
+    tab === "all"
+      ? browserQuery.isLoading || browserQuery.isFetching
+      : listQuery.isLoading || listQuery.isFetching;
 
   const navigateToNode = useCallback(
     (nodeId: string | null) => {
@@ -280,12 +292,26 @@ export function useDocsPage(spaceId: string) {
   // ── Selected node detail ────────────────────────────────────────────
   const detailQuery = api.docs.getById.useQuery(
     { id: selectedContentNodeId ?? "", spaceId: spaceId ?? "" },
-    { enabled: !!selectedContentNodeId && !!spaceId },
+    {
+      enabled: !!selectedContentNodeId && !!spaceId,
+      staleTime: 0,
+    },
   );
   const selectedDetail = useMemo(
     () => buildDocNodeDetail(selectedNode, detailQuery.data),
     [selectedNode, detailQuery.data],
   );
+  const isSelectedNodeLoading =
+    !!selectedNodeId &&
+    !selectedNode &&
+    (selectedFolderListQuery.isLoading ||
+      selectedFolderListQuery.isFetching ||
+      listQuery.isLoading ||
+      listQuery.isFetching);
+  const isEditorLoading =
+    isSelectedNodeLoading ||
+    (!!selectedContentNodeId &&
+      (detailQuery.isLoading || detailQuery.isFetching || !detailQuery.data));
   const selectedDoc = selectedDocId ? selectedDetail : null;
   const selectedMarkdown = selectedMarkdownId ? selectedDetail : null;
   const selectedSheet = selectedSheetId ? selectedDetail : null;
@@ -328,14 +354,13 @@ export function useDocsPage(spaceId: string) {
     api.docs.list.invalidate(queryClient);
     listQuery.refetch();
     if (selectedNodeId) selectedFolderListQuery.refetch();
-    if (currentFolderId) browserQuery.refetch();
+    browserQuery.refetch();
   }, [
     queryClient,
     listQuery,
     selectedFolderListQuery,
     browserQuery,
     selectedNodeId,
-    currentFolderId,
   ]);
 
   const createMutation = api.docs.create.useMutation({
@@ -841,6 +866,11 @@ export function useDocsPage(spaceId: string) {
     effectiveSortDir,
     treeNodes,
     allNodes,
+    browserNodes,
+    browserIsLoading,
+    isSelectedNodeLoading,
+    isEditorLoading,
+    selectedContentNodeId,
     selectedNodeId,
     selectedDocId,
     selectedSheetId,

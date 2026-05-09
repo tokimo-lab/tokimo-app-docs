@@ -202,6 +202,10 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
             });
           }
         }}
+        onMoveNode={(from, to) => {
+          if (!s.spaceId) return;
+          s.moveMut.mutate({ spaceId: s.spaceId, from, to: to ?? "" });
+        }}
         sortField={s.sortField}
         sortDir={s.sortDir}
         onSetSortField={s.setSortField}
@@ -214,7 +218,9 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
 
       {/* ── Main area ────────────────────────────────────────────────── */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {s.selectedSheet ? (
+        {s.isSelectedNodeLoading ? (
+          <DocMainLoading />
+        ) : s.selectedSheet ? (
           <>
             {/* Sheet toolbar: back + breadcrumb */}
             <div className="flex items-center gap-1 border-b border-border-subtle px-3 py-1">
@@ -237,8 +243,8 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 relPath={s.selectedSheet.relPath}
               />
             </div>
-            {s.detailQuery.isLoading ? (
-              <Spin className="flex-1" />
+            {s.isEditorLoading ? (
+              <DocMainLoading />
             ) : (
               <SheetEditor
                 key={s.selectedSheet.relPath}
@@ -273,8 +279,8 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 relPath={s.selectedMind.relPath}
               />
             </div>
-            {s.detailQuery.isLoading ? (
-              <Spin className="flex-1" />
+            {s.isEditorLoading ? (
+              <DocMainLoading />
             ) : (
               <MindEditor
                 key={s.selectedMind.relPath}
@@ -308,8 +314,8 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 relPath={s.selectedSlide.relPath}
               />
             </div>
-            {s.detailQuery.isLoading ? (
-              <Spin className="flex-1" />
+            {s.isEditorLoading ? (
+              <DocMainLoading />
             ) : (
               <SlideEditor
                 key={s.selectedSlide.relPath}
@@ -343,8 +349,8 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 relPath={s.selectedWhiteboard.relPath}
               />
             </div>
-            {s.detailQuery.isLoading ? (
-              <Spin className="flex-1" />
+            {s.isEditorLoading ? (
+              <DocMainLoading />
             ) : (
               <WhiteboardEditor
                 key={s.selectedWhiteboard.relPath}
@@ -373,8 +379,8 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 onNavigateFolder={(fid) => s.navigateToNode(fid)}
               />
             </div>
-            {s.detailQuery.isLoading ? (
-              <Spin className="flex-1" />
+            {s.isEditorLoading ? (
+              <DocMainLoading />
             ) : (
               <BaseEditor
                 key={s.selectedBase.relPath}
@@ -401,8 +407,8 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 onNavigateFolder={(fid) => s.navigateToNode(fid)}
               />
             </div>
-            {s.detailQuery.isLoading ? (
-              <Spin className="flex-1" />
+            {s.isEditorLoading ? (
+              <DocMainLoading />
             ) : (
               <MarkdownEditor
                 key={s.selectedMarkdown.id}
@@ -526,7 +532,9 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                   wordCount: s.versionQuery.data.wordCount,
                 }}
                 spaceId={s.spaceId}
-                isLoading={s.versionQuery.isLoading}
+                isLoading={
+                  s.versionQuery.isLoading || s.versionQuery.isFetching
+                }
                 onTitleChange={() => {}}
                 onContentChange={() => {}}
                 onTagsChange={() => {}}
@@ -536,7 +544,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
               <DocEditorArea
                 doc={s.selectedDoc}
                 spaceId={s.spaceId}
-                isLoading={s.detailQuery.isLoading}
+                isLoading={s.isEditorLoading}
                 onTitleChange={s.handleTitleChange}
                 onContentChange={s.handleContentChange}
                 onTagsChange={(tags: string[]) => {
@@ -562,7 +570,8 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
           </>
         ) : (
           <DocBrowserView
-            nodes={s.allNodes.map(apiNodeToLocal)}
+            nodes={s.browserNodes.map(apiNodeToLocal)}
+            allNodes={s.allNodes.map(apiNodeToLocal)}
             currentFolderId={s.currentFolderId}
             onNavigateFolder={(fid) => s.navigateToNode(fid)}
             onOpenDoc={(id) => s.navigateToNode(id)}
@@ -581,19 +590,8 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 parentRelPath: parentId ?? undefined,
               });
             }}
-            onFavoriteNode={(id) =>
-              s.favoriteMutation.mutate({ relPath: id, spaceId: s.spaceId })
-            }
             onDeleteNode={(id) =>
               s.archiveMutation.mutate({ relPath: id, spaceId: s.spaceId })
-            }
-            onMoveNode={(id, parentId, sortOrder) =>
-              s.moveMut.mutate({
-                id,
-                spaceId: s.spaceId,
-                to: parentId ?? "",
-                sortOrder,
-              })
             }
             onUpdateNode={(id, title) =>
               s.updateMutation.mutate({
@@ -602,11 +600,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
                 title,
               })
             }
-            sortField={s.effectiveSortField}
-            sortDir={s.effectiveSortDir}
-            onSetSortField={s.setSortField}
-            onSetSortDir={s.setSortDir}
-            isLoading={s.listQuery.isLoading}
+            isLoading={s.browserIsLoading}
             viewMode={s.tab}
           />
         )}
@@ -650,6 +644,13 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
         className="hidden"
         onChange={s.handleAttachmentFileChange}
       />
+    </div>
+  );
+}
+function DocMainLoading() {
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <Spin />
     </div>
   );
 }

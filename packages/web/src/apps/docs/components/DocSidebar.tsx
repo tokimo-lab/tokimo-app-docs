@@ -48,6 +48,7 @@ interface DocSidebarProps {
   onUpdateNode: (relPath: string, title: string) => void;
   onRestoreNode: (relPath: string) => void;
   onPermanentDeleteNode: (relPath: string) => void;
+  onMoveNode: (srcRelPath: string, destFolderRelPath: string | null) => void;
   sortField: SortField;
   sortDir: SortDir;
   onSetSortField: (field: SortField) => void;
@@ -88,6 +89,7 @@ export function DocSidebar({
   onUpdateNode,
   onRestoreNode,
   onPermanentDeleteNode,
+  onMoveNode,
   sortField,
   sortDir,
   onSetSortField,
@@ -239,6 +241,7 @@ export function DocSidebar({
     renamingRelPath,
     expandedFolders,
     onToggleExpand: toggleFolder,
+    onMoveNode,
     onNodeHover: tip.enter,
     onNodeLeave: tip.leave,
   };

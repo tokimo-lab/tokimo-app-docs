@@ -53,9 +53,12 @@ interface TreeActions {
   renamingRelPath: string | null;
   expandedFolders: Set<string>;
   onToggleExpand: (relPath: string) => void;
+  onMoveNode: (srcRelPath: string, destFolderRelPath: string | null) => void;
   onNodeHover?: (el: HTMLElement, node: DocNode) => void;
   onNodeLeave?: () => void;
 }
+
+const TREE_DRAG_MIME = "application/x-tokimo-doc-relpath";
 
 export function LazyTreeNode({
   spaceId,
@@ -138,6 +141,7 @@ export function NodeTreeItem({
   onCommitRename,
   onCancelRename,
   renamingRelPath,
+  onMoveNode,
   onNodeHover,
   onNodeLeave,
 }: {
@@ -151,6 +155,7 @@ export function NodeTreeItem({
   const isActive = selectedRelPath === node.relPath;
   const isRenaming = renamingRelPath === node.relPath;
   const [localName, setLocalName] = useState(node.title);
+  const [isDropTarget, setIsDropTarget] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const escapedRef = useRef(false);
 
@@ -246,11 +251,67 @@ export function NodeTreeItem({
   );
 
   const handleClick = () => {
-    if (isFolder || hasChildren) {
+    if (isFolder) {
+      // Folder: both expand/collapse the tree and select so the right pane
+      // shows the folder's content via DocBrowserView.
+      onToggleExpand(node.relPath);
+      onSelectNode(node);
+      return;
+    }
+    if (hasChildren) {
       onToggleExpand(node.relPath);
       return;
     }
     onSelectNode(node);
+  };
+
+  // ── Drag & drop ────────────────────────────────────────────────────
+  const handleDragStart = (e: React.DragEvent) => {
+    if (isRenaming) {
+      e.preventDefault();
+      return;
+    }
+    e.stopPropagation();
+    e.dataTransfer.setData(TREE_DRAG_MIME, node.relPath);
+    e.dataTransfer.setData("text/plain", node.relPath);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const isInternalDrag = (e: React.DragEvent) =>
+    Array.from(e.dataTransfer.types).includes(TREE_DRAG_MIME);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!isFolder || !isInternalDrag(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    if (!isFolder || !isInternalDrag(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDropTarget(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!isFolder) return;
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDropTarget(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    if (!isFolder) return;
+    const src = e.dataTransfer.getData(TREE_DRAG_MIME);
+    if (!src) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDropTarget(false);
+    if (src === node.relPath) return;
+    // Prevent dropping a folder into itself or its own descendant
+    if (node.relPath.startsWith(`${src}/`)) return;
+    onMoveNode(src, node.relPath);
   };
 
   return (
@@ -264,11 +325,14 @@ export function NodeTreeItem({
         <div
           role="button"
           tabIndex={0}
+          draggable={!isRenaming}
           className={cn(
             "group w-full cursor-pointer items-center gap-1 rounded-md py-1 pr-2 text-left text-sm transition-colors",
-            isActive
-              ? "bg-[var(--accent-subtle)] font-medium text-[var(--accent)]"
-              : "text-fg-secondary hover:bg-fill-tertiary",
+            isDropTarget
+              ? "bg-blue-500/10 ring-1 ring-blue-400 ring-inset"
+              : isActive
+                ? "bg-[var(--accent-subtle)] font-medium text-[var(--accent)]"
+                : "text-fg-secondary hover:bg-fill-tertiary",
             "flex",
           )}
           style={{ paddingLeft: `${depth * 20 + 8}px` }}
@@ -281,6 +345,11 @@ export function NodeTreeItem({
           }}
           onMouseEnter={(e) => onNodeHover?.(e.currentTarget, node)}
           onMouseLeave={() => onNodeLeave?.()}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
         >
           <span className="flex h-4 w-4 shrink-0 items-center justify-center text-fg-muted">
             {isFolder || hasChildren ? (
@@ -335,7 +404,7 @@ export function NodeTreeItem({
           )}
           {!isRenaming && (
             <div
-              className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100"
+              className="flex shrink-0 items-center gap-0.5"
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
               role="toolbar"
@@ -348,7 +417,7 @@ export function NodeTreeItem({
                 >
                   <button
                     type="button"
-                    className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-[var(--accent)]"
+                    className="cursor-pointer rounded p-0.5 text-fg-muted opacity-0 transition-opacity hover:text-[var(--accent)] group-hover:opacity-100"
                     title={t("docs.newDocument")}
                   >
                     <Plus size={14} />
@@ -357,11 +426,19 @@ export function NodeTreeItem({
               )}
               <button
                 type="button"
-                className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-amber-500"
+                className={cn(
+                  "cursor-pointer rounded p-0.5 transition-opacity",
+                  node.isFavorite
+                    ? "text-amber-500 opacity-100"
+                    : "text-fg-muted opacity-0 hover:text-amber-500 group-hover:opacity-100",
+                )}
                 onClick={() => onFavoriteDoc(node.relPath)}
                 title={node.isFavorite ? "取消收藏" : "收藏"}
               >
-                <Heart size={13} />
+                <Heart
+                  size={13}
+                  fill={node.isFavorite ? "currentColor" : "none"}
+                />
               </button>
             </div>
           )}

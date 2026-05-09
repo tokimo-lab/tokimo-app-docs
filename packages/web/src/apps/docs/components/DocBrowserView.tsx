@@ -1,123 +1,188 @@
 /**
- * DocBrowserView — Feishu-style file browser for the doc app.
- *
- * Shown when no document is selected. Displays folder contents
- * (subfolders as cards + documents as a table) with breadcrumb navigation.
+ * DocBrowserView — Finder-backed file browser for the doc app.
  */
 
-import { cn, Empty } from "@tokimo/ui";
 import {
-  ArrowDown,
-  ArrowUp,
-  ChevronRight,
-  FileText,
-  FolderPlus,
-} from "lucide-react";
-import { useCallback, useMemo } from "react";
-import { useMessage } from "@/system";
+  type ContextMenuItem,
+  cn,
+  Empty,
+  type FileNode,
+  Spin,
+  useContextMenu,
+} from "@tokimo/ui";
+import { ChevronRight, FileText, FolderPlus } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { FinderFileGridView } from "@/apps/finder/components/FinderFileGrid";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
 import { getAncestorChain } from "../lib/doc-node";
-import { DocRow } from "./DocRow";
-import type { SortDir, SortField } from "./DocSidebar";
-import { FolderCard } from "./FolderCard";
-
-// ── Props ──────────────────────────────────────────────────────────────────
 
 interface DocBrowserViewProps {
   nodes: DocNode[];
+  allNodes: DocNode[];
   currentFolderId: string | null;
   onNavigateFolder: (folderId: string | null) => void;
   onOpenDoc: (docId: string, type: DocNodeType) => void;
   onCreateNode: (type: DocNodeType, parentId?: string) => void;
   onCreateFolder: (parentId?: string) => void;
-  onFavoriteNode: (id: string) => void;
   onDeleteNode: (id: string) => void;
-  onMoveNode: (id: string, parentId: string | null, sortOrder?: number) => void;
   onUpdateNode: (id: string, title: string) => void;
-  sortField: SortField;
-  sortDir: SortDir;
-  onSetSortField: (field: SortField) => void;
-  onSetSortDir: (dir: SortDir) => void;
   isLoading: boolean;
   viewMode: "all" | "favorites" | "archived";
 }
 
-// ── Component ──────────────────────────────────────────────────────────────
+function nodeToFileNode(node: DocNode): FileNode {
+  return {
+    name: node.title,
+    path: node.relPath,
+    isDirectory: node.type === "folder",
+    modifiedAt: node.updatedAt,
+    size: null,
+  };
+}
+
+function getEmptyDescription(
+  viewMode: DocBrowserViewProps["viewMode"],
+): string {
+  if (viewMode === "archived") return "回收站为空";
+  if (viewMode === "favorites") return "暂无收藏文档";
+  return "此文件夹为空";
+}
 
 export function DocBrowserView({
   nodes,
+  allNodes,
   currentFolderId,
   onNavigateFolder,
   onOpenDoc,
   onCreateNode,
   onCreateFolder,
-  onFavoriteNode,
   onDeleteNode,
-  onMoveNode,
   onUpdateNode,
-  sortField,
-  sortDir,
-  onSetSortField,
-  onSetSortDir,
   isLoading,
   viewMode,
 }: DocBrowserViewProps) {
-  const message = useMessage();
+  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const { open, contextMenu } = useContextMenu();
 
-  // Build breadcrumb path
   const breadcrumbPath = useMemo(() => {
     if (!currentFolderId) return [];
-    return getAncestorChain(nodes, currentFolderId);
-  }, [currentFolderId, nodes]);
+    return getAncestorChain(allNodes, currentFolderId);
+  }, [allNodes, currentFolderId]);
 
-  // Filter subfolders of current folder
-  const subFolders = useMemo(() => {
-    if (viewMode !== "all") return [];
-    return nodes
-      .filter((n) => n.type === "folder" && n.parentId === currentFolderId)
-      .sort(
-        (a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title),
-      );
-  }, [nodes, currentFolderId, viewMode]);
-
-  // Filter docs in current folder (or all non-folder nodes for special views)
-  const visibleDocs = useMemo(() => {
-    if (viewMode !== "all") return nodes.filter((n) => n.type !== "folder");
-    return nodes.filter(
-      (n) => n.type !== "folder" && n.parentId === currentFolderId,
-    );
-  }, [nodes, currentFolderId, viewMode]);
-
-  // All folders for "move to" submenu
-  const allFolders = useMemo(
-    () => nodes.filter((n) => n.type === "folder"),
+  const nodeByPath = useMemo(
+    () => new Map(nodes.map((node) => [node.relPath, node])),
     [nodes],
   );
 
-  const isEmpty = subFolders.length === 0 && visibleDocs.length === 0;
+  const fileNodes = useMemo(() => nodes.map(nodeToFileNode), [nodes]);
 
-  const handleSortClick = useCallback(
-    (field: SortField) => {
-      if (sortField === field) {
-        onSetSortDir(sortDir === "asc" ? "desc" : "asc");
-      } else {
-        onSetSortField(field);
-        onSetSortDir(field === "title" ? "asc" : "desc");
+  const parentFolderId = breadcrumbPath.at(-1)?.parentId ?? null;
+
+  const openNode = useCallback(
+    (node: DocNode) => {
+      if (node.type === "folder") {
+        onNavigateFolder(node.relPath);
+        return;
       }
+      onOpenDoc(node.relPath, node.type);
     },
-    [sortField, sortDir, onSetSortField, onSetSortDir],
+    [onNavigateFolder, onOpenDoc],
+  );
+
+  const handleItemClick = useCallback(
+    (node: FileNode, event: React.MouseEvent) => {
+      setSelectedPaths((prev) => {
+        if (event.metaKey || event.ctrlKey) {
+          const next = new Set(prev);
+          next.has(node.path) ? next.delete(node.path) : next.add(node.path);
+          return next;
+        }
+        return new Set([node.path]);
+      });
+    },
+    [],
+  );
+
+  const handleItemDoubleClick = useCallback(
+    (fileNode: FileNode) => {
+      const node = nodeByPath.get(fileNode.path);
+      if (node) openNode(node);
+    },
+    [nodeByPath, openNode],
+  );
+
+  const handleItemContextMenu = useCallback(
+    (fileNode: FileNode, event: React.MouseEvent) => {
+      const node = nodeByPath.get(fileNode.path);
+      if (!node) return;
+      setSelectedPaths(new Set([fileNode.path]));
+      const items: ContextMenuItem[] = [
+        { key: "open", label: "打开", onClick: () => openNode(node) },
+        {
+          key: "rename",
+          label: "重命名",
+          onClick: () => setRenaming(fileNode.path),
+        },
+        { type: "divider" },
+        {
+          key: "delete",
+          label: viewMode === "archived" ? "删除" : "移到回收站",
+          danger: true,
+          onClick: () => {
+            if (
+              window.confirm(
+                node.type === "folder" ? "确定删除此文件夹？" : "确定删除？",
+              )
+            ) {
+              onDeleteNode(node.relPath);
+            }
+          },
+        },
+      ];
+      open(event, items);
+    },
+    [nodeByPath, onDeleteNode, open, openNode, viewMode],
+  );
+
+  const handleEmptyContextMenu = useCallback(
+    (event: React.MouseEvent) => {
+      if (viewMode === "archived") return;
+      const parentId = currentFolderId ?? undefined;
+      open(event, [
+        {
+          key: "new-doc",
+          label: "新建文档",
+          onClick: () => onCreateNode("notion", parentId),
+        },
+        {
+          key: "new-folder",
+          label: "新建文件夹",
+          onClick: () => onCreateFolder(parentId),
+        },
+      ]);
+    },
+    [currentFolderId, onCreateFolder, onCreateNode, open, viewMode],
+  );
+
+  const handleRenameSubmit = useCallback(
+    (path: string, name: string) => {
+      const trimmed = name.trim();
+      if (trimmed) onUpdateNode(path, trimmed);
+      setRenaming(null);
+    },
+    [onUpdateNode],
   );
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {/* ── Breadcrumb ──────────────────────────────────────────────── */}
       <div className="flex items-center gap-1 border-b border-border-subtle px-4 py-2.5">
         <div className="flex flex-1 items-center gap-1 text-sm">
           <button
             type="button"
             onClick={() => onNavigateFolder(null)}
             className={cn(
-              "rounded px-1 py-0.5 transition-colors hover:bg-fill-tertiary",
+              "cursor-pointer rounded px-1 py-0.5 transition-colors hover:bg-fill-tertiary",
               !currentFolderId
                 ? "font-medium text-fg-primary"
                 : "text-fg-muted hover:text-fg-secondary",
@@ -132,7 +197,7 @@ export function DocBrowserView({
                 type="button"
                 onClick={() => onNavigateFolder(node.id)}
                 className={cn(
-                  "rounded px-1 py-0.5 transition-colors hover:bg-fill-tertiary",
+                  "cursor-pointer rounded px-1 py-0.5 transition-colors hover:bg-fill-tertiary",
                   node.id === currentFolderId
                     ? "font-medium text-fg-primary"
                     : "text-fg-muted hover:text-fg-secondary",
@@ -143,12 +208,6 @@ export function DocBrowserView({
               </button>
             </span>
           ))}
-          {false && (
-            <>
-              <ChevronRight size={14} className="text-fg-muted" />
-              <span className="font-medium text-fg-primary">最近编辑</span>
-            </>
-          )}
           {viewMode === "favorites" && (
             <>
               <ChevronRight size={14} className="text-fg-muted" />
@@ -164,13 +223,12 @@ export function DocBrowserView({
         </div>
       </div>
 
-      {/* ── Action bar ──────────────────────────────────────────────── */}
       {viewMode !== "archived" && (
         <div className="flex items-center gap-2 border-b border-border-subtle px-4 py-2">
           <button
             type="button"
             onClick={() => onCreateNode("notion", currentFolderId ?? undefined)}
-            className="flex items-center gap-1.5 rounded-lg border border-border-subtle bg-fill-secondary px-3 py-1.5 text-sm text-fg-secondary transition-colors hover:bg-fill-tertiary"
+            className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border-subtle bg-fill-secondary px-3 py-1.5 text-sm text-fg-secondary transition-colors hover:bg-fill-tertiary"
           >
             <FileText size={15} className="text-[var(--accent)]" />
             新建文档
@@ -179,7 +237,7 @@ export function DocBrowserView({
             <button
               type="button"
               onClick={() => onCreateFolder(currentFolderId ?? undefined)}
-              className="flex items-center gap-1.5 rounded-lg border border-border-subtle bg-fill-secondary px-3 py-1.5 text-sm text-fg-secondary transition-colors hover:bg-fill-tertiary"
+              className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border-subtle bg-fill-secondary px-3 py-1.5 text-sm text-fg-secondary transition-colors hover:bg-fill-tertiary"
             >
               <FolderPlus size={15} className="text-[var(--accent)]" />
               新建文件夹
@@ -188,144 +246,49 @@ export function DocBrowserView({
         </div>
       )}
 
-      {/* ── Content ─────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-4 py-3">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {isLoading ? (
-          <div className="flex h-40 items-center justify-center text-fg-muted">
-            加载中...
+          <div className="flex h-full items-center justify-center">
+            <Spin />
           </div>
-        ) : isEmpty ? (
+        ) : fileNodes.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <Empty
-              description={
-                viewMode === "archived"
-                  ? "回收站为空"
-                  : viewMode === "favorites"
-                    ? "暂无收藏文档"
-                    : "此文件夹为空"
-              }
+              className="text-[var(--text-quaternary)]"
+              description={getEmptyDescription(viewMode)}
             />
           </div>
         ) : (
-          <>
-            {/* Folder cards */}
-            {subFolders.length > 0 && (
-              <div className="mb-4">
-                <div className="mb-2 text-xs font-medium text-fg-muted">
-                  文件夹
-                </div>
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2">
-                  {subFolders.map((folder) => (
-                    <FolderCard
-                      key={folder.id}
-                      node={folder}
-                      onOpen={() => onNavigateFolder(folder.id)}
-                      onRename={(name) => onUpdateNode(folder.id, name)}
-                      onDelete={() => onDeleteNode(folder.id)}
-                      onCreateDoc={() => onCreateNode("notion", folder.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Document list table */}
-            {visibleDocs.length > 0 && (
-              <div>
-                {subFolders.length > 0 && (
-                  <div className="mb-2 text-xs font-medium text-fg-muted">
-                    文档
-                  </div>
-                )}
-                {/* Column headers */}
-                <div className="flex items-center border-b border-border-subtle pb-1 text-xs text-fg-muted">
-                  <div className="flex-1">
-                    <SortableHeader
-                      label="名称"
-                      field="title"
-                      currentField={sortField}
-                      currentDir={sortDir}
-                      onClick={handleSortClick}
-                    />
-                  </div>
-                  <div className="w-36">
-                    <SortableHeader
-                      label="修改时间"
-                      field="updatedAt"
-                      currentField={sortField}
-                      currentDir={sortDir}
-                      onClick={handleSortClick}
-                    />
-                  </div>
-                  <div className="w-24">
-                    <SortableHeader
-                      label="字数"
-                      field="wordCount"
-                      currentField={sortField}
-                      currentDir={sortDir}
-                      onClick={handleSortClick}
-                    />
-                  </div>
-                  <div className="w-10" />
-                </div>
-                {/* Doc rows */}
-                {visibleDocs.map((doc) => (
-                  <DocRow
-                    key={doc.id}
-                    node={doc}
-                    allFolders={allFolders}
-                    onClick={() => onOpenDoc(doc.id, doc.type as DocNodeType)}
-                    onFavorite={() => onFavoriteNode(doc.id)}
-                    onDelete={() => onDeleteNode(doc.id)}
-                    onMove={(folderId) => onMoveNode(doc.id, folderId)}
-                    onCopyId={() => {
-                      navigator.clipboard.writeText(doc.id);
-                      message.success("已复制 ID");
-                    }}
-                    isTrash={viewMode === "archived"}
-                  />
-                ))}
-              </div>
-            )}
-          </>
+          <FinderFileGridView
+            nodes={fileNodes}
+            selectedPaths={selectedPaths}
+            viewMode="list"
+            renaming={renaming}
+            currentPath={currentFolderId ?? "/"}
+            onNavigateUp={
+              currentFolderId
+                ? () => onNavigateFolder(parentFolderId)
+                : undefined
+            }
+            onItemClick={handleItemClick}
+            onItemDoubleClick={handleItemDoubleClick}
+            onItemContextMenu={handleItemContextMenu}
+            onEmptyContextMenu={handleEmptyContextMenu}
+            onRenameSubmit={handleRenameSubmit}
+            onRenameCancel={() => setRenaming(null)}
+            onClearSelection={() => setSelectedPaths(new Set())}
+            onSelectPaths={setSelectedPaths}
+            onDragStart={(eventNode, _contextNodes, event) => {
+              event.preventDefault();
+              setSelectedPaths(new Set([eventNode.path]));
+            }}
+            onDragEnd={() => {}}
+            onDropToFolder={(_targetNode, event) => event.preventDefault()}
+            draggingPaths={new Set()}
+          />
         )}
       </div>
+      {contextMenu}
     </div>
-  );
-}
-
-// ── Sortable column header ─────────────────────────────────────────────────
-
-function SortableHeader({
-  label,
-  field,
-  currentField,
-  currentDir,
-  onClick,
-}: {
-  label: string;
-  field: SortField;
-  currentField: SortField;
-  currentDir: SortDir;
-  onClick: (field: SortField) => void;
-}) {
-  const isActive = currentField === field;
-  return (
-    <button
-      type="button"
-      onClick={() => onClick(field)}
-      className={cn(
-        "flex items-center gap-0.5 rounded px-1 py-0.5 transition-colors hover:text-fg-secondary",
-        isActive && "text-fg-secondary",
-      )}
-    >
-      {label}
-      {isActive &&
-        (currentDir === "asc" ? (
-          <ArrowUp size={12} />
-        ) : (
-          <ArrowDown size={12} />
-        ))}
-    </button>
   );
 }
