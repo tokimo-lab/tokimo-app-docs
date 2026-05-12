@@ -5,6 +5,7 @@ use crate::apps::docs::handlers::{
 };
 use axum::{
     Router,
+    extract::DefaultBodyLimit,
     routing::{delete, get, patch, post},
 };
 use std::sync::Arc;
@@ -59,7 +60,9 @@ pub fn build_docs_app_routes() -> Router<Arc<AppState>> {
         )
         .route(
             "/api/apps/docs/spaces/{id}/node/attachments",
-            get(attachment::list_attachments).post(attachment::upload_attachment),
+            get(attachment::list_attachments)
+                .post(attachment::upload_attachment)
+                .layer(DefaultBodyLimit::disable()),
         )
         .route(
             "/api/apps/docs/spaces/{id}/attachments/{attachmentId}",
