@@ -5,9 +5,8 @@
  * Right: rendered markdown preview via react-markdown.
  */
 
+import { Markdown } from "@tokimo/ui";
 import { useCallback, useRef, useState } from "react";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 
 interface MarkdownEditorProps {
   /** Document node ID (used as React key externally) */
@@ -118,9 +117,7 @@ export function MarkdownEditor({
 
         {/* Right: rendered preview */}
         <div className="w-1/2 min-h-0 overflow-y-auto px-6 py-4">
-          <article className="prose prose-sm max-w-none text-fg-primary dark:prose-invert">
-            <Markdown remarkPlugins={[remarkGfm]}>{localContent}</Markdown>
-          </article>
+          <Markdown content={localContent} />
         </div>
       </div>
     </div>
