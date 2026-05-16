@@ -2,7 +2,7 @@
  * MarkdownEditor — Split-pane markdown editor with live preview.
  *
  * Left: textarea for editing raw markdown.
- * Right: rendered markdown preview via react-markdown.
+ * Right: rendered markdown preview via @tokimo/ui Markdown.
  */
 
 import { Markdown } from "@tokimo/ui";
