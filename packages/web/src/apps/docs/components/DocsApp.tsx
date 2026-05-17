@@ -7,6 +7,7 @@ import type { DocSpaceOutput } from "@/generated/rust-types/DocSpaceOutput";
 import { useContainerWidth } from "@/shared/hooks/use-container-width";
 import { useSidebarCollapsed } from "@/shared/hooks/use-sidebar-collapsed";
 import { useWindowActions, useWindowId, useWindowNav } from "@/system";
+import { PickCancelled, pickWithBridge } from "@/system/window-bridge";
 import DocsAppPage from "../pages/DocsAppPage";
 import DocsSpaceSidebar from "./DocsSpaceSidebar";
 
@@ -25,21 +26,30 @@ export default function DocsApp() {
   const { openModalWindow } = useWindowActions();
 
   const openEditorModal = useCallback(
-    (opts: { spaceId?: string } = {}) => {
-      openModalWindow({
-        component: () => import("@/apps/settings/admin/DocSpaceEditorWindow"),
-        parentWindowId: windowId,
-        title: opts.spaceId ? `TokimoDocs · 设置` : "TokimoDocs · 新建文档空间",
-        width: 720,
-        height: 640,
-        noResize: true,
-        noMinimize: true,
-        metadata: opts.spaceId
-          ? ({ spaceId: opts.spaceId } as Record<string, unknown>)
-          : undefined,
-      });
+    async (opts: { spaceId?: string } = {}) => {
+      const isEdit = !!opts.spaceId;
+      try {
+        const created = await pickWithBridge<{ id: string }>(openModalWindow, {
+          component: () => import("@/apps/settings/admin/DocSpaceEditorWindow"),
+          parentWindowId: windowId,
+          title: isEdit ? "TokimoDocs · 设置" : "TokimoDocs · 新建文档空间",
+          width: 720,
+          height: 640,
+          noResize: true,
+          noMinimize: true,
+          metadata: isEdit
+            ? ({ spaceId: opts.spaceId } as Record<string, unknown>)
+            : undefined,
+        });
+        if (!isEdit) {
+          replace(`/space/${created.id}`);
+        }
+      } catch (err) {
+        if (err instanceof PickCancelled) return;
+        throw err;
+      }
     },
-    [openModalWindow, windowId],
+    [openModalWindow, windowId, replace],
   );
 
   // Default to first space when no spaceId in route, or stale spaceId
@@ -87,7 +97,9 @@ export default function DocsApp() {
         }))}
         actionLabel={t("common.setupGuide.docsAction")}
         actionIcon={Plus}
-        onAction={() => openEditorModal()}
+        onAction={() => {
+          void openEditorModal();
+        }}
         buttonClassName="bg-[var(--accent)] hover:bg-[var(--accent-hover)]"
       />
     );
@@ -100,10 +112,14 @@ export default function DocsApp() {
         activeId={activeSpaceId}
         onSelect={handleSelectSpace}
         collapsed={sidebarCollapsed}
-        onCreateClick={() => openEditorModal()}
-        onSettingsClick={() =>
-          activeSpaceId && openEditorModal({ spaceId: activeSpaceId })
-        }
+        onCreateClick={() => {
+          void openEditorModal();
+        }}
+        onSettingsClick={() => {
+          if (activeSpaceId) {
+            void openEditorModal({ spaceId: activeSpaceId });
+          }
+        }}
         onToggleCollapse={onToggleCollapse}
       />
       <div className="relative flex-1 min-w-0 overflow-hidden h-full">
