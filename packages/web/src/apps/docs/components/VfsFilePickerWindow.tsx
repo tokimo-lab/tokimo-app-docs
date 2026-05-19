@@ -55,8 +55,9 @@ export default function VfsFilePickerWindow({ win }: { win: WindowState }) {
 
   const handleSelectFs = useCallback((fs: VfsDto) => {
     setSelectedFs(fs);
-    const config = (fs.config ?? {}) as Record<string, string>;
-    setCurrentPath(fs.type === "local" ? config.root_folder_path || "/" : "/");
+    setCurrentPath(
+      fs.type === "local" ? fs.displayHints?.rootPath || "/" : "/",
+    );
     setSelectedFile(null);
   }, []);
 
