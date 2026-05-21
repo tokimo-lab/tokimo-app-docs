@@ -9,7 +9,7 @@ use std::sync::Arc;
 use sea_orm::DatabaseConnection;
 
 use crate::apps::docs::services::collab::CollabService;
-use crate::services::media::source::storage_driver::WriteCallback;
+use crate::services::source::storage_driver::WriteCallback;
 use crate::services::storage::StorageProvider;
 
 /// Callback attached to the docs VFS mount.
