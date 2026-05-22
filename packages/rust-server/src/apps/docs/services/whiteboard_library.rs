@@ -118,8 +118,8 @@ pub async fn get_library_preview_url(http: &reqwest::Client, id: &str) -> Result
     Ok(format!("{GITHUB_RAW_BASE}/libraries/{}", entry.preview))
 }
 
-const CACHE_DIR_LIBS: &str = "data/excalidraw-libraries/libs";
-const CACHE_DIR_PREVIEWS: &str = "data/excalidraw-libraries/previews";
+const CACHE_DIR_LIBS: &str = ".data/excalidraw-libraries/libs";
+const CACHE_DIR_PREVIEWS: &str = ".data/excalidraw-libraries/previews";
 
 /// Fetch a raw file from GitHub, using local disk cache.
 pub async fn fetch_cached_file(
