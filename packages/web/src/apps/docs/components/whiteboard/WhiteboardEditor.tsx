@@ -83,7 +83,6 @@ export function WhiteboardEditor({
     [i18n.language],
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: nodeId triggers re-parse of content for different whiteboards
   const initialData = useMemo<WhiteboardData>(() => {
     // Reset the initialized flag so we skip the first onChange after loading
     initializedRef.current = false;

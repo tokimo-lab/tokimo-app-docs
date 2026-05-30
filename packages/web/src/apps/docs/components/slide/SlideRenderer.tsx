@@ -96,7 +96,6 @@ function StaticText({ element }: { element: SlideTextElement }) {
         color: element.defaultColor,
         lineHeight: element.lineHeight ?? 1.5,
       }}
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: thumbnail preview of slide text
       dangerouslySetInnerHTML={{ __html: element.content }}
     />
   );
@@ -369,7 +368,6 @@ function StaticLatex({ element }: { element: SlideLatexElement }) {
           fontSize: element.fontSize ?? 24,
           color: element.color ?? "#333",
         }}
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: KaTeX HTML output
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </div>
@@ -398,7 +396,6 @@ function StaticTable({ element }: { element: SlideTableElement }) {
       >
         <tbody>
           {element.data.map((row, ri) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: table row index
             <tr key={ri}>
               {row.map((cell, ci) => {
                 const cellKey = `${ri}-${ci}`;

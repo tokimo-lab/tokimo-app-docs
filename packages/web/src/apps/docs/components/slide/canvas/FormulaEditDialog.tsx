@@ -130,7 +130,6 @@ export function FormulaEditDialog({
             />
             <div
               className="flex min-h-[80px] items-center justify-center overflow-auto rounded border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-600 dark:bg-neutral-900"
-              // biome-ignore lint/security/noDangerouslySetInnerHtml: KaTeX preview
               dangerouslySetInnerHTML={{
                 __html:
                   preview ||
@@ -261,7 +260,6 @@ function SymbolPanel({
             className="flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-neutral-200 bg-white text-sm hover:border-[var(--accent)] hover:bg-[var(--accent-subtle)] dark:border-neutral-600 dark:bg-neutral-700 dark:hover:border-[var(--accent)] dark:hover:bg-[var(--accent-subtle)]"
             title={sym.latex}
             onClick={() => onInsert(sym.latex)}
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: KaTeX symbol
             dangerouslySetInnerHTML={{
               __html: renderKatex(sym.latex),
             }}
@@ -291,7 +289,6 @@ function PresetPanel({ onSelect, t }: PresetPanelProps) {
         >
           <div
             className="overflow-x-auto pb-1"
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: KaTeX formula
             dangerouslySetInnerHTML={{
               __html: renderKatex(f.latex, true),
             }}

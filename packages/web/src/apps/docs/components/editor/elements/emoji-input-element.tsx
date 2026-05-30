@@ -46,7 +46,6 @@ export function EmojiInputElement(props: PlateElementProps) {
     inputRef.current?.focus();
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on query
   useEffect(() => {
     setSelectedIndex(0);
   }, [query]);
@@ -107,7 +106,6 @@ export function EmojiInputElement(props: PlateElementProps) {
     setMenuPos({ top: rect.bottom + 4, left: rect.left });
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on selection change
   useEffect(() => {
     const selected = menuRef.current?.querySelector("[data-selected='true']");
     if (selected) selected.scrollIntoView({ block: "nearest" });

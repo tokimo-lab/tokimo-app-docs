@@ -189,13 +189,11 @@ export function TableElement({
       >
         <colgroup>
           {element.colWidths.map((w, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: stable column indices
             <col key={i} style={{ width: `${w}%` }} />
           ))}
         </colgroup>
         <tbody>
           {element.data.map((row, ri) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: stable row indices
             <tr key={ri}>
               {row.map((cell, ci) => {
                 const cellKey = `${ri}-${ci}`;

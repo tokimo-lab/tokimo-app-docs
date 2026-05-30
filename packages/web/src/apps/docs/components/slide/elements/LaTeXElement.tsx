@@ -88,7 +88,6 @@ export function LaTeXElement({
           fontSize: element.fontSize ?? 24,
           color: element.color ?? "#333",
         }}
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: KaTeX HTML output
         dangerouslySetInnerHTML={{ __html: renderedHtml }}
       />
       {editing && (

@@ -81,7 +81,6 @@ export function LaserPointer({ active, containerRef }: LaserPointerProps) {
         const size = DOT_SIZE * Math.max(0.3, 1 - age / TRAIL_LIFETIME_MS);
         return (
           <div
-            // biome-ignore lint/suspicious/noArrayIndexKey: trail points have no stable id
             key={`${point.time}-${i}`}
             className="absolute rounded-full bg-red-500"
             style={{

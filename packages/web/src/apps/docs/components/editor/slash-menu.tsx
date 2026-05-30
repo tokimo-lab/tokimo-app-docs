@@ -596,7 +596,6 @@ export function SlashInputElement(props: PlateElementProps) {
     [filteredGroups],
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: query changes should reset selection index
   useEffect(() => {
     setSelectedIndex(0);
   }, [query]);
@@ -695,7 +694,6 @@ export function SlashInputElement(props: PlateElementProps) {
   }, []);
 
   // Scroll selected item into view
-  // biome-ignore lint/correctness/useExhaustiveDependencies: selectedIndex triggers the scroll
   useEffect(() => {
     const menuEl = menuRef.current;
     if (!menuEl) return;

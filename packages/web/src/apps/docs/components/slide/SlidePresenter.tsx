@@ -123,7 +123,6 @@ export function SlidePresenter({
   }, []);
 
   // App-level fullscreen on mount (force enter, no-op if already fullscreen)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount
   useEffect(() => {
     if (windowId) toggleFullscreen(windowId, true);
     // Intentionally no cleanup — exiting presenter is handled via onExit

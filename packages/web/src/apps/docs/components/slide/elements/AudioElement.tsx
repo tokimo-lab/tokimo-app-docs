@@ -52,7 +52,6 @@ export function AudioElement({
         <div className="flex flex-1 items-center justify-center gap-[2px]">
           {WAVEFORM_BARS.map((h, i) => (
             <div
-              // biome-ignore lint/suspicious/noArrayIndexKey: static decorative bars
               key={i}
               className="w-[3px] rounded-full bg-white/70"
               style={{ height: `${h * 32}px` }}

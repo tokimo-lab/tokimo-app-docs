@@ -130,7 +130,6 @@ export function DrawingCanvas({
       >
         {paths.map((path, i) => (
           <polyline
-            // biome-ignore lint/suspicious/noArrayIndexKey: drawing paths have no stable id
             key={`${slideIndex}-${i}`}
             points={pointsToString(path.points)}
             stroke={path.color}
