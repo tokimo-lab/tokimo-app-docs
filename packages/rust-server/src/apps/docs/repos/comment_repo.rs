@@ -96,16 +96,14 @@ impl DocNodeCommentRepo {
 
     /// Resolve/unresolve a comment.
     pub async fn resolve<C: ConnectionTrait>(db: &C, id: Uuid, resolved: bool) -> Result<bool, AppError> {
-        let comment = docs_node_comments::Entity::find_by_id(id).one(db).await?;
-        let Some(comment) = comment else {
-            return Ok(false);
-        };
         let now = chrono::Utc::now().fixed_offset();
-        let mut active: docs_node_comments::ActiveModel = comment.into();
-        active.is_resolved = Set(resolved);
-        active.updated_at = Set(now);
-        active.update(db).await?;
-        Ok(true)
+        let result = docs_node_comments::Entity::update_many()
+            .filter(docs_node_comments::Column::Id.eq(id))
+            .col_expr(docs_node_comments::Column::IsResolved, Expr::value(resolved))
+            .col_expr(docs_node_comments::Column::UpdatedAt, Expr::value(now))
+            .exec(db)
+            .await?;
+        Ok(result.rows_affected > 0)
     }
 
     /// Delete a comment.

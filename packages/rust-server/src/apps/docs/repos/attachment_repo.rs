@@ -75,32 +75,29 @@ impl AttachmentRepo {
 
     /// Soft-delete: set deleted_at = now().
     pub async fn soft_delete<C: ConnectionTrait>(db: &C, id: Uuid) -> Result<bool, AppError> {
-        let record = docs_node_attachments::Entity::find_by_id(id)
+        let result = docs_node_attachments::Entity::update_many()
+            .filter(docs_node_attachments::Column::Id.eq(id))
             .filter(docs_node_attachments::Column::DeletedAt.is_null())
-            .one(db)
+            .col_expr(
+                docs_node_attachments::Column::DeletedAt,
+                Expr::value(Some(Utc::now().fixed_offset())),
+            )
+            .exec(db)
             .await?;
-        let Some(record) = record else {
-            return Ok(false);
-        };
-        let mut active: docs_node_attachments::ActiveModel = record.into();
-        active.deleted_at = Set(Some(Utc::now().fixed_offset()));
-        active.update(db).await?;
-        Ok(true)
+        Ok(result.rows_affected > 0)
     }
 
     /// Restore a soft-deleted attachment (clear deleted_at).
     pub async fn restore<C: ConnectionTrait>(db: &C, id: Uuid) -> Result<bool, AppError> {
-        let record = docs_node_attachments::Entity::find_by_id(id).one(db).await?;
-        let Some(record) = record else {
-            return Ok(false);
-        };
-        if record.deleted_at.is_none() {
-            return Ok(true);
-        }
-        let mut active: docs_node_attachments::ActiveModel = record.into();
-        active.deleted_at = Set(None);
-        active.update(db).await?;
-        Ok(true)
+        let result = docs_node_attachments::Entity::update_many()
+            .filter(docs_node_attachments::Column::Id.eq(id))
+            .col_expr(
+                docs_node_attachments::Column::DeletedAt,
+                Expr::value(Option::<chrono::DateTime<chrono::FixedOffset>>::None),
+            )
+            .exec(db)
+            .await?;
+        Ok(result.rows_affected > 0)
     }
 
     /// Hard-delete an attachment by ID (used by purge task).

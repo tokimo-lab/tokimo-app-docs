@@ -105,16 +105,22 @@ impl BaseRecordRepo {
         data: Option<serde_json::Value>,
         sort_order: Option<i32>,
     ) -> Result<docs_base_records::Model, AppError> {
-        let model = Self::get_by_id(db, id).await?;
-        let mut active: docs_base_records::ActiveModel = model.into();
-
+        if data.is_none() && sort_order.is_none() {
+            return Self::get_by_id(db, id).await;
+        }
+        let mut stmt = docs_base_records::Entity::update_many()
+            .filter(docs_base_records::Column::Id.eq(id));
         if let Some(d) = data {
-            active.data = Set(d);
+            stmt = stmt.col_expr(docs_base_records::Column::Data, Expr::value(d));
         }
         if let Some(s) = sort_order {
-            active.sort_order = Set(s);
+            stmt = stmt.col_expr(docs_base_records::Column::SortOrder, Expr::value(s));
         }
-        Ok(active.update(db).await?)
+        let mut results = stmt.exec_with_returning(db).await?;
+        results
+            .into_iter()
+            .next()
+            .ok_or_else(|| AppError::NotFound("record not found".into()))
     }
 
     /// Delete a single record. Returns error if not found.

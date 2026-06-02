@@ -47,7 +47,7 @@ impl DocNodeVersionRepo {
     }
 
     /// Create a version only if enough time has passed since the last one (10 minutes).
-    pub async fn create_if_due<C: ConnectionTrait>(
+    pub async fn create_if_due<C: ConnectionTrait + TransactionTrait>(
         db: &C,
         space_id: Uuid,
         rel_path: &str,
@@ -100,28 +100,31 @@ impl DocNodeVersionRepo {
     }
 
     /// Keep only the latest N versions for a path, deleting older ones.
-    pub async fn delete_old_versions<C: ConnectionTrait>(
+    pub async fn delete_old_versions<C: ConnectionTrait + TransactionTrait>(
         db: &C,
         space_id: Uuid,
         rel_path: &str,
         keep_count: usize,
     ) -> Result<u64, AppError> {
+        let txn = db.begin().await?;
         let versions = docs_node_versions::Entity::find()
             .filter(docs_node_versions::Column::SpaceId.eq(space_id))
             .filter(docs_node_versions::Column::RelPath.eq(rel_path))
             .order_by_desc(docs_node_versions::Column::Version)
-            .all(db)
+            .all(&txn)
             .await?;
 
         if versions.len() <= keep_count {
+            txn.commit().await?;
             return Ok(0);
         }
 
         let to_delete: Vec<Uuid> = versions[keep_count..].iter().map(|v| v.id).collect();
         let result = docs_node_versions::Entity::delete_many()
             .filter(docs_node_versions::Column::Id.is_in(to_delete))
-            .exec(db)
+            .exec(&txn)
             .await?;
+        txn.commit().await?;
         Ok(result.rows_affected)
     }
 
