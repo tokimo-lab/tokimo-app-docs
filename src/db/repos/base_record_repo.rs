@@ -108,8 +108,7 @@ impl BaseRecordRepo {
         if data.is_none() && sort_order.is_none() {
             return Self::get_by_id(db, id).await;
         }
-        let mut stmt = docs_base_records::Entity::update_many()
-            .filter(docs_base_records::Column::Id.eq(id));
+        let mut stmt = docs_base_records::Entity::update_many().filter(docs_base_records::Column::Id.eq(id));
         if let Some(d) = data {
             stmt = stmt.col_expr(docs_base_records::Column::Data, Expr::value(d));
         }

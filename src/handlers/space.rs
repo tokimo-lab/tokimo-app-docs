@@ -5,13 +5,13 @@ use serde::Deserialize;
 use std::sync::Arc;
 
 use super::{parse_uuid, vfs_err};
-use crate::handlers::AppCtx;
 use crate::db::entities::DocSpaceOutput;
-use crate::db::repos::space_repo::{DocSpaceRepo, UpdateSpaceParams};
-use crate::services::path_utils;
 use crate::db::entities::{docs_spaces, vfs as vfs_entity};
+use crate::db::repos::space_repo::{DocSpaceRepo, UpdateSpaceParams};
 use crate::error::{AppError, OptionExt};
+use crate::handlers::AppCtx;
 use crate::handlers::{ApiResponse, ok, ok_empty};
+use crate::services::path_utils;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -71,9 +71,7 @@ async fn ensure_root(ctx: &AppCtx, vfs_id: Option<&str>, root_path: Option<&str>
     }
 }
 
-pub async fn list_spaces(
-    State(ctx): State<Arc<AppCtx>>,
-) -> Result<Json<ApiResponse<Vec<DocSpaceOutput>>>, AppError> {
+pub async fn list_spaces(State(ctx): State<Arc<AppCtx>>) -> Result<Json<ApiResponse<Vec<DocSpaceOutput>>>, AppError> {
     let rows = DocSpaceRepo::list_all(&ctx.db).await?;
     let mut outputs = Vec::with_capacity(rows.len());
     for row in rows {

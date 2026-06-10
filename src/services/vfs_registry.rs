@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use tokimo_vfs::Vfs;
+use tokio::sync::RwLock;
 
 /// Registry for managing VFS instances.
 pub struct VfsRegistry {

@@ -8,12 +8,12 @@ use std::sync::Arc;
 use ts_rs::TS;
 use uuid::Uuid;
 
-use crate::handlers::AppCtx;
-use crate::services::whiteboard_library as wb_svc;
 use crate::db::entities::docs_whiteboard_user_libraries;
 use crate::error::AppError;
+use crate::handlers::AppCtx;
 use crate::handlers::user::AuthUser;
 use crate::handlers::{ApiResponse, ok, ok_empty};
+use crate::services::whiteboard_library as wb_svc;
 
 // ── DTOs ────────────────────────────────────────────────────────────
 
@@ -82,10 +82,7 @@ pub async fn list_libraries(
 }
 
 /// GET /api/apps/docs/whiteboard/libraries/:id/download
-pub async fn download_library(
-    State(ctx): State<Arc<AppCtx>>,
-    Path(id): Path<String>,
-) -> Result<Response, AppError> {
+pub async fn download_library(State(ctx): State<Arc<AppCtx>>, Path(id): Path<String>) -> Result<Response, AppError> {
     let url = wb_svc::get_library_source_url(&ctx.http_client, &id).await?;
     let filename = format!("{id}.excalidrawlib");
     let (bytes, content_type) =

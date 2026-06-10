@@ -14,11 +14,11 @@ use yrs::updates::decoder::{Decode, DecoderV1};
 use yrs::updates::encoder::{Encode, Encoder};
 
 use super::{ensure_space_vfs, get_space, parse_uuid};
+use crate::error::AppError;
 use crate::handlers::AppCtx;
+use crate::handlers::user::AuthUser;
 use crate::services::collab::CollabRoom;
 use crate::services::path_utils;
-use crate::error::AppError;
-use crate::handlers::user::AuthUser;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

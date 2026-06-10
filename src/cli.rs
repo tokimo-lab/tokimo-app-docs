@@ -16,9 +16,7 @@ pub async fn run_spaces(auth: TokimoAuthArgs, cmd: SpacesCmd) -> anyhow::Result<
 
     match cmd {
         SpacesCmd::List => {
-            let spaces = DocSpaceRepo::list_all(&db)
-                .await
-                .context("list spaces failed")?;
+            let spaces = DocSpaceRepo::list_all(&db).await.context("list spaces failed")?;
             if spaces.is_empty() {
                 println!("No doc spaces.");
                 return Ok(());
@@ -29,7 +27,8 @@ pub async fn run_spaces(auth: TokimoAuthArgs, cmd: SpacesCmd) -> anyhow::Result<
                 println!(
                     "{:<36}  {:<25}  {}",
                     space.id,
-                    space.created_at
+                    space
+                        .created_at
                         .map(|d| d.with_timezone(&Utc).to_rfc3339())
                         .unwrap_or_default(),
                     space.name

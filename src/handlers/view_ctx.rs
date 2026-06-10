@@ -3,7 +3,7 @@
 use axum::Json;
 use serde::Serialize;
 
-use crate::error::{AppError, ApiResponse, ok};
+use crate::error::{ApiResponse, AppError, ok};
 
 #[derive(Debug, Serialize)]
 pub struct ViewCtxOutput {

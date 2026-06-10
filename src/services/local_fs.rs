@@ -44,7 +44,13 @@ impl StorageProvider for LocalStorage {
         let full = self.base_dir.join(path);
         tokio::fs::remove_file(&full)
             .await
-            .or_else(|e| if e.kind() == std::io::ErrorKind::NotFound { Ok(()) } else { Err(e) })
+            .or_else(|e| {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    Ok(())
+                } else {
+                    Err(e)
+                }
+            })
             .map_err(|e| AppError::Internal(format!("storage delete: {e}")))
     }
 

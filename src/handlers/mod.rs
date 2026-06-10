@@ -78,4 +78,4 @@ pub(crate) fn vfs_err(err: impl std::fmt::Display) -> AppError {
 }
 
 // Re-export from error module
-pub use crate::error::{ApiResponse, ok, ok_empty, err_resp};
+pub use crate::error::{ApiResponse, err_resp, ok, ok_empty};

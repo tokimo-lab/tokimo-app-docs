@@ -1,6 +1,6 @@
 //! Repository for docs_node_view_ctxs (placeholder)
 
-use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, ColumnTrait};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 use crate::db::entities::docs_node_view_ctxs;

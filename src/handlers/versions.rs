@@ -4,12 +4,12 @@ use serde::Deserialize;
 use std::sync::Arc;
 
 use super::{ensure_space_vfs, get_space, parse_uuid, vfs_err};
-use crate::handlers::AppCtx;
 use crate::db::entities::{DocNodeVersionDetailOutput, DocNodeVersionOutput};
 use crate::db::repos::version_repo::DocNodeVersionRepo;
-use crate::services::path_utils;
 use crate::error::{AppError, OptionExt};
+use crate::handlers::AppCtx;
 use crate::handlers::{ApiResponse, ok, ok_empty};
+use crate::services::path_utils;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

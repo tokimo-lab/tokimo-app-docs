@@ -1,7 +1,6 @@
 use crate::handlers::AppCtx;
 use crate::handlers::{
-    attachment, base_meta, base_records, browse, collab, comments, crud, space, versions, view_ctx,
-    whiteboard_library,
+    attachment, base_meta, base_records, browse, collab, comments, crud, space, versions, view_ctx, whiteboard_library,
 };
 use axum::{
     Router,

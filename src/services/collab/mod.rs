@@ -115,11 +115,7 @@ impl CollabService {
             creation_lock: tokio::sync::Mutex::new(()),
         }
     }
-    pub async fn get_or_create_room(
-        &self,
-        key: String,
-        yjs_ctx: Option<Vec<u8>>,
-    ) -> Result<Arc<CollabRoom>, AppError> {
+    pub async fn get_or_create_room(&self, key: String, yjs_ctx: Option<Vec<u8>>) -> Result<Arc<CollabRoom>, AppError> {
         if let Some(room) = self.rooms.get(&key) {
             return Ok(Arc::clone(room.value()));
         }

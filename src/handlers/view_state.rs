@@ -4,9 +4,9 @@ use serde::Deserialize;
 use std::sync::Arc;
 
 use super::parse_uuid;
-use crate::handlers::AppCtx;
 use crate::db::repos::view_ctx_repo::DocNodeViewCtxRepo;
 use crate::error::AppError;
+use crate::handlers::AppCtx;
 use crate::handlers::user::AuthUser;
 use crate::handlers::{ApiResponse, ok, ok_empty};
 
@@ -27,12 +27,7 @@ pub async fn get_view_ctx(
     Path(id): Path<String>,
     Query(q): Query<RelPathQuery>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
-    let record = DocNodeViewCtxRepo::get_view_ctx(
-        &ctx.db,
-        parse_uuid(&id)?,
-        &q.rel_path,
-    )
-    .await?;
+    let record = DocNodeViewCtxRepo::get_view_ctx(&ctx.db, parse_uuid(&id)?, &q.rel_path).await?;
     Ok(ok(record.map_or(serde_json::Value::Null, |r| {
         serde_json::json!({
             "scrollPosition": r.scroll_position,
@@ -50,13 +45,11 @@ pub async fn put_view_ctx(
     if !body.view_ctx.is_object() {
         return Err(AppError::BadRequest("viewState must be a JSON object".into()));
     }
-    let scroll = body.view_ctx.get("scrollPosition").and_then(|v| v.as_i64()).map(|v| v as i32);
-    DocNodeViewCtxRepo::upsert_view_ctx(
-        &ctx.db,
-        parse_uuid(&id)?,
-        &q.rel_path,
-        scroll,
-    )
-    .await?;
+    let scroll = body
+        .view_ctx
+        .get("scrollPosition")
+        .and_then(|v| v.as_i64())
+        .map(|v| v as i32);
+    DocNodeViewCtxRepo::upsert_view_ctx(&ctx.db, parse_uuid(&id)?, &q.rel_path, scroll).await?;
     Ok(ok_empty())
 }
