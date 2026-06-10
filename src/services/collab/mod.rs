@@ -62,7 +62,7 @@ impl CollabRoom {
     pub async fn remove_client_awareness(&self, conn_id: u64) -> Option<Vec<u8>> {
         let client_id = self.awareness_client_ids.write().await.remove(&conn_id)?;
         let awareness = self.awareness.read().await;
-        awareness.remove_state(client_id);
+        awareness.remove_ctx(client_id);
         let update = awareness.update_with_clients([client_id]).ok()?;
         let mut enc = EncoderV1::new();
         enc.write_var(MSG_AWARENESS);
@@ -118,7 +118,7 @@ impl CollabService {
     pub async fn get_or_create_room(
         &self,
         key: String,
-        yjs_state: Option<Vec<u8>>,
+        yjs_ctx: Option<Vec<u8>>,
     ) -> Result<Arc<CollabRoom>, AppError> {
         if let Some(room) = self.rooms.get(&key) {
             return Ok(Arc::clone(room.value()));
@@ -127,12 +127,12 @@ impl CollabService {
         if let Some(room) = self.rooms.get(&key) {
             return Ok(Arc::clone(room.value()));
         }
-        let doc = Self::create_doc(&key, yjs_state.as_deref());
+        let doc = Self::create_doc(&key, yjs_ctx.as_deref());
         let room = Arc::new(CollabRoom::new(Awareness::new(doc)));
         self.rooms.insert(key, Arc::clone(&room));
         Ok(room)
     }
-    fn create_doc(key: &str, yjs_state: Option<&[u8]>) -> Doc {
+    fn create_doc(key: &str, yjs_ctx: Option<&[u8]>) -> Doc {
         let mut bytes = [0u8; 8];
         for (i, b) in key.as_bytes().iter().take(8).enumerate() {
             bytes[i] = *b;
@@ -142,19 +142,19 @@ impl CollabService {
             skip_gc: true,
             ..Default::default()
         });
-        if let Some(state) = yjs_state.filter(|s| !s.is_empty())
-            && let Ok(update) = yrs::updates::decoder::Decode::decode_v1(state)
+        if let Some(ctx) = yjs_ctx.filter(|s| !s.is_empty())
+            && let Ok(update) = yrs::updates::decoder::Decode::decode_v1(ctx)
         {
             let mut txn = doc.transact_mut();
             let _ = txn.apply_update(update);
         }
         doc
     }
-    pub async fn encode_room_state(&self, room: &CollabRoom) -> Vec<u8> {
+    pub async fn encode_room_ctx(&self, room: &CollabRoom) -> Vec<u8> {
         let awareness = room.awareness.read().await;
         let doc = awareness.doc();
         let txn = doc.transact();
-        txn.encode_state_as_update_v1(&yrs::StateVector::default())
+        txn.encode_ctx_as_update_v1(&yrs::StateVector::default())
     }
     pub fn persist_dirty_rooms(&self) {
         for entry in &self.rooms {

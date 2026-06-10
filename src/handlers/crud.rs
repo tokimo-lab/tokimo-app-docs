@@ -4,16 +4,16 @@ use serde::Deserialize;
 use std::sync::Arc;
 
 use super::{ensure_space_vfs, get_space, parse_uuid, validate_node_name, vfs_err};
-use crate::AppState;
-use crate::apps::docs::models::DocNodeListItem;
-use crate::apps::docs::repos::attachment_repo::AttachmentRepo;
-use crate::apps::docs::repos::base_record_repo::BaseRecordRepo;
-use crate::apps::docs::repos::comment_repo::DocNodeCommentRepo;
-use crate::apps::docs::repos::node_meta_repo::{DocNodeMetaRepo, UpsertDocNodeMetaInput};
-use crate::apps::docs::repos::version_repo::DocNodeVersionRepo;
-use crate::apps::docs::repos::view_state_repo::DocNodeViewStateRepo;
-use crate::apps::docs::services::docs_service::DocsService;
-use crate::apps::docs::services::path_utils;
+use crate::handlers::AppCtx;
+use crate::db::entities::DocNodeListItem;
+use crate::db::repos::attachment_repo::AttachmentRepo;
+use crate::db::repos::base_record_repo::BaseRecordRepo;
+use crate::db::repos::comment_repo::DocNodeCommentRepo;
+use crate::db::repos::node_meta_repo::{DocNodeMetaRepo, UpsertDocNodeMetaInput};
+use crate::db::repos::version_repo::DocNodeVersionRepo;
+use crate::db::repos::view_ctx_repo::DocNodeViewCtxRepo;
+use crate::services::docs_service::DocsService;
+use crate::services::path_utils;
 use crate::error::AppError;
 use crate::handlers::{ApiResponse, ok, ok_empty};
 
@@ -73,38 +73,38 @@ fn item_from_meta(space_id: uuid::Uuid, rel_path: String, is_dir: bool) -> DocNo
 }
 
 async fn rename_related(
-    state: &Arc<AppState>,
+    ctx: &AppCtx,
     space_id: uuid::Uuid,
     old_rel: &str,
     new_rel: &str,
     is_dir: bool,
 ) -> Result<(), AppError> {
     if is_dir {
-        DocNodeMetaRepo::rename_path_prefix(&state.db, space_id, old_rel, new_rel).await?;
-        DocNodeVersionRepo::rename_path_prefix(&state.db, space_id, old_rel, new_rel).await?;
-        DocNodeCommentRepo::rename_path_prefix(&state.db, space_id, old_rel, new_rel).await?;
-        AttachmentRepo::rename_path_prefix(&state.db, space_id, old_rel, new_rel).await?;
-        DocNodeViewStateRepo::rename_path_prefix(&state.db, space_id, old_rel, new_rel).await?;
-        BaseRecordRepo::rename_path_prefix(&state.db, space_id, old_rel, new_rel).await?;
+        DocNodeMetaRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
+        DocNodeVersionRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
+        DocNodeCommentRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
+        AttachmentRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
+        DocNodeViewCtxRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
+        BaseRecordRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
     } else {
-        DocNodeMetaRepo::rename_path(&state.db, space_id, old_rel, new_rel).await?;
-        DocNodeVersionRepo::rename_path(&state.db, space_id, old_rel, new_rel).await?;
-        DocNodeCommentRepo::rename_path(&state.db, space_id, old_rel, new_rel).await?;
-        AttachmentRepo::rename_path(&state.db, space_id, old_rel, new_rel).await?;
-        DocNodeViewStateRepo::rename_path(&state.db, space_id, old_rel, new_rel).await?;
-        BaseRecordRepo::rename_path(&state.db, space_id, old_rel, new_rel).await?;
+        DocNodeMetaRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
+        DocNodeVersionRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
+        DocNodeCommentRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
+        AttachmentRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
+        DocNodeViewCtxRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
+        BaseRecordRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
     }
     Ok(())
 }
 
 pub async fn create_node(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Json(input): Json<CreateNodeInput>,
 ) -> Result<Json<ApiResponse<DocNodeListItem>>, AppError> {
     let space_id = parse_uuid(input.space_id.as_deref().unwrap_or(&id))?;
-    let space = get_space(&state, &id).await?;
-    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let space = get_space(&ctx, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
     validate_node_name(&input.title)?;
     let parent = input.parent_rel_path.as_deref().unwrap_or("");
     path_utils::validate_relative_path(parent)?;
@@ -134,29 +134,29 @@ pub async fn create_node(
         let data = path_utils::default_content_for_type(&input.r#type, &input.title, input.content);
         vfs.put(&target, data).await.map_err(vfs_err)?;
     }
-    DocNodeMetaRepo::upsert(&state.db, space_id, &rel_path, UpsertDocNodeMetaInput::default()).await?;
+    DocNodeMetaRepo::upsert(&ctx.db, space_id, &rel_path, UpsertDocNodeMetaInput::default()).await?;
     Ok(ok(item_from_meta(space_id, rel_path, input.r#type == "folder")))
 }
 
 pub async fn get_node(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Query(q): Query<NodeQuery>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     let space_id = parse_uuid(&id)?;
     path_utils::validate_relative_path(&q.rel_path)?;
-    let space = get_space(&state, &id).await?;
-    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let space = get_space(&ctx, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
     let path = path_utils::vfs_path(&root_path, &q.rel_path);
     let info = vfs.stat(&path).await.map_err(vfs_err)?;
-    DocNodeMetaRepo::update_last_opened(&state.db, space_id, &q.rel_path).await?;
+    DocNodeMetaRepo::update_last_opened(&ctx.db, space_id, &q.rel_path).await?;
     let node_type = path_utils::type_for_path(&q.rel_path, info.is_dir);
     let content = if info.is_dir {
         serde_json::Value::Null
     } else {
         path_utils::content_from_bytes(node_type, vfs.read_bytes(&path, 0, None).await.map_err(vfs_err)?)?
     };
-    let meta = DocNodeMetaRepo::find(&state.db, space_id, &q.rel_path).await?;
+    let meta = DocNodeMetaRepo::find(&ctx.db, space_id, &q.rel_path).await?;
     Ok(ok(serde_json::json!({
         "spaceId": id,
         "relPath": q.rel_path,
@@ -164,21 +164,21 @@ pub async fn get_node(
         "type": node_type,
         "title": path_utils::title_for_path(&info.name, info.is_dir),
         "content": content,
-        "meta": meta.map(crate::apps::docs::models::DocNodeMetaOutput::from),
+        "meta": meta.map(crate::db::entities::DocNodeMetaOutput::from),
         "updatedAt": info.modified.map_or_else(|| chrono::Utc::now().to_rfc3339(), |d| d.to_rfc3339())
     })))
 }
 
 pub async fn update_node(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Query(q): Query<NodeQuery>,
     Json(input): Json<UpdateNodeInput>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     let space_id = parse_uuid(&id)?;
     path_utils::validate_relative_path(&q.rel_path)?;
-    let space = get_space(&state, &id).await?;
-    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let space = get_space(&ctx, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
     let old_path = path_utils::vfs_path(&root_path, &q.rel_path);
     let info = vfs.stat(&old_path).await.map_err(vfs_err)?;
     let node_type = path_utils::type_for_path(&q.rel_path, info.is_dir).to_string();
@@ -194,7 +194,7 @@ pub async fn update_node(
                 return Err(AppError::BadRequest("target already exists".into()));
             }
             vfs.rename(&old_path, &new_path).await.map_err(vfs_err)?;
-            rename_related(&state, space_id, &q.rel_path, &new_rel, info.is_dir).await?;
+            rename_related(&ctx, space_id, &q.rel_path, &new_rel, info.is_dir).await?;
             final_rel = new_rel;
         }
     }
@@ -205,7 +205,7 @@ pub async fn update_node(
             .map_err(vfs_err)?;
         let word_count = DocsService::count_words(content);
         DocNodeVersionRepo::create_if_due(
-            &state.db,
+            &ctx.db,
             space_id,
             &final_rel,
             path_utils::title_for_path(&final_rel, false),
@@ -216,7 +216,7 @@ pub async fn update_node(
     }
     if input.tags.is_some() || input.icon.is_some() || input.cover_image.is_some() {
         DocNodeMetaRepo::upsert(
-            &state.db,
+            &ctx.db,
             space_id,
             &final_rel,
             UpsertDocNodeMetaInput {
@@ -228,11 +228,11 @@ pub async fn update_node(
         )
         .await?;
     }
-    get_node(State(state), Path(id), Query(NodeQuery { rel_path: final_rel })).await
+    get_node(State(ctx), Path(id), Query(NodeQuery { rel_path: final_rel })).await
 }
 
 pub async fn move_node(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Query(q): Query<MoveNodeQuery>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
@@ -242,8 +242,8 @@ pub async fn move_node(
     if q.to == q.from || q.to.starts_with(&format!("{}/", q.from)) {
         return Err(AppError::BadRequest("cannot move node into itself".into()));
     }
-    let space = get_space(&state, &id).await?;
-    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let space = get_space(&ctx, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
     let from = path_utils::vfs_path(&root_path, &q.from);
     let info = vfs.stat(&from).await.map_err(vfs_err)?;
     let to = path_utils::vfs_path(&root_path, &q.to);
@@ -251,19 +251,19 @@ pub async fn move_node(
         return Err(AppError::BadRequest("target already exists".into()));
     }
     vfs.rename(&from, &to).await.map_err(vfs_err)?;
-    rename_related(&state, space_id, &q.from, &q.to, info.is_dir).await?;
+    rename_related(&ctx, space_id, &q.from, &q.to, info.is_dir).await?;
     Ok(ok_empty())
 }
 
 pub async fn archive_node(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Query(q): Query<NodeQuery>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
     let space_id = parse_uuid(&id)?;
     path_utils::validate_relative_path(&q.rel_path)?;
-    let space = get_space(&state, &id).await?;
-    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let space = get_space(&ctx, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
     let from = path_utils::vfs_path(&root_path, &q.rel_path);
     let info = vfs.stat(&from).await.map_err(vfs_err)?;
     let mut trash_rel = format!(".trash/{}", q.rel_path);
@@ -273,13 +273,13 @@ pub async fn archive_node(
     vfs.rename(&from, &path_utils::vfs_path(&root_path, &trash_rel))
         .await
         .map_err(vfs_err)?;
-    rename_related(&state, space_id, &q.rel_path, &trash_rel, info.is_dir).await?;
-    DocNodeMetaRepo::set_archived(&state.db, space_id, &trash_rel, true).await?;
+    rename_related(&ctx, space_id, &q.rel_path, &trash_rel, info.is_dir).await?;
+    DocNodeMetaRepo::set_archived(&ctx.db, space_id, &trash_rel, true).await?;
     Ok(ok_empty())
 }
 
 pub async fn restore_node(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Query(q): Query<NodeQuery>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
@@ -290,8 +290,8 @@ pub async fn restore_node(
         format!(".trash/{}", q.rel_path)
     };
     let restore_rel = trash_rel.trim_start_matches(".trash/").to_string();
-    let space = get_space(&state, &id).await?;
-    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let space = get_space(&ctx, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
     let from = path_utils::vfs_path(&root_path, &trash_rel);
     let info = vfs.stat(&from).await.map_err(vfs_err)?;
     let to = path_utils::vfs_path(&root_path, &restore_rel);
@@ -299,20 +299,20 @@ pub async fn restore_node(
         return Err(AppError::BadRequest("restore target already exists".into()));
     }
     vfs.rename(&from, &to).await.map_err(vfs_err)?;
-    rename_related(&state, space_id, &trash_rel, &restore_rel, info.is_dir).await?;
-    DocNodeMetaRepo::set_archived(&state.db, space_id, &restore_rel, false).await?;
+    rename_related(&ctx, space_id, &trash_rel, &restore_rel, info.is_dir).await?;
+    DocNodeMetaRepo::set_archived(&ctx.db, space_id, &restore_rel, false).await?;
     Ok(ok_empty())
 }
 
 pub async fn delete_node(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Query(q): Query<NodeQuery>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
     let space_id = parse_uuid(&id)?;
     path_utils::validate_relative_path(&q.rel_path)?;
-    let space = get_space(&state, &id).await?;
-    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let space = get_space(&ctx, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
     let path = path_utils::vfs_path(&root_path, &q.rel_path);
     let info = vfs.stat(&path).await.map_err(vfs_err)?;
     if info.is_dir {
@@ -320,6 +320,6 @@ pub async fn delete_node(
     } else {
         vfs.delete_file(&path).await.map_err(vfs_err)?;
     }
-    DocNodeMetaRepo::delete(&state.db, space_id, &q.rel_path).await?;
+    DocNodeMetaRepo::delete(&ctx.db, space_id, &q.rel_path).await?;
     Ok(ok_empty())
 }

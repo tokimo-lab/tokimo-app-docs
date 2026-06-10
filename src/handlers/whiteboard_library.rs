@@ -8,8 +8,8 @@ use std::sync::Arc;
 use ts_rs::TS;
 use uuid::Uuid;
 
-use crate::AppState;
-use crate::apps::docs::services::whiteboard_library as wb_svc;
+use crate::handlers::AppCtx;
+use crate::services::whiteboard_library as wb_svc;
 use crate::db::entities::docs_whiteboard_user_libraries;
 use crate::error::AppError;
 use crate::handlers::user::AuthUser;
@@ -49,9 +49,9 @@ pub struct SaveUserLibraryBody {
 
 /// GET /api/apps/docs/whiteboard/libraries
 pub async fn list_libraries(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
 ) -> Result<Json<ApiResponse<Vec<LibraryCatalogItem>>>, AppError> {
-    let entries = wb_svc::get_catalog(&state.http_client).await?;
+    let entries = wb_svc::get_catalog(&ctx.http_client).await?;
 
     let items: Vec<LibraryCatalogItem> = entries
         .into_iter()
@@ -83,13 +83,13 @@ pub async fn list_libraries(
 
 /// GET /api/apps/docs/whiteboard/libraries/:id/download
 pub async fn download_library(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
 ) -> Result<Response, AppError> {
-    let url = wb_svc::get_library_source_url(&state.http_client, &id).await?;
+    let url = wb_svc::get_library_source_url(&ctx.http_client, &id).await?;
     let filename = format!("{id}.excalidrawlib");
     let (bytes, content_type) =
-        wb_svc::fetch_cached_file(&state.http_client, &url, wb_svc::lib_cache_dir(), &filename).await?;
+        wb_svc::fetch_cached_file(&ctx.http_client, &url, wb_svc::lib_cache_dir(), &filename).await?;
 
     Ok((
         [
@@ -105,11 +105,11 @@ pub async fn download_library(
 }
 
 /// GET /api/apps/docs/whiteboard/libraries/:id/preview
-pub async fn preview_library(State(state): State<Arc<AppState>>, Path(id): Path<String>) -> Result<Response, AppError> {
-    let url = wb_svc::get_library_preview_url(&state.http_client, &id).await?;
+pub async fn preview_library(State(ctx): State<Arc<AppCtx>>, Path(id): Path<String>) -> Result<Response, AppError> {
+    let url = wb_svc::get_library_preview_url(&ctx.http_client, &id).await?;
     let filename = format!("{id}.png");
     let (bytes, content_type) =
-        wb_svc::fetch_cached_file(&state.http_client, &url, wb_svc::preview_cache_dir(), &filename).await?;
+        wb_svc::fetch_cached_file(&ctx.http_client, &url, wb_svc::preview_cache_dir(), &filename).await?;
 
     Ok((
         [
@@ -123,18 +123,14 @@ pub async fn preview_library(State(state): State<Arc<AppState>>, Path(id): Path<
 
 /// GET /api/apps/docs/whiteboard/user-library
 pub async fn get_user_library(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     auth_user: AuthUser,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
-    let user_id: Uuid = auth_user
-        .0
-        .user_id
-        .parse()
-        .map_err(|_| AppError::BadRequest(format!("invalid user id: {}", auth_user.0.user_id)))?;
+    let user_id: Uuid = auth_user.0;;
 
     let row = docs_whiteboard_user_libraries::Entity::find()
         .filter(docs_whiteboard_user_libraries::Column::UserId.eq(user_id))
-        .one(&state.db)
+        .one(&ctx.db)
         .await?;
 
     let items = row.map(|r| r.items).unwrap_or(serde_json::json!([]));
@@ -143,23 +139,19 @@ pub async fn get_user_library(
 
 /// PUT /api/apps/docs/whiteboard/user-library
 pub async fn save_user_library(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     auth_user: AuthUser,
     Json(body): Json<SaveUserLibraryBody>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
     let user_id: Uuid = auth_user
         .0
-        .user_id
-        .parse()
-        .map_err(|_| AppError::BadRequest(format!("invalid user id: {}", auth_user.0.user_id)))?;
-
-    let now = chrono::Utc::now().fixed_offset();
+    let user_id: Uuid = auth_user.0;;
 
     let model = docs_whiteboard_user_libraries::ActiveModel {
         id: Set(Uuid::new_v4()),
         user_id: Set(user_id),
         items: Set(body.items),
-        updated_at: Set(now),
+        updated_at: Set(chrono::Utc::now().fixed_offset()),
     };
 
     docs_whiteboard_user_libraries::Entity::insert(model)
@@ -169,7 +161,7 @@ pub async fn save_user_library(
                 .update_column(docs_whiteboard_user_libraries::Column::UpdatedAt)
                 .to_owned(),
         )
-        .exec(&state.db)
+        .exec(&ctx.db)
         .await?;
 
     Ok(ok_empty())

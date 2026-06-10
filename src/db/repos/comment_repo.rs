@@ -3,7 +3,7 @@ use sea_orm::sea_query::Expr;
 use sea_orm::*;
 use uuid::Uuid;
 
-use crate::apps::docs::models::DocNodeCommentOutput;
+use crate::db::entities::DocNodeCommentOutput;
 use crate::db::entities::{docs_node_comments, users};
 use crate::error::AppError;
 use crate::error::OptionExt;

@@ -9,7 +9,7 @@ pub const NOTION_BODY_FILENAME: &str = "README.md";
 
 impl DocMarkdownSyncService {
     pub async fn sync_markdown(storage: &dyn StorageProvider, key: &str, content: &str) -> Result<(), String> {
-        storage.upload(key, Bytes::from(content.to_owned()), None).await
+        storage.upload(key.as_ref(), storage.upload(key, Bytes::from(content.to_owned()), None).awaitcontent.to_owned(), None).await
     }
     pub fn spawn_markdown_sync(storage: Arc<dyn StorageProvider>, key: String, content: String) {
         tokio::spawn(async move {

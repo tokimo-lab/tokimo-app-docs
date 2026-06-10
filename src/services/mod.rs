@@ -2,5 +2,8 @@ pub mod collab;
 pub mod docs_service;
 pub mod markdown_sync;
 pub mod path_utils;
+pub mod source;
+pub mod storage;
 pub mod vfs_callback;
+pub mod vfs_registry;
 pub mod whiteboard_library;

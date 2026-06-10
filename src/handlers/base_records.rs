@@ -5,8 +5,8 @@ use std::sync::Arc;
 use ts_rs::TS;
 
 use super::parse_uuid;
-use crate::AppState;
-use crate::apps::docs::repos::base_record_repo::BaseRecordRepo;
+use crate::handlers::AppCtx;
+use crate::db::repos::base_record_repo::BaseRecordRepo;
 use crate::db::entities::docs_base_records;
 use crate::db::pagination::{Page, PageInput};
 use crate::error::AppError;
@@ -70,13 +70,13 @@ pub struct BatchDeleteOutput {
 }
 
 pub async fn list_records(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     AuthUser(_): AuthUser,
     Path(id): Path<String>,
     Query(q): Query<RelPathQuery>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     let result: Page<docs_base_records::Model> =
-        BaseRecordRepo::list(&state.db, parse_uuid(&id)?, &q.rel_path, &q.page).await?;
+        BaseRecordRepo::list(&ctx.db, parse_uuid(&id)?, &q.rel_path, &q.page).await?;
     let output = Page::new(
         result.items.into_iter().map(BaseRecordOutput::from).collect(),
         result.total,
@@ -85,17 +85,17 @@ pub async fn list_records(
     Ok(ok(serde_json::to_value(output)?))
 }
 pub async fn create_record(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     AuthUser(_): AuthUser,
     Path(id): Path<String>,
     Query(q): Query<RelPathQuery>,
     Json(body): Json<CreateRecordInput>,
 ) -> Result<Json<ApiResponse<BaseRecordOutput>>, AppError> {
     let space_id = parse_uuid(&id)?;
-    let max = BaseRecordRepo::max_sort_order(&state.db, space_id, &q.rel_path).await?;
+    let max = BaseRecordRepo::max_sort_order(&ctx.db, space_id, &q.rel_path).await?;
     Ok(ok(BaseRecordOutput::from(
         BaseRecordRepo::create(
-            &state.db,
+            &ctx.db,
             space_id,
             &q.rel_path,
             body.data.unwrap_or(serde_json::json!({})),
@@ -105,31 +105,31 @@ pub async fn create_record(
     )))
 }
 pub async fn update_record(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     AuthUser(_): AuthUser,
     Path((_space_id, record_id)): Path<(String, String)>,
     Json(body): Json<UpdateRecordInput>,
 ) -> Result<Json<ApiResponse<BaseRecordOutput>>, AppError> {
     Ok(ok(BaseRecordOutput::from(
-        BaseRecordRepo::update(&state.db, parse_uuid(&record_id)?, body.data, body.sort_order).await?,
+        BaseRecordRepo::update(&ctx.db, parse_uuid(&record_id)?, body.data, body.sort_order).await?,
     )))
 }
 pub async fn delete_record(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     AuthUser(_): AuthUser,
     Path((_space_id, record_id)): Path<(String, String)>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
-    BaseRecordRepo::delete(&state.db, parse_uuid(&record_id)?).await?;
+    BaseRecordRepo::delete(&ctx.db, parse_uuid(&record_id)?).await?;
     Ok(ok_empty())
 }
 pub async fn batch_delete_records(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     AuthUser(_): AuthUser,
     Path(_id): Path<String>,
     Json(body): Json<BatchDeleteInput>,
 ) -> Result<Json<ApiResponse<BatchDeleteOutput>>, AppError> {
     let ids = body.ids.iter().map(|s| parse_uuid(s)).collect::<Result<Vec<_>, _>>()?;
     Ok(ok(BatchDeleteOutput {
-        deleted: BaseRecordRepo::batch_delete(&state.db, ids).await? as i64,
+        deleted: BaseRecordRepo::batch_delete(&ctx.db, ids).await? as i64,
     }))
 }

@@ -5,10 +5,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use super::{ensure_space_vfs, get_space, parse_uuid, vfs_err};
-use crate::AppState;
-use crate::apps::docs::models::DocNodeListItem;
-use crate::apps::docs::repos::node_meta_repo::{DocNodeMetaRepo, UpsertDocNodeMetaInput};
-use crate::apps::docs::services::path_utils;
+use crate::handlers::AppCtx;
+use crate::db::entities::DocNodeListItem;
+use crate::db::repos::node_meta_repo::{DocNodeMetaRepo, UpsertDocNodeMetaInput};
+use crate::services::path_utils;
 use crate::db::entities::docs_node_meta;
 use crate::error::AppError;
 use crate::handlers::{ApiResponse, ok};
@@ -75,13 +75,13 @@ fn to_item(
 }
 
 pub async fn list_nodes(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Query(q): Query<ListNodesQuery>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     let space_id = parse_uuid(&id)?;
-    let space = get_space(&state, &id).await?;
-    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let space = get_space(&ctx, &id).await?;
+    let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
     let page = q.page.unwrap_or(1);
     let page_size = q.page_size.unwrap_or(50);
     let tab = q.tab.as_deref().unwrap_or("all");
@@ -89,7 +89,7 @@ pub async fn list_nodes(
 
     match tab {
         "favorites" => {
-            for meta in DocNodeMetaRepo::list_favorites(&state.db, space_id).await? {
+            for meta in DocNodeMetaRepo::list_favorites(&ctx.db, space_id).await? {
                 let path = path_utils::vfs_path(&root_path, &meta.rel_path);
                 if let Ok(info) = vfs.stat(&path).await {
                     raw.push((meta.rel_path, info.is_dir, info.modified));
@@ -132,7 +132,7 @@ pub async fn list_nodes(
         .iter()
         .map(|(p, _, _)| p.trim_start_matches(".trash/").to_string())
         .collect();
-    let meta = meta_map(DocNodeMetaRepo::find_by_paths(&state.db, space_id, &paths).await?);
+    let meta = meta_map(DocNodeMetaRepo::find_by_paths(&ctx.db, space_id, &paths).await?);
     let mut items: Vec<DocNodeListItem> = raw
         .into_iter()
         .map(|(p, d, m)| {
@@ -161,39 +161,39 @@ pub async fn list_nodes(
 }
 
 pub async fn list_node_tags(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
 ) -> Result<Json<ApiResponse<Vec<String>>>, AppError> {
-    Ok(ok(DocNodeMetaRepo::list_tags(&state.db, parse_uuid(&id)?).await?))
+    Ok(ok(DocNodeMetaRepo::list_tags(&ctx.db, parse_uuid(&id)?).await?))
 }
 
 pub async fn toggle_favorite(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Query(q): Query<RelPathQuery>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     path_utils::validate_relative_path(&q.rel_path)?;
-    let new_state = DocNodeMetaRepo::toggle_favorite(&state.db, parse_uuid(&id)?, &q.rel_path).await?;
-    Ok(ok(serde_json::json!({"isFavorite": new_state})))
+    let new_ctx = DocNodeMetaRepo::toggle_favorite(&ctx.db, parse_uuid(&id)?, &q.rel_path).await?;
+    Ok(ok(serde_json::json!({"isFavorite": new_ctx})))
 }
 
 pub async fn toggle_pin(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Query(q): Query<RelPathQuery>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     path_utils::validate_relative_path(&q.rel_path)?;
-    let row = DocNodeMetaRepo::find(&state.db, parse_uuid(&id)?, &q.rel_path).await?;
-    let new_state = !row.is_some_and(|m| m.is_pinned);
+    let row = DocNodeMetaRepo::find(&ctx.db, parse_uuid(&id)?, &q.rel_path).await?;
+    let new_ctx = !row.is_some_and(|m| m.is_pinned);
     DocNodeMetaRepo::upsert(
-        &state.db,
+        &ctx.db,
         parse_uuid(&id)?,
         &q.rel_path,
         UpsertDocNodeMetaInput {
-            is_pinned: Some(new_state),
+            is_pinned: Some(new_ctx),
             ..Default::default()
         },
     )
     .await?;
-    Ok(ok(serde_json::json!({"isPinned": new_state})))
+    Ok(ok(serde_json::json!({"isPinned": new_ctx})))
 }

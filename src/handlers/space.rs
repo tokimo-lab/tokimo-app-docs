@@ -5,10 +5,10 @@ use serde::Deserialize;
 use std::sync::Arc;
 
 use super::{parse_uuid, vfs_err};
-use crate::AppState;
-use crate::apps::docs::models::DocSpaceOutput;
-use crate::apps::docs::repos::space_repo::{DocSpaceRepo, UpdateSpaceParams};
-use crate::apps::docs::services::path_utils;
+use crate::handlers::AppCtx;
+use crate::db::entities::DocSpaceOutput;
+use crate::db::repos::space_repo::{DocSpaceRepo, UpdateSpaceParams};
+use crate::services::path_utils;
 use crate::db::entities::{docs_spaces, vfs as vfs_entity};
 use crate::error::{AppError, OptionExt};
 use crate::handlers::{ApiResponse, ok, ok_empty};
@@ -52,11 +52,11 @@ pub async fn to_doc_space_output(
     Ok(output)
 }
 
-async fn ensure_root(state: &Arc<AppState>, vfs_id: Option<&str>, root_path: Option<&str>) -> Result<(), AppError> {
+async fn ensure_root(ctx: &AppCtx, vfs_id: Option<&str>, root_path: Option<&str>) -> Result<(), AppError> {
     let (Some(vfs_id), Some(root_path)) = (vfs_id, root_path) else {
         return Ok(());
     };
-    let vfs = state.sources.ensure_vfs(vfs_id).await.map_err(AppError::Internal)?;
+    let vfs = ctx.sources.ensure_vfs(vfs_id).await.map_err(AppError::Internal)?;
     let path = path_utils::vfs_path(root_path, "");
     match vfs.mkdir(&path).await {
         Ok(()) => Ok(()),
@@ -72,26 +72,26 @@ async fn ensure_root(state: &Arc<AppState>, vfs_id: Option<&str>, root_path: Opt
 }
 
 pub async fn list_spaces(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
 ) -> Result<Json<ApiResponse<Vec<DocSpaceOutput>>>, AppError> {
-    let rows = DocSpaceRepo::list_all(&state.db).await?;
+    let rows = DocSpaceRepo::list_all(&ctx.db).await?;
     let mut outputs = Vec::with_capacity(rows.len());
     for row in rows {
-        outputs.push(to_doc_space_output(&state.db, row).await?);
+        outputs.push(to_doc_space_output(&ctx.db, row).await?);
     }
     Ok(ok(outputs))
 }
 
 pub async fn create_space(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Json(input): Json<CreateSpaceInput>,
 ) -> Result<Json<ApiResponse<DocSpaceOutput>>, AppError> {
     if input.name.trim().is_empty() {
         return Err(AppError::BadRequest("space name cannot be empty".into()));
     }
-    ensure_root(&state, input.vfs_id.as_deref(), input.root_path.as_deref()).await?;
+    ensure_root(&ctx, input.vfs_id.as_deref(), input.root_path.as_deref()).await?;
     let model = DocSpaceRepo::create(
-        &state.db,
+        &ctx.db,
         input.name,
         input.avatar,
         input.description,
@@ -99,19 +99,19 @@ pub async fn create_space(
         input.root_path,
     )
     .await?;
-    Ok(ok(to_doc_space_output(&state.db, model).await?))
+    Ok(ok(to_doc_space_output(&ctx.db, model).await?))
 }
 
 pub async fn update_space(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Json(input): Json<UpdateSpaceInput>,
 ) -> Result<Json<ApiResponse<DocSpaceOutput>>, AppError> {
     if let (Some(Some(vfs_id)), Some(Some(root_path))) = (&input.vfs_id, &input.root_path) {
-        ensure_root(&state, Some(vfs_id), Some(root_path)).await?;
+        ensure_root(&ctx, Some(vfs_id), Some(root_path)).await?;
     }
     let model = DocSpaceRepo::update(
-        &state.db,
+        &ctx.db,
         parse_uuid(&id)?,
         UpdateSpaceParams {
             name: input.name,
@@ -124,14 +124,14 @@ pub async fn update_space(
     )
     .await?
     .not_found("doc space not found")?;
-    Ok(ok(to_doc_space_output(&state.db, model).await?))
+    Ok(ok(to_doc_space_output(&ctx.db, model).await?))
 }
 
 pub async fn delete_space(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
-    if !DocSpaceRepo::delete(&state.db, parse_uuid(&id)?).await? {
+    if !DocSpaceRepo::delete(&ctx.db, parse_uuid(&id)?).await? {
         return Err(AppError::NotFound("doc space not found".into()));
     }
     Ok(ok_empty())

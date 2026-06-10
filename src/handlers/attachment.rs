@@ -7,9 +7,9 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use super::parse_uuid;
-use crate::AppState;
-use crate::apps::docs::models::DocNodeAttachmentOutput;
-use crate::apps::docs::repos::attachment_repo::{AttachmentRepo, CreateAttachmentParams};
+use crate::handlers::AppCtx;
+use crate::db::entities::DocNodeAttachmentOutput;
+use crate::db::repos::attachment_repo::{AttachmentRepo, CreateAttachmentParams};
 use crate::handlers::user::AuthUser;
 use crate::handlers::{err_resp, ok, ok_empty};
 use crate::services::storage::UploadOptions;
@@ -21,7 +21,7 @@ pub struct RelPathQuery {
 }
 
 pub async fn upload_attachment(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Query(q): Query<RelPathQuery>,
     AuthUser(_): AuthUser,
@@ -50,12 +50,12 @@ pub async fn upload_attachment(
         Uuid::new_v4(),
         ext
     );
-    if let Err(e) = state
+    if let Err(e) = ctx
         .storage
         .upload(
             &storage_key,
             Bytes::from(data.to_vec()),
-            Some(UploadOptions {
+            Some(UploadOptions { content_type: None, overwrite: true,
                 content_type: Some(content_type.clone()),
             }),
         )
@@ -65,7 +65,7 @@ pub async fn upload_attachment(
             .into_response();
     }
     match AttachmentRepo::create(
-        &state.db,
+        &ctx.db,
         CreateAttachmentParams {
             space_id: match parse_uuid(&id) {
                 Ok(v) => v,
@@ -90,13 +90,13 @@ pub async fn upload_attachment(
     }
 }
 pub async fn list_attachments(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Query(q): Query<RelPathQuery>,
     AuthUser(_): AuthUser,
 ) -> Response {
     match AttachmentRepo::list_by_node(
-        &state.db,
+        &ctx.db,
         match parse_uuid(&id) {
             Ok(v) => v,
             Err(e) => return err_resp::<()>(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
@@ -110,12 +110,12 @@ pub async fn list_attachments(
     }
 }
 pub async fn delete_attachment(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path((_space_id, id)): Path<(String, String)>,
     AuthUser(_): AuthUser,
 ) -> Response {
     match AttachmentRepo::soft_delete(
-        &state.db,
+        &ctx.db,
         match parse_uuid(&id) {
             Ok(v) => v,
             Err(e) => return err_resp::<()>(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
@@ -129,12 +129,12 @@ pub async fn delete_attachment(
     }
 }
 pub async fn restore_attachment(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path((_space_id, id)): Path<(String, String)>,
     AuthUser(_): AuthUser,
 ) -> Response {
     match AttachmentRepo::restore(
-        &state.db,
+        &ctx.db,
         match parse_uuid(&id) {
             Ok(v) => v,
             Err(e) => return err_resp::<()>(StatusCode::BAD_REQUEST, e.to_string()).into_response(),

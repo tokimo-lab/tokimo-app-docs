@@ -6,18 +6,29 @@ pub mod collab;
 pub mod comments;
 pub mod crud;
 pub mod space;
+pub mod user;
 pub mod versions;
+pub mod view_ctx;
 pub mod view_state;
 pub mod whiteboard_library;
 
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::AppState;
-use crate::apps::docs::repos::space_repo::DocSpaceRepo;
-use crate::apps::docs::services::path_utils;
 use crate::db::entities::docs_spaces;
+use crate::db::repos::space_repo::DocSpaceRepo;
 use crate::error::{AppError, OptionExt};
+use crate::services::path_utils;
+
+/// Application context for the docs app.
+pub struct AppCtx {
+    pub db: sea_orm::DatabaseConnection,
+    pub client: Arc<tokimo_bus_client::BusClient>,
+    pub http_client: reqwest::Client,
+    pub collab: Arc<crate::services::collab::CollabService>,
+    pub storage: Arc<dyn crate::services::storage::StorageProvider>,
+    pub sources: Arc<crate::services::vfs_registry::VfsRegistry>,
+}
 
 pub fn parse_uuid(s: &str) -> Result<Uuid, AppError> {
     s.parse::<Uuid>()
@@ -38,8 +49,8 @@ pub fn validate_node_name(name: &str) -> Result<(), AppError> {
     Ok(())
 }
 
-pub(crate) async fn get_space(state: &Arc<AppState>, id: &str) -> Result<docs_spaces::Model, AppError> {
-    DocSpaceRepo::get_by_id(&state.db, parse_uuid(id)?)
+pub(crate) async fn get_space(ctx: &AppCtx, id: &str) -> Result<docs_spaces::Model, AppError> {
+    DocSpaceRepo::get_by_id(&ctx.db, parse_uuid(id)?)
         .await?
         .not_found("doc space not found")
 }
@@ -54,14 +65,17 @@ pub(crate) fn space_vfs_parts(space: &docs_spaces::Model) -> Result<(String, Str
 }
 
 pub(crate) async fn ensure_space_vfs(
-    state: &Arc<AppState>,
+    ctx: &AppCtx,
     space: &docs_spaces::Model,
 ) -> Result<(Arc<tokimo_vfs::Vfs>, String), AppError> {
     let (vfs_id, root_path) = space_vfs_parts(space)?;
-    let vfs = state.sources.ensure_vfs(&vfs_id).await.map_err(AppError::Internal)?;
+    let vfs = ctx.sources.ensure_vfs(&vfs_id).await.map_err(AppError::Internal)?;
     Ok((vfs, root_path))
 }
 
 pub(crate) fn vfs_err(err: impl std::fmt::Display) -> AppError {
     AppError::Internal(format!("vfs error: {err}"))
 }
+
+// Re-export from error module
+pub use crate::error::{ApiResponse, ok, ok_empty, err_resp};

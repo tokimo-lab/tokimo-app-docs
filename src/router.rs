@@ -1,6 +1,6 @@
-use crate::AppState;
-use crate::apps::docs::handlers::{
-    attachment, base_meta, base_records, browse, collab, comments, crud, space, versions, view_state,
+use crate::handlers::AppCtx;
+use crate::handlers::{
+    attachment, base_meta, base_records, browse, collab, comments, crud, space, versions, view_ctx,
     whiteboard_library,
 };
 use axum::{
@@ -10,7 +10,7 @@ use axum::{
 };
 use std::sync::Arc;
 
-pub fn build_docs_app_routes() -> Router<Arc<AppState>> {
+pub fn build_docs_app_routes() -> Router<Arc<AppCtx>> {
     Router::new()
         .route(
             "/api/apps/docs/spaces",
@@ -73,8 +73,8 @@ pub fn build_docs_app_routes() -> Router<Arc<AppState>> {
             post(attachment::restore_attachment),
         )
         .route(
-            "/api/apps/docs/spaces/{id}/node/view-state",
-            get(view_state::get_view_state).put(view_state::put_view_state),
+            "/api/apps/docs/spaces/{id}/node/view-ctx",
+            get(view_ctx::get_view_ctx).put(view_ctx::put_view_ctx),
         )
         .route(
             "/api/apps/docs/spaces/{id}/base",

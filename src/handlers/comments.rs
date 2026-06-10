@@ -4,9 +4,9 @@ use serde::Deserialize;
 use std::sync::Arc;
 
 use super::parse_uuid;
-use crate::AppState;
-use crate::apps::docs::models::DocNodeCommentOutput;
-use crate::apps::docs::repos::comment_repo::DocNodeCommentRepo;
+use crate::handlers::AppCtx;
+use crate::db::entities::DocNodeCommentOutput;
+use crate::db::repos::comment_repo::DocNodeCommentRepo;
 use crate::error::AppError;
 use crate::handlers::user::AuthUser;
 use crate::handlers::{ApiResponse, ok, ok_empty};
@@ -30,29 +30,29 @@ pub struct ResolveCommentInput {
 }
 
 pub async fn list_comments(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Query(q): Query<RelPathQuery>,
 ) -> Result<Json<ApiResponse<Vec<DocNodeCommentOutput>>>, AppError> {
     Ok(ok(DocNodeCommentRepo::list_by_node(
-        &state.db,
+        &ctx.db,
         parse_uuid(&id)?,
         &q.rel_path,
     )
     .await?))
 }
 pub async fn create_comment(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<String>,
     Query(q): Query<RelPathQuery>,
     auth_user: AuthUser,
     Json(input): Json<CreateCommentInput>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     let comment = DocNodeCommentRepo::create(
-        &state.db,
+        &ctx.db,
         parse_uuid(&id)?,
         &q.rel_path,
-        parse_uuid(&auth_user.0.user_id)?,
+        auth_user.0,
         input.comment_key,
         input.content,
         input.parent_id.as_deref().map(parse_uuid).transpose()?,
@@ -63,20 +63,20 @@ pub async fn create_comment(
     ))
 }
 pub async fn resolve_comment(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path((_space_id, comment_id)): Path<(String, String)>,
     Json(input): Json<ResolveCommentInput>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
-    if !DocNodeCommentRepo::resolve(&state.db, parse_uuid(&comment_id)?, input.resolved).await? {
+    if !DocNodeCommentRepo::resolve(&ctx.db, parse_uuid(&comment_id)?, input.resolved).await? {
         return Err(AppError::NotFound("comment not found".into()));
     }
     Ok(ok_empty())
 }
 pub async fn delete_comment(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     Path((_space_id, comment_id)): Path<(String, String)>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
-    if !DocNodeCommentRepo::delete(&state.db, parse_uuid(&comment_id)?).await? {
+    if !DocNodeCommentRepo::delete(&ctx.db, parse_uuid(&comment_id)?).await? {
         return Err(AppError::NotFound("comment not found".into()));
     }
     Ok(ok_empty())

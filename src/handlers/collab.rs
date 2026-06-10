@@ -14,9 +14,9 @@ use yrs::updates::decoder::{Decode, DecoderV1};
 use yrs::updates::encoder::{Encode, Encoder};
 
 use super::{ensure_space_vfs, get_space, parse_uuid};
-use crate::AppState;
-use crate::apps::docs::services::collab::CollabRoom;
-use crate::apps::docs::services::path_utils;
+use crate::handlers::AppCtx;
+use crate::services::collab::CollabRoom;
+use crate::services::path_utils;
 use crate::error::AppError;
 use crate::handlers::user::AuthUser;
 
@@ -27,33 +27,30 @@ pub struct CollabQuery {
 }
 
 pub async fn collab_ws(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     AuthUser(auth): AuthUser,
     Path(space_id): Path<String>,
     Query(q): Query<CollabQuery>,
     ws: WebSocketUpgrade,
 ) -> Result<impl IntoResponse, AppError> {
-    let user_id: Uuid = auth
-        .user_id
-        .parse()
-        .map_err(|_| AppError::Internal("invalid user_id".into()))?;
-    let space = get_space(&state, &space_id).await?;
-    let (vfs, root_path) = ensure_space_vfs(&state, &space).await?;
+    let user_id: Uuid = auth;
+    let user_id: Uuid = auth;;
+    let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
     let path = path_utils::vfs_path(&root_path, &q.rel_path);
     let initial = vfs.read_bytes(&path, 0, None).await.ok();
     let key = format!("{}:{}", parse_uuid(&space_id)?, q.rel_path);
-    Ok(ws.on_upgrade(move |socket| handle_collab_session(state, user_id, key, path, initial, socket)))
+    Ok(ws.on_upgrade(move |socket| handle_collab_session(ctx, user_id, key, path, initial, socket)))
 }
 
 async fn handle_collab_session(
-    state: Arc<AppState>,
+    ctx: Arc<AppCtx>,
     user_id: Uuid,
     key: String,
     path: std::path::PathBuf,
     initial: Option<Vec<u8>>,
     socket: WebSocket,
 ) {
-    let room = match state.collab.get_or_create_room(key.clone(), initial).await {
+    let room = match ctx.collab.get_or_create_room(key.clone(), initial).await {
         Ok(r) => r,
         Err(e) => {
             tracing::error!("collab: failed to create room {key}: {e}");
@@ -87,20 +84,20 @@ async fn handle_collab_session(
     }
     room.remove_client(conn_id).await;
     if room.connection_count() == 0 && room.is_dirty() {
-        let bytes = state.collab.encode_room_state(&room).await;
-        let _ = state
+        let bytes = ctx.collab.encode_room_ctx(&room).await;
+        let _ = ctx
             .sources
             .ensure_vfs("local")
             .await
             .map_err(AppError::Internal)
             .map(|_| ());
         tracing::debug!(
-            "collab: room {key} dirty state size {} for path {}",
+            "collab: room {key} dirty ctx size {} for path {}",
             bytes.len(),
             path.display()
         );
         room.clear_dirty();
-        state.collab.on_last_client_disconnect(key);
+        ctx.collab.on_last_client_disconnect(key);
     }
     send_task.abort();
 }

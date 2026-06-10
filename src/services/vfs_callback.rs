@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use sea_orm::DatabaseConnection;
 
-use crate::apps::docs::services::collab::CollabService;
+use crate::services::collab::CollabService;
 use crate::services::source::storage_driver::WriteCallback;
 use crate::services::storage::StorageProvider;
 

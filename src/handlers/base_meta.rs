@@ -5,8 +5,8 @@ use std::sync::Arc;
 use ts_rs::TS;
 
 use super::{ensure_space_vfs, get_space, vfs_err};
-use crate::AppState;
-use crate::apps::docs::services::path_utils;
+use crate::handlers::AppCtx;
+use crate::services::path_utils;
 use crate::error::AppError;
 use crate::handlers::user::AuthUser;
 use crate::handlers::{ApiResponse, ok};
@@ -48,13 +48,13 @@ fn output(rel_path: &str, content: &serde_json::Value) -> BaseMetaOutput {
 }
 
 pub async fn get_base_meta(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     AuthUser(_): AuthUser,
     Path(id): Path<String>,
     Query(q): Query<RelPathQuery>,
 ) -> Result<Json<ApiResponse<BaseMetaOutput>>, AppError> {
-    let space = get_space(&state, &id).await?;
-    let (vfs, root) = ensure_space_vfs(&state, &space).await?;
+    let space = get_space(&ctx, &id).await?;
+    let (vfs, root) = ensure_space_vfs(&ctx, &space).await?;
     let path = path_utils::vfs_path(&root, &q.rel_path);
     if path_utils::type_for_path(&q.rel_path, false) != "base" {
         return Err(AppError::BadRequest("node is not a base type".into()));
@@ -77,14 +77,14 @@ pub async fn get_base_meta(
     Ok(ok(output(&q.rel_path, &content)))
 }
 pub async fn update_base_meta(
-    State(state): State<Arc<AppState>>,
+    State(ctx): State<Arc<AppCtx>>,
     AuthUser(_): AuthUser,
     Path(id): Path<String>,
     Query(q): Query<RelPathQuery>,
     Json(body): Json<UpdateBaseMetaInput>,
 ) -> Result<Json<ApiResponse<BaseMetaOutput>>, AppError> {
-    let space = get_space(&state, &id).await?;
-    let (vfs, root) = ensure_space_vfs(&state, &space).await?;
+    let space = get_space(&ctx, &id).await?;
+    let (vfs, root) = ensure_space_vfs(&ctx, &space).await?;
     let path = path_utils::vfs_path(&root, &q.rel_path);
     let mut content = path_utils::content_from_bytes("base", vfs.read_bytes(&path, 0, None).await.map_err(vfs_err)?)?;
     if !content.is_object() {

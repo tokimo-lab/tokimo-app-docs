@@ -1,7 +1,18 @@
+//! SeaORM entities for docs app
+
+pub mod docs_base_records;
+pub mod docs_node_attachments;
+pub mod docs_node_comments;
+pub mod docs_node_meta;
+pub mod docs_node_versions;
+pub mod docs_node_view_ctxs;
+pub mod docs_spaces;
+pub mod docs_whiteboard_user_libraries;
+pub mod users;
+pub mod vfs;
+
 use serde::Serialize;
 use ts_rs::TS;
-
-use crate::db::entities::{docs_node_attachments, docs_node_meta, docs_node_versions, docs_spaces};
 
 fn tags_from_json(tags: Option<serde_json::Value>) -> Vec<String> {
     tags.and_then(|value| value.as_array().cloned())
