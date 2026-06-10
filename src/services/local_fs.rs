@@ -1,7 +1,58 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
+use async_trait::async_trait;
+
 use crate::error::AppError;
+use crate::services::storage::{StorageProvider, UploadOptions};
+
+/// Local filesystem storage implementation.
+pub struct LocalStorage {
+    base_dir: PathBuf,
+}
+
+impl LocalStorage {
+    pub fn new() -> Self {
+        Self {
+            base_dir: PathBuf::from("/tmp/tokimo-docs-storage"),
+        }
+    }
+}
+
+#[async_trait]
+impl StorageProvider for LocalStorage {
+    async fn read(&self, path: &Path) -> Result<Vec<u8>, AppError> {
+        let full = self.base_dir.join(path);
+        tokio::fs::read(&full)
+            .await
+            .map_err(|e| AppError::Internal(format!("storage read: {e}")))
+    }
+
+    async fn write(&self, path: &Path, content: &[u8], _options: UploadOptions) -> Result<(), AppError> {
+        let full = self.base_dir.join(path);
+        if let Some(parent) = full.parent() {
+            tokio::fs::create_dir_all(parent)
+                .await
+                .map_err(|e| AppError::Internal(format!("storage mkdir: {e}")))?;
+        }
+        tokio::fs::write(&full, content)
+            .await
+            .map_err(|e| AppError::Internal(format!("storage write: {e}")))
+    }
+
+    async fn delete(&self, path: &Path) -> Result<(), AppError> {
+        let full = self.base_dir.join(path);
+        tokio::fs::remove_file(&full)
+            .await
+            .or_else(|e| if e.kind() == std::io::ErrorKind::NotFound { Ok(()) } else { Err(e) })
+            .map_err(|e| AppError::Internal(format!("storage delete: {e}")))
+    }
+
+    async fn exists(&self, path: &Path) -> Result<bool, AppError> {
+        let full = self.base_dir.join(path);
+        Ok(full.exists())
+    }
+}
 
 /// Relative entry from filesystem walk
 #[derive(Debug, Clone)]

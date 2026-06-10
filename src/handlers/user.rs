@@ -1,26 +1,41 @@
 //! User authentication placeholder for standalone app.
 
-use axum::http::HeaderMap;
+use axum::{
+    extract::FromRequestParts,
+    http::{request::Parts, StatusCode},
+    Json,
+};
 use uuid::Uuid;
-
-use crate::error::AppError;
 
 /// Authenticated user info extracted from request headers.
 /// In standalone app mode, the user ID is passed via X-User-Id header from the main server.
 pub struct AuthUser(pub Uuid);
 
-impl AuthUser {
-    /// Extract user from request headers.
-    pub fn from_headers(headers: &HeaderMap) -> Result<Self, AppError> {
-        let user_id = headers
+impl<S> FromRequestParts<S> for AuthUser
+where
+    S: Send + Sync,
+{
+    type Rejection = (StatusCode, Json<serde_json::Value>);
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let user_id = parts
+            .headers
             .get("X-User-Id")
             .and_then(|v| v.to_str().ok())
-            .ok_or_else(|| AppError::BadRequest("missing X-User-Id header".into()))?;
-        
-        let id = user_id
-            .parse::<Uuid>()
-            .map_err(|_| AppError::BadRequest("invalid X-User-Id header".into()))?;
-        
+            .ok_or_else(|| {
+                (
+                    StatusCode::UNAUTHORIZED,
+                    Json(serde_json::json!({"error": "missing X-User-Id header"})),
+                )
+            })?;
+
+        let id = user_id.parse::<Uuid>().map_err(|_| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({"error": "invalid X-User-Id header"})),
+            )
+        })?;
+
         Ok(Self(id))
     }
 }

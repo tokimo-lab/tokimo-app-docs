@@ -25,8 +25,6 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::docs_node_comments::Entity")]
     DocsNodeComments,
-    #[sea_orm(has_many = "super::docs_node_view_ctxs::Entity")]
-    DocsNodeViewStates,
     #[sea_orm(has_one = "super::docs_whiteboard_user_libraries::Entity")]
     DocsWhiteboardUserLibraries,
 }
@@ -34,12 +32,6 @@ pub enum Relation {
 impl Related<super::docs_node_comments::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::DocsNodeComments.def()
-    }
-}
-
-impl Related<super::docs_node_view_ctxs::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::DocsNodeViewStates.def()
     }
 }
 

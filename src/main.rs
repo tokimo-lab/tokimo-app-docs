@@ -175,12 +175,14 @@ async fn run_server() -> anyhow::Result<()> {
     let http_client = reqwest::Client::builder()
         .build()
         .map_err(|e| anyhow::anyhow!("reqwest client: {e}"))?;
-    let collab = Arc::new(services::collab_mod::CollabService::new(db.clone()));
+    let collab = Arc::new(services::collab::CollabService::new(db.clone()));
     let ctx = Arc::new(handlers::AppCtx {
         db,
         client: Arc::clone(&client_slot),
         http_client,
         collab,
+        storage: Arc::new(services::local_fs::LocalStorage::new()),
+        sources: Arc::new(services::vfs_registry::VfsRegistry::new()),
     });
 
     // Start axum router listening on UDS (business + assets + data all on this sock)

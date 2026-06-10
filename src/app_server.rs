@@ -31,6 +31,7 @@ pub async fn spawn(service: &str, ctx: Arc<AppCtx>) -> anyhow::Result<DataPlaneS
 }
 
 fn build_router(ctx: Arc<AppCtx>) -> Router {
-    router::build_docs_routes(ctx)
+    router::build_docs_app_routes()
+        .with_state(ctx)
         .route("/assets/{*path}", axum::routing::get(assets::serve))
 }

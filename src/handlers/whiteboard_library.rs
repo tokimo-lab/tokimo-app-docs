@@ -126,7 +126,7 @@ pub async fn get_user_library(
     State(ctx): State<Arc<AppCtx>>,
     auth_user: AuthUser,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
-    let user_id: Uuid = auth_user.0;;
+    let user_id: Uuid = auth_user.0;
 
     let row = docs_whiteboard_user_libraries::Entity::find()
         .filter(docs_whiteboard_user_libraries::Column::UserId.eq(user_id))
@@ -143,9 +143,7 @@ pub async fn save_user_library(
     auth_user: AuthUser,
     Json(body): Json<SaveUserLibraryBody>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
-    let user_id: Uuid = auth_user
-        .0
-    let user_id: Uuid = auth_user.0;;
+    let user_id: Uuid = auth_user.0;
 
     let model = docs_whiteboard_user_libraries::ActiveModel {
         id: Set(Uuid::new_v4()),

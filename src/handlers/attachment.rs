@@ -1,7 +1,6 @@
 use axum::extract::{Multipart, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use bytes::Bytes;
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -12,7 +11,6 @@ use crate::db::entities::DocNodeAttachmentOutput;
 use crate::db::repos::attachment_repo::{AttachmentRepo, CreateAttachmentParams};
 use crate::handlers::user::AuthUser;
 use crate::handlers::{err_resp, ok, ok_empty};
-use crate::services::storage::UploadOptions;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -53,9 +51,9 @@ pub async fn upload_attachment(
     if let Err(e) = ctx
         .storage
         .upload(
-            &storage_key,
-            Bytes::from(data.to_vec()),
-            Some(UploadOptions { content_type: Some(content_type.clone()), overwrite: true }),
+            std::path::Path::new(&storage_key),
+            &data.to_vec(),
+            Some(content_type.clone()),
         )
         .await
     {

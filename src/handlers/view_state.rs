@@ -23,22 +23,26 @@ pub struct RelPathQuery {
 
 pub async fn get_view_ctx(
     State(ctx): State<Arc<AppCtx>>,
-    auth_user: AuthUser,
+    _auth_user: AuthUser,
     Path(id): Path<String>,
     Query(q): Query<RelPathQuery>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     let record = DocNodeViewCtxRepo::get_view_ctx(
         &ctx.db,
-        auth_user.0,
         parse_uuid(&id)?,
         &q.rel_path,
     )
     .await?;
-    Ok(ok(record.map_or(serde_json::Value::Null, |r| r.view_ctx)))
+    Ok(ok(record.map_or(serde_json::Value::Null, |r| {
+        serde_json::json!({
+            "scrollPosition": r.scroll_position,
+            "lastViewedAt": r.last_viewed_at.map(|d| d.to_rfc3339()),
+        })
+    })))
 }
 pub async fn put_view_ctx(
     State(ctx): State<Arc<AppCtx>>,
-    auth_user: AuthUser,
+    _auth_user: AuthUser,
     Path(id): Path<String>,
     Query(q): Query<RelPathQuery>,
     Json(body): Json<PutViewStateBody>,
@@ -46,12 +50,12 @@ pub async fn put_view_ctx(
     if !body.view_ctx.is_object() {
         return Err(AppError::BadRequest("viewState must be a JSON object".into()));
     }
+    let scroll = body.view_ctx.get("scrollPosition").and_then(|v| v.as_i64()).map(|v| v as i32);
     DocNodeViewCtxRepo::upsert_view_ctx(
         &ctx.db,
-        auth_user.0,
         parse_uuid(&id)?,
         &q.rel_path,
-        body.view_ctx,
+        scroll,
     )
     .await?;
     Ok(ok_empty())

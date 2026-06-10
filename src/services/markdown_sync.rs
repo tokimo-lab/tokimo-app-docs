@@ -1,5 +1,5 @@
 use crate::services::storage::StorageProvider;
-use bytes::Bytes;
+use std::path::Path;
 use std::sync::Arc;
 use tracing::error;
 
@@ -9,7 +9,10 @@ pub const NOTION_BODY_FILENAME: &str = "README.md";
 
 impl DocMarkdownSyncService {
     pub async fn sync_markdown(storage: &dyn StorageProvider, key: &str, content: &str) -> Result<(), String> {
-        storage.upload(key.as_ref(), storage.upload(key, Bytes::from(content.to_owned()), None).awaitcontent.to_owned(), None).await
+        storage
+            .upload(Path::new(key), content.as_bytes(), None)
+            .await
+            .map_err(|e| e.to_string())
     }
     pub fn spawn_markdown_sync(storage: Arc<dyn StorageProvider>, key: String, content: String) {
         tokio::spawn(async move {

@@ -23,7 +23,7 @@ use crate::services::path_utils;
 /// Application context for the docs app.
 pub struct AppCtx {
     pub db: sea_orm::DatabaseConnection,
-    pub client: Arc<tokimo_bus_client::BusClient>,
+    pub client: Arc<std::sync::OnceLock<Arc<tokimo_bus_client::BusClient>>>,
     pub http_client: reqwest::Client,
     pub collab: Arc<crate::services::collab::CollabService>,
     pub storage: Arc<dyn crate::services::storage::StorageProvider>,

@@ -62,7 +62,7 @@ impl CollabRoom {
     pub async fn remove_client_awareness(&self, conn_id: u64) -> Option<Vec<u8>> {
         let client_id = self.awareness_client_ids.write().await.remove(&conn_id)?;
         let awareness = self.awareness.read().await;
-        awareness.remove_ctx(client_id);
+        awareness.remove_state(client_id);
         let update = awareness.update_with_clients([client_id]).ok()?;
         let mut enc = EncoderV1::new();
         enc.write_var(MSG_AWARENESS);
@@ -154,7 +154,7 @@ impl CollabService {
         let awareness = room.awareness.read().await;
         let doc = awareness.doc();
         let txn = doc.transact();
-        txn.encode_ctx_as_update_v1(&yrs::StateVector::default())
+        txn.encode_state_as_update_v1(&yrs::StateVector::default())
     }
     pub fn persist_dirty_rooms(&self) {
         for entry in &self.rooms {

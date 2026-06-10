@@ -1,5 +1,6 @@
 pub mod collab;
 pub mod docs_service;
+pub mod local_fs;
 pub mod markdown_sync;
 pub mod path_utils;
 pub mod source;
