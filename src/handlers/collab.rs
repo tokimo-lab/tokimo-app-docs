@@ -34,7 +34,7 @@ pub async fn collab_ws(
     ws: WebSocketUpgrade,
 ) -> Result<impl IntoResponse, AppError> {
     let user_id: Uuid = auth;
-    let user_id: Uuid = auth;;
+    let space = get_space(&ctx, &space_id).await?;
     let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
     let path = path_utils::vfs_path(&root_path, &q.rel_path);
     let initial = vfs.read_bytes(&path, 0, None).await.ok();

@@ -55,9 +55,7 @@ pub async fn upload_attachment(
         .upload(
             &storage_key,
             Bytes::from(data.to_vec()),
-            Some(UploadOptions { content_type: None, overwrite: true,
-                content_type: Some(content_type.clone()),
-            }),
+            Some(UploadOptions { content_type: Some(content_type.clone()), overwrite: true }),
         )
         .await
     {
