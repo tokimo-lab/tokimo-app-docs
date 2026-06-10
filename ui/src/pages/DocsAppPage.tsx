@@ -222,7 +222,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
       />
 
       {/* ── Main area ────────────────────────────────────────────────── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden bg-[var(--color-surface-content)]">
         <DocsMainArea s={s} />
       </div>
 

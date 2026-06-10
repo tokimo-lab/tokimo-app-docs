@@ -212,7 +212,7 @@ export function DocSidebar({
 
   if (collapsed) {
     return (
-      <div className="flex w-10 shrink-0 flex-col items-center border-r border-border-base bg-surface-base/50 py-2">
+      <div className="flex w-10 shrink-0 flex-col items-center border-r border-border-base bg-[var(--color-surface-sidebar)] py-2">
         <button
           type="button"
           className="cursor-pointer rounded p-1.5 text-fg-muted hover:bg-fill-tertiary"
@@ -247,7 +247,7 @@ export function DocSidebar({
   };
 
   return (
-    <div className="flex w-64 shrink-0 flex-col border-r border-border-base bg-surface-base/50">
+    <div className="flex w-64 shrink-0 flex-col border-r border-border-base bg-[var(--color-surface-sidebar)]">
       <div className="flex items-center gap-1 px-3 py-2">
         <div className="min-w-0 flex-1">
           <Input
