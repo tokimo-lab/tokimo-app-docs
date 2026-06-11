@@ -94,12 +94,8 @@ export default function DocSpaceEditor({
     const rawBindings =
       (form.getFieldValue("bindings") as Array<{ sourceId: string; rootPath: string }> | undefined) ?? [];
     const binding = rawBindings.find((b) => b.sourceId);
-    if (!binding) {
-      message.error(t("spaceEditor.sourceRequired", "请选择存储源"));
-      return;
-    }
-    const vfsId = binding.sourceId;
-    const rootPath = binding.rootPath?.trim() || undefined;
+    const vfsId = binding?.sourceId || undefined;
+    const rootPath = binding?.rootPath?.trim() || undefined;
 
     try {
       let savedId: string;

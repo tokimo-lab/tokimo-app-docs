@@ -81,6 +81,17 @@ pub async fn list_nodes(
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     let space_id = parse_uuid(&id)?;
     let space = get_space(&ctx, &id).await?;
+
+    // Return empty list if space has no VFS configured
+    if space.vfs_id.is_none() {
+        return Ok(ok(serde_json::json!({
+            "items": [],
+            "total": 0,
+            "page": 1,
+            "pageSize": q.page_size.unwrap_or(50),
+        })));
+    }
+
     let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
     let page = q.page.unwrap_or(1);
     let page_size = q.page_size.unwrap_or(50);
