@@ -18,6 +18,7 @@ import {
   type AvatarData,
   useToast as useMessage,
 } from "@tokimo/ui";
+import { useRuntimeCtx } from "@tokimo/sdk";
 import { Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -40,6 +41,7 @@ export default function DocSpaceEditor({
   const message = useMessage();
   const qc = useQueryClient();
   const [form] = Form.useForm();
+  const ctx = useRuntimeCtx();
 
   const { data: spaces = [] } = api.docs.listSpaces.useQuery({});
   const { data: vfsSources = [] } = api.vfs.list.useQuery();
@@ -210,7 +212,9 @@ export default function DocSpaceEditor({
               form={form}
               sources={vfsSources as import("@tokimo/ui").VfsDto[]}
               initialSources={initialBindings}
+              minBindings={1}
               maxBindings={1}
+              shell={ctx.shell}
             />
           </div>
         </ScrollArea>
