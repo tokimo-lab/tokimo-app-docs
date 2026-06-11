@@ -206,13 +206,12 @@ export default function DocSpaceEditor({
             <h4 className="mb-4 text-sm font-semibold text-fg-primary">
               {t("spaceEditor.pathConfig", "路径配置")}
             </h4>
-            <Form.Item name="bindings" className="!mb-0">
-              <StorageBindingsField
-                sources={vfsSources as import("@tokimo/ui").VfsDto[]}
-                initialSources={initialBindings}
-                maxBindings={1}
-              />
-            </Form.Item>
+            <StorageBindingsField
+              form={form}
+              sources={vfsSources as import("@tokimo/ui").VfsDto[]}
+              initialSources={initialBindings}
+              maxBindings={1}
+            />
           </div>
         </ScrollArea>
 
