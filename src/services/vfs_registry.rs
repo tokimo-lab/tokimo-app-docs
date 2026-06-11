@@ -10,6 +10,12 @@ pub struct VfsRegistry {
     vfs_instances: RwLock<HashMap<String, Arc<Vfs>>>,
 }
 
+impl Default for VfsRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VfsRegistry {
     pub fn new() -> Self {
         Self {

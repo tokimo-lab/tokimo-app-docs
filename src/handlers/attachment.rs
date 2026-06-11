@@ -27,14 +27,14 @@ pub async fn upload_attachment(
 ) -> Response {
     let field = match multipart.next_field().await {
         Ok(Some(f)) => f,
-        Ok(None) => return err_resp::<()>(StatusCode::BAD_REQUEST, "No file provided".into()).into_response(),
-        Err(e) => return err_resp::<()>(StatusCode::BAD_REQUEST, format!("Multipart error: {e}")).into_response(),
+        Ok(None) => return err_resp(StatusCode::BAD_REQUEST, "No file provided".into()).into_response(),
+        Err(e) => return err_resp(StatusCode::BAD_REQUEST, format!("Multipart error: {e}")).into_response(),
     };
     let content_type = field.content_type().unwrap_or("application/octet-stream").to_string();
     let file_name = field.file_name().unwrap_or("unnamed").to_string();
     let data = match field.bytes().await {
         Ok(b) => b,
-        Err(e) => return err_resp::<()>(StatusCode::BAD_REQUEST, format!("Failed to read file: {e}")).into_response(),
+        Err(e) => return err_resp(StatusCode::BAD_REQUEST, format!("Failed to read file: {e}")).into_response(),
     };
     let ext = std::path::Path::new(&file_name)
         .extension()
@@ -52,12 +52,12 @@ pub async fn upload_attachment(
         .storage
         .upload(
             std::path::Path::new(&storage_key),
-            &data.to_vec(),
+            &data,
             Some(content_type.clone()),
         )
         .await
     {
-        return err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("Storage upload failed: {e}"))
+        return err_resp(StatusCode::INTERNAL_SERVER_ERROR, format!("Storage upload failed: {e}"))
             .into_response();
     }
     match AttachmentRepo::create(
@@ -65,7 +65,7 @@ pub async fn upload_attachment(
         CreateAttachmentParams {
             space_id: match parse_uuid(&id) {
                 Ok(v) => v,
-                Err(e) => return err_resp::<()>(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+                Err(e) => return err_resp(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
             },
             rel_path: q.rel_path,
             storage_key,
@@ -82,7 +82,7 @@ pub async fn upload_attachment(
     .await
     {
         Ok(r) => ok(DocNodeAttachmentOutput::from(r)).into_response(),
-        Err(e) => err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("DB insert failed: {e}")).into_response(),
+        Err(e) => err_resp(StatusCode::INTERNAL_SERVER_ERROR, format!("DB insert failed: {e}")).into_response(),
     }
 }
 pub async fn list_attachments(
@@ -95,14 +95,14 @@ pub async fn list_attachments(
         &ctx.db,
         match parse_uuid(&id) {
             Ok(v) => v,
-            Err(e) => return err_resp::<()>(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+            Err(e) => return err_resp(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
         },
         &q.rel_path,
     )
     .await
     {
         Ok(rows) => ok(rows.into_iter().map(DocNodeAttachmentOutput::from).collect::<Vec<_>>()).into_response(),
-        Err(e) => err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("List failed: {e}")).into_response(),
+        Err(e) => err_resp(StatusCode::INTERNAL_SERVER_ERROR, format!("List failed: {e}")).into_response(),
     }
 }
 pub async fn delete_attachment(
@@ -114,14 +114,14 @@ pub async fn delete_attachment(
         &ctx.db,
         match parse_uuid(&id) {
             Ok(v) => v,
-            Err(e) => return err_resp::<()>(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+            Err(e) => return err_resp(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
         },
     )
     .await
     {
         Ok(true) => ok_empty().into_response(),
-        Ok(false) => err_resp::<()>(StatusCode::NOT_FOUND, "Attachment not found".into()).into_response(),
-        Err(e) => err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("Delete failed: {e}")).into_response(),
+        Ok(false) => err_resp(StatusCode::NOT_FOUND, "Attachment not found".into()).into_response(),
+        Err(e) => err_resp(StatusCode::INTERNAL_SERVER_ERROR, format!("Delete failed: {e}")).into_response(),
     }
 }
 pub async fn restore_attachment(
@@ -133,13 +133,13 @@ pub async fn restore_attachment(
         &ctx.db,
         match parse_uuid(&id) {
             Ok(v) => v,
-            Err(e) => return err_resp::<()>(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+            Err(e) => return err_resp(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
         },
     )
     .await
     {
         Ok(true) => ok_empty().into_response(),
-        Ok(false) => err_resp::<()>(StatusCode::NOT_FOUND, "Attachment not found".into()).into_response(),
-        Err(e) => err_resp::<()>(StatusCode::INTERNAL_SERVER_ERROR, format!("Restore failed: {e}")).into_response(),
+        Ok(false) => err_resp(StatusCode::NOT_FOUND, "Attachment not found".into()).into_response(),
+        Err(e) => err_resp(StatusCode::INTERNAL_SERVER_ERROR, format!("Restore failed: {e}")).into_response(),
     }
 }

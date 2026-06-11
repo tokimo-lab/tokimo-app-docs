@@ -11,6 +11,12 @@ pub struct LocalStorage {
     base_dir: PathBuf,
 }
 
+impl Default for LocalStorage {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LocalStorage {
     pub fn new() -> Self {
         Self {

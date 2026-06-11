@@ -93,6 +93,6 @@ pub fn ok_empty() -> Json<ApiResponse<()>> {
 }
 
 /// Create an error response.
-pub fn err_resp<T: Serialize>(status: StatusCode, message: String) -> (StatusCode, Json<serde_json::Value>) {
+pub fn err_resp(status: StatusCode, message: String) -> (StatusCode, Json<serde_json::Value>) {
     (status, Json(serde_json::json!({ "error": message })))
 }

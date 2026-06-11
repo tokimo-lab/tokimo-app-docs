@@ -25,11 +25,7 @@ pub struct Page<T: Serialize> {
 
 impl<T: Serialize> Page<T> {
     pub fn new(items: Vec<T>, total: i64, input: &PageInput) -> Self {
-        let total_pages = if input.page_size == 0 {
-            0
-        } else {
-            (total as u64 + input.page_size - 1) / input.page_size
-        };
+        let total_pages = (total as u64).div_ceil(input.page_size);
         Self {
             items,
             total,
