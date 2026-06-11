@@ -1,9 +1,7 @@
 /**
  * DocSpaceEditor — inline editor for creating / editing a doc space.
  *
- * Migrated from monolith (packages/web/src/apps/settings/admin/DocSpaceEditor.tsx).
- * Uses @tokimo/ui for Form/Modal/ScrollArea/TextArea/Button/AvatarPicker,
- * and the docs app's own API client for mutations.
+ * Follows the same pattern as VideoLibraryEditor in tokimo-app-video.
  */
 
 import { useQueryClient } from "@tanstack/react-query";
@@ -12,11 +10,11 @@ import {
   Button,
   Form,
   type FormInstance,
+  Input,
   Modal,
   parseAvatar,
   ScrollArea,
   StorageBindingsField,
-  TextArea,
   type AvatarData,
   useToast as useMessage,
 } from "@tokimo/ui";
@@ -50,12 +48,14 @@ export default function DocSpaceEditor({
 
   const [avatar, setAvatar] = useState<AvatarData | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
 
   const prevId = useRef(spaceId);
   useEffect(() => {
     if (prevId.current !== spaceId) {
       prevId.current = spaceId;
       setDeleteOpen(false);
+      setDeleteInput("");
     }
   }, [spaceId]);
 
@@ -95,7 +95,7 @@ export default function DocSpaceEditor({
       (form.getFieldValue("bindings") as Array<{ sourceId: string; rootPath: string }> | undefined) ?? [];
     const binding = rawBindings.find((b) => b.sourceId);
     if (!binding) {
-      message.error("请选择 VFS 存储源");
+      message.error(t("spaceEditor.sourceRequired", "请选择存储源"));
       return;
     }
     const vfsId = binding.sourceId;
@@ -113,7 +113,7 @@ export default function DocSpaceEditor({
           avatar: avatar as Record<string, unknown> | null,
         });
         savedId = space.id;
-        message.success("已更新");
+        message.success(t("spaceEditor.updateSuccess", "已更新"));
       } else {
         const created = await createMut.mutateAsync({
           name: values.name,
@@ -123,12 +123,16 @@ export default function DocSpaceEditor({
           avatar: avatar as Record<string, unknown> | null,
         });
         savedId = created.id;
-        message.success("已创建");
+        message.success(t("spaceEditor.createSuccess", "已创建"));
       }
       qc.invalidateQueries({ queryKey: ["/api/apps/docs/spaces"] });
       onSaved?.(savedId);
     } catch {
-      message.error(isEdit ? "更新失败" : "创建失败");
+      message.error(
+        isEdit
+          ? t("spaceEditor.updateFailed", "更新失败")
+          : t("spaceEditor.createFailed", "创建失败"),
+      );
     }
   };
 
@@ -137,12 +141,13 @@ export default function DocSpaceEditor({
     try {
       await deleteMut.mutateAsync({ id: space.id });
       qc.invalidateQueries({ queryKey: ["/api/apps/docs/spaces"] });
-      message.success("已删除");
+      message.success(t("spaceEditor.deleteSuccess", "已删除"));
       onDeleted?.();
     } catch {
-      message.error("删除失败");
+      message.error(t("spaceEditor.deleteFailed", "删除失败"));
     }
     setDeleteOpen(false);
+    setDeleteInput("");
   };
 
   const isPending = createMut.isPending || updateMut.isPending;
@@ -159,9 +164,10 @@ export default function DocSpaceEditor({
           className="min-h-0 flex-1"
           innerClassName="space-y-5 px-5 py-5"
         >
+          {/* 基本信息 */}
           <div className="rounded-lg border border-border-base p-5">
             <h4 className="mb-4 text-sm font-semibold text-fg-primary">
-              基本信息
+              {t("spaceEditor.basicInfo", "基本信息")}
             </h4>
 
             <div className="mb-5">
@@ -170,78 +176,132 @@ export default function DocSpaceEditor({
 
             <Form.Item
               name="name"
-              label="名称"
-              rules={[{ required: true, message: "请输入文档空间名称" }]}
+              label={t("spaceEditor.name", "名称")}
+              rules={[
+                {
+                  required: true,
+                  message: t("spaceEditor.nameRequired", "请输入文档空间名称"),
+                },
+              ]}
             >
-              <input
-                className="h-10 w-full rounded-md border border-border-base bg-bg-base px-3 text-sm text-fg-primary outline-none transition-colors placeholder:text-fg-muted focus:border-brand"
-                placeholder="文档空间名称"
+              <Input
+                placeholder={t("spaceEditor.namePlaceholder", "文档空间名称")}
+                size="large"
               />
             </Form.Item>
 
-            <Form.Item name="description" label="描述" className="!mb-0">
-              <TextArea placeholder="可选描述" rows={3} />
+            <Form.Item
+              name="description"
+              label={t("spaceEditor.description", "描述")}
+              className="!mb-0"
+            >
+              <Input.TextArea
+                placeholder={t(
+                  "spaceEditor.descriptionPlaceholder",
+                  "可选描述",
+                )}
+                rows={3}
+              />
             </Form.Item>
           </div>
 
+          {/* 路径配置 */}
           <div className="rounded-lg border border-border-base p-5">
             <h4 className="mb-4 text-sm font-semibold text-fg-primary">
-              路径配置
+              {t("spaceEditor.pathConfig", "路径配置")}
             </h4>
-            <StorageBindingsField
-              sources={vfsSources as import("@tokimo/ui").VfsDto[]}
-              form={form}
-              initialSources={initialBindings}
-              maxBindings={1}
-            />
+            <Form.Item name="bindings" className="!mb-0">
+              <StorageBindingsField
+                sources={vfsSources as import("@tokimo/ui").VfsDto[]}
+                initialSources={initialBindings}
+                maxBindings={1}
+              />
+            </Form.Item>
           </div>
         </ScrollArea>
 
+        {/* Footer */}
         <div className="flex shrink-0 items-center justify-between border-t border-border-base px-5 py-3">
           <div>
             {isEdit && (
               <Button variant="danger" onClick={() => setDeleteOpen(true)}>
                 <Trash2 size={14} className="mr-1" />
-                删除
+                {t("spaceEditor.delete", "删除")}
               </Button>
             )}
           </div>
           <div className="flex items-center gap-2">
             <Button variant="default" onClick={onCancel}>
-              取消
+              {t("spaceEditor.cancel", "取消")}
             </Button>
             <Button loading={isPending} onClick={() => void handleSave()}>
-              {isEdit ? "保存" : "创建"}
+              {isEdit
+                ? t("spaceEditor.save", "保存")
+                : t("spaceEditor.create", "创建")}
             </Button>
           </div>
         </div>
       </Form>
 
-      <Modal
-        open={deleteOpen}
-        onCancel={() => setDeleteOpen(false)}
-        title="删除文档空间"
-        size="form"
-      >
-        <div className="space-y-4 p-4">
-          <p className="text-sm text-fg-secondary">
-            确定删除「{space?.name}
-            」？该操作会同时删除空间下的所有文档节点，且不可恢复。
-          </p>
-          <div className="flex justify-end gap-2">
-            <Button variant="default" onClick={() => setDeleteOpen(false)}>
-              取消
-            </Button>
-            <Button
-              variant="danger"
-              loading={deleteMut.isPending}
-              onClick={handleDelete}
-            >
-              确认删除
-            </Button>
+      {/* Delete confirm with type-to-confirm */}
+      {space && (
+        <Modal
+          open={deleteOpen}
+          onCancel={() => {
+            setDeleteOpen(false);
+            setDeleteInput("");
+          }}
+          title={t("spaceEditor.deleteTitle", "删除文档空间")}
+          footer={null}
+        >
+          <div className="space-y-4 pt-1">
+            <p className="text-sm text-fg-secondary">
+              {t(
+                "spaceEditor.deleteConfirmPrefix",
+                "确定删除「",
+              )}{" "}
+              <span className="font-semibold text-fg-primary">
+                {space.name}
+              </span>{" "}
+              {t(
+                "spaceEditor.deleteConfirmMiddle",
+                "」？该操作会同时删除空间下的所有文档节点，且",
+              )}
+              <span className="font-semibold text-red-500">
+                {t("spaceEditor.deleteConfirmIrreversible", "不可恢复")}
+              </span>
+              {t("spaceEditor.deleteConfirmSuffix", "。")}
+            </p>
+            <Input
+              value={deleteInput}
+              onChange={(e) => setDeleteInput(e.target.value)}
+              placeholder={space.name}
+              onPressEnter={() => {
+                if (deleteInput === space.name) void handleDelete();
+              }}
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="default"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteInput("");
+                }}
+              >
+                {t("spaceEditor.cancel", "取消")}
+              </Button>
+              <Button
+                variant="danger"
+                disabled={deleteInput !== space.name}
+                loading={deleteMut.isPending}
+                onClick={() => void handleDelete()}
+              >
+                {t("spaceEditor.confirmDelete", "确认删除")}
+              </Button>
+            </div>
           </div>
-        </div>
-      </Modal>
+        </Modal>
+      )}
     </div>
   );
 }
