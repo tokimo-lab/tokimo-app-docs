@@ -17,6 +17,7 @@ import {
   Pencil,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { DOC_TEMPLATES, type DocTemplate } from "./doc-templates";
 
 // ── Icon mapping ─────────────────────────────────────────────────────────────
@@ -47,11 +48,12 @@ export function DocTemplateChooser({
   onClose,
   onSelect,
 }: DocTemplateChooserProps) {
+  const { t } = useTranslation();
   return (
     <Modal
       open={open}
       onCancel={onClose}
-      title="选择模板"
+      title={t("templateChooser.title")}
       size="large"
       footer={null}
     >

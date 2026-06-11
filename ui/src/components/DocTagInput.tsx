@@ -15,6 +15,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "../api/generated";
 
 const MAX_TAG_LENGTH = 30;
@@ -37,6 +38,7 @@ export function DocTagInput({
   const [highlightedIdx, setHighlightedIdx] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   const tagsQuery = api.docs.listTags.useQuery(
     { spaceId },
@@ -131,7 +133,7 @@ export function DocTagInput({
         }}
       >
         <Tag size={12} />
-        <span>添加标签</span>
+        <span>{t("tag.add")}</span>
       </button>
     );
   }
@@ -166,7 +168,7 @@ export function DocTagInput({
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             maxLength={MAX_TAG_LENGTH}
-            placeholder="输入标签…"
+            placeholder={t("tag.placeholder")}
             className="min-w-[80px] border-none bg-transparent py-0.5 text-xs text-fg-secondary outline-none placeholder:text-fg-muted  "
           />
           {suggestions.length > 0 && (
@@ -202,7 +204,7 @@ export function DocTagInput({
             setIsEditing(true);
             requestAnimationFrame(() => inputRef.current?.focus());
           }}
-          title="添加标签"
+          title={t("tag.add")}
         >
           <Plus size={12} />
         </button>

@@ -11,6 +11,7 @@ import { cn } from "@tokimo/ui";
 import { Check, Library, Plus, RefreshCw, Search, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { fetchWhiteboardLibraryDownload } from "../../api/client";
 import { api } from "../../api/generated";
 
 interface WhiteboardLibraryPanelProps {
@@ -51,14 +52,14 @@ export function WhiteboardLibraryPanel({
       if (!excalidrawAPI || addingId || addedIds.has(libraryId)) return;
       setAddingId(libraryId);
       try {
-        const url = `/api/apps/docs/whiteboard/libraries/${libraryId}/download`;
-        const res = await fetch(url, { credentials: "include" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const data = (await fetchWhiteboardLibraryDownload(libraryId)) as {
+          libraryItems?: unknown[];
+          library?: unknown[][];
+        };
         // New format: { libraryItems: [{id,status,elements,...}] }
         // Old format: { library: [[element,...], ...] }
-        let items = data.libraryItems;
-        if (!items && Array.isArray(data.library)) {
+        let items: unknown[] = data.libraryItems ?? [];
+        if (items.length === 0 && Array.isArray(data.library)) {
           items = data.library.map((elements: unknown[], i: number) => ({
             id: `${libraryId}_${i}`,
             status: "published",
@@ -66,10 +67,11 @@ export function WhiteboardLibraryPanel({
             created: Date.now(),
           }));
         }
-        items = items ?? [];
         if (items.length > 0) {
           await excalidrawAPI.updateLibrary({
-            libraryItems: items,
+            libraryItems: items as Parameters<
+              typeof excalidrawAPI.updateLibrary
+            >[0]["libraryItems"],
             merge: true,
             openLibraryMenu: true,
             defaultStatus: "published",

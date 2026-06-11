@@ -32,7 +32,7 @@ export class RustApiError extends Error {
   }
 }
 
-async function callApi<T>(url: string, init?: RequestInit): Promise<T> {
+export async function callApi<T>(url: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
     res = await fetch(url, {

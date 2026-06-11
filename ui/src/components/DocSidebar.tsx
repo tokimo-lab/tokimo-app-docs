@@ -58,17 +58,17 @@ interface DocSidebarProps {
   onSetFilterTags: (tags: string[]) => void;
 }
 
-const SORT_LABELS: Record<SortField, string> = {
-  updatedAt: "更新时间",
-  createdAt: "创建时间",
-  title: "标题",
-  wordCount: "字数",
+const SORT_LABEL_KEYS: Record<SortField, string> = {
+  updatedAt: "sidebar.updatedAt",
+  createdAt: "sidebar.createdAt",
+  title: "sidebar.title",
+  wordCount: "sidebar.wordCount",
 };
 
-const NAV_ITEMS: { key: SidebarTab; label: string; icon: typeof FileText }[] = [
-  { key: "all", label: "全部文档", icon: FileText },
-  { key: "favorites", label: "收藏", icon: Star },
-  { key: "archived", label: "归档", icon: Trash2 },
+const NAV_ITEM_KEYS: { key: SidebarTab; labelKey: string; icon: typeof FileText }[] = [
+  { key: "all", labelKey: "sidebar.allDocuments", icon: FileText },
+  { key: "favorites", labelKey: "sidebar.favorites", icon: Star },
+  { key: "archived", labelKey: "sidebar.archived", icon: Trash2 },
 ];
 
 export function DocSidebar({
@@ -171,7 +171,7 @@ export function DocSidebar({
       ["updatedAt", "createdAt", "title", "wordCount"] as SortField[]
     ).map((field) => ({
       key: field,
-      label: SORT_LABELS[field],
+      label: t(SORT_LABEL_KEYS[field]),
       icon:
         sortField === field ? (
           <Check size={14} />
@@ -183,7 +183,7 @@ export function DocSidebar({
     const dirItems: DropdownMenuItem[] = [
       {
         key: "asc",
-        label: "升序",
+        label: t("sidebar.asc"),
         icon:
           sortDir === "asc" ? (
             <Check size={14} />
@@ -194,7 +194,7 @@ export function DocSidebar({
       },
       {
         key: "desc",
-        label: "降序",
+        label: t("sidebar.desc"),
         icon:
           sortDir === "desc" ? (
             <Check size={14} />
@@ -205,7 +205,7 @@ export function DocSidebar({
       },
     ];
     return [...fieldItems, { type: "divider" as const }, ...dirItems];
-  }, [sortField, sortDir, onSetSortField, onSetSortDir]);
+  }, [sortField, sortDir, onSetSortField, onSetSortDir, t]);
 
   const isArchived = tab === "archived";
 
@@ -216,7 +216,7 @@ export function DocSidebar({
           type="button"
           className="cursor-pointer rounded p-1.5 text-fg-muted hover:bg-fill-tertiary"
           onClick={onToggleCollapsed}
-          title="展开侧栏"
+          title={t("sidebar.expand")}
         >
           <PanelLeft size={16} />
         </button>
@@ -251,7 +251,7 @@ export function DocSidebar({
         <div className="min-w-0 flex-1">
           <Input
             size="small"
-            placeholder="搜索文档…"
+            placeholder={t("sidebar.searchPlaceholder")}
             prefix={<Search size={14} className="text-fg-muted" />}
             value={search}
             onChange={(e) => onSetSearch(e.target.value)}
@@ -265,7 +265,7 @@ export function DocSidebar({
           <button
             type="button"
             className="shrink-0 cursor-pointer rounded p-1 text-fg-muted hover:bg-fill-tertiary"
-            title="排序"
+            title={t("sidebar.sort")}
           >
             <ArrowUpDown size={14} />
           </button>
@@ -274,14 +274,14 @@ export function DocSidebar({
           type="button"
           className="shrink-0 cursor-pointer rounded p-1 text-fg-muted hover:bg-fill-tertiary"
           onClick={onToggleCollapsed}
-          title="收起侧栏"
+          title={t("sidebar.collapse")}
         >
           <PanelLeftClose size={14} />
         </button>
       </div>
 
       <div className="flex flex-col gap-0.5 px-2 pb-2">
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEM_KEYS.map((item) => {
           const isActive = tab === item.key;
           const Icon = item.icon;
           return (
@@ -302,7 +302,7 @@ export function DocSidebar({
                   isActive ? "text-[var(--accent)]" : "text-fg-muted",
                 )}
               />
-              {item.label}
+              {t(item.labelKey)}
             </button>
           );
         })}
@@ -311,7 +311,7 @@ export function DocSidebar({
       {tab === "all" && (
         <div className="flex items-center gap-1 px-3 pt-1 pb-1">
           <span className="flex-1 text-xs font-semibold tracking-wide text-fg-muted uppercase">
-            我的文档
+            {t("sidebar.myDocuments")}
           </span>
           <Dropdown
             menu={{
@@ -407,12 +407,12 @@ export function DocSidebar({
         ) : nodes.length === 0 ? (
           <div className="px-3 py-8 text-center text-sm text-fg-muted">
             {isArchived
-              ? "归档为空"
+              ? t("sidebar.emptyArchived")
               : search
-                ? "没有匹配的文档"
+                ? t("sidebar.emptySearch")
                 : tab === "favorites"
-                  ? "暂无收藏文档"
-                  : "暂无文档，点击上方新建"}
+                  ? t("sidebar.emptyFavorites")
+                  : t("sidebar.emptyDefault")}
           </div>
         ) : showTree ? (
           <div className="flex flex-col px-1.5 py-1">

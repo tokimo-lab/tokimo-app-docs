@@ -2,6 +2,7 @@ use axum::Json;
 use axum::extract::{Path, Query, State};
 use serde::Deserialize;
 use std::collections::HashMap;
+use ts_rs::TS;
 use std::sync::Arc;
 
 use super::{ensure_space_vfs, get_space, parse_uuid, vfs_err};
@@ -13,7 +14,8 @@ use crate::handlers::AppCtx;
 use crate::handlers::{ApiResponse, ok};
 use crate::services::path_utils;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct ListNodesQuery {
     pub path: Option<String>,
@@ -24,7 +26,8 @@ pub struct ListNodesQuery {
     pub tags: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct RelPathQuery {
     pub rel_path: String,

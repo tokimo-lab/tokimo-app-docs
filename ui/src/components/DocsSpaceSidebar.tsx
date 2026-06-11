@@ -1,6 +1,7 @@
 import { AppSidebar, Tooltip } from "@tokimo/ui";
 import { PanelLeft, PanelLeftClose, Plus, Settings } from "lucide-react";
 import { getAvatarColor, getAvatarIcon } from "@tokimo/sdk";
+import { useTranslation } from "react-i18next";
 import type { DocSpaceOutput } from "../api/generated";
 import { AppIcon } from "./icons/AppIcon";
 
@@ -24,6 +25,7 @@ export default function DocsSpaceSidebar({
   /** When true, the settings (⚙) button shows a highlighted state. */
   settingsActive?: boolean;
 }) {
+  const { t } = useTranslation();
   const sections = [
     {
       items: spaces.map((s) => ({
@@ -42,7 +44,7 @@ export default function DocsSpaceSidebar({
 
   const collapsedFooter = (
     <div className="flex flex-col items-center gap-1">
-      <Tooltip title="新建文档空间" placement="right">
+      <Tooltip title={t("spaceSidebar.newSpace")} placement="right">
         <button
           type="button"
           onClick={onCreateClick}
@@ -51,7 +53,7 @@ export default function DocsSpaceSidebar({
           <Plus className="h-4 w-4" />
         </button>
       </Tooltip>
-      <Tooltip title="文档空间设置" placement="right">
+      <Tooltip title={t("spaceSidebar.settings")} placement="right">
         <button
           type="button"
           onClick={onSettingsClick}
@@ -64,7 +66,7 @@ export default function DocsSpaceSidebar({
           <Settings className="h-4 w-4" />
         </button>
       </Tooltip>
-      <Tooltip title="展开侧边栏" placement="right">
+      <Tooltip title={t("spaceSidebar.expand")} placement="right">
         <button
           type="button"
           onClick={onToggleCollapse}
@@ -78,7 +80,7 @@ export default function DocsSpaceSidebar({
 
   const fullFooter = (
     <div className="flex items-center gap-1">
-      <Tooltip title="新建文档空间">
+      <Tooltip title={t("spaceSidebar.newSpace")}>
         <button
           type="button"
           onClick={onCreateClick}
@@ -87,7 +89,7 @@ export default function DocsSpaceSidebar({
           <Plus className="h-4 w-4" />
         </button>
       </Tooltip>
-      <Tooltip title="文档空间设置">
+      <Tooltip title={t("spaceSidebar.settings")}>
         <button
           type="button"
           onClick={onSettingsClick}
@@ -100,7 +102,7 @@ export default function DocsSpaceSidebar({
           <Settings className="h-4 w-4" />
         </button>
       </Tooltip>
-      <Tooltip title="收起侧边栏">
+      <Tooltip title={t("spaceSidebar.collapse")}>
         <button
           type="button"
           onClick={onToggleCollapse}

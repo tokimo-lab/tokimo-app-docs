@@ -2,10 +2,12 @@
 
 use axum::Json;
 use serde::Serialize;
+use ts_rs::TS;
 
 use crate::error::{ApiResponse, AppError, ok};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, TS)]
+#[ts(export)]
 pub struct ViewCtxOutput {
     pub scroll_position: Option<i32>,
     pub last_viewed_at: Option<String>,

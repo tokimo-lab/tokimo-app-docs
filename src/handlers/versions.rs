@@ -2,6 +2,7 @@ use axum::Json;
 use axum::extract::{Path, Query, State};
 use serde::Deserialize;
 use std::sync::Arc;
+use ts_rs::TS;
 
 use super::{ensure_space_vfs, get_space, parse_uuid, vfs_err};
 use crate::db::entities::{DocNodeVersionDetailOutput, DocNodeVersionOutput};
@@ -11,7 +12,8 @@ use crate::handlers::AppCtx;
 use crate::handlers::{ApiResponse, ok, ok_empty};
 use crate::services::path_utils;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct RelPathQuery {
     pub rel_path: String,

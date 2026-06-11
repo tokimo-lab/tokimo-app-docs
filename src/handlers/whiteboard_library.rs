@@ -40,7 +40,8 @@ pub struct LibraryAuthor {
     pub url: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 pub struct SaveUserLibraryBody {
     pub items: serde_json::Value,
 }

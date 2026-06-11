@@ -2,6 +2,7 @@ use axum::Json;
 use axum::extract::{Path, Query, State};
 use serde::Deserialize;
 use std::sync::Arc;
+use ts_rs::TS;
 
 use super::parse_uuid;
 use crate::db::entities::DocNodeCommentOutput;
@@ -11,19 +12,22 @@ use crate::handlers::AppCtx;
 use crate::handlers::user::AuthUser;
 use crate::handlers::{ApiResponse, ok, ok_empty};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct RelPathQuery {
     pub rel_path: String,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateCommentInput {
     pub comment_key: String,
     pub content: String,
     pub parent_id: Option<String>,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct ResolveCommentInput {
     pub resolved: bool,

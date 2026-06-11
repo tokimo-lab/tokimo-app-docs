@@ -12,6 +12,7 @@ import {
 } from "@tokimo/ui";
 import { FileText, FolderPlus } from "lucide-react";
 import { type ComponentProps, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
 import { DocNodeIcon } from "./DocNodeIcon";
 
@@ -43,10 +44,11 @@ function nodeToFileNode(node: DocNode): FileNode {
 
 function getEmptyDescription(
   viewMode: DocBrowserViewProps["viewMode"],
+  t: (key: string) => string,
 ): string {
-  if (viewMode === "archived") return "回收站为空";
-  if (viewMode === "favorites") return "暂无收藏文档";
-  return "此文件夹为空";
+  if (viewMode === "archived") return t("browser.emptyArchived");
+  if (viewMode === "favorites") return t("browser.emptyFavorites");
+  return t("browser.emptyDefault");
 }
 
 export function DocBrowserView({
@@ -66,6 +68,7 @@ export function DocBrowserView({
   const [draggingPaths, setDraggingPaths] = useState<Set<string>>(new Set());
   const [renaming, setRenaming] = useState<string | null>(null);
   const { open, contextMenu } = useContextMenu();
+  const { t } = useTranslation();
 
   const nodeByPath = useMemo(
     () => new Map(nodes.map((node) => [node.relPath, node])),
@@ -119,21 +122,21 @@ export function DocBrowserView({
       if (!node) return;
       setSelectedPaths(new Set([fileNode.path]));
       const items: ContextMenuItem[] = [
-        { key: "open", label: "打开", onClick: () => openNode(node) },
+        { key: "open", label: t("browser.open"), onClick: () => openNode(node) },
         {
           key: "rename",
-          label: "重命名",
+          label: t("browser.rename"),
           onClick: () => setRenaming(fileNode.path),
         },
         { type: "divider" },
         {
           key: "delete",
-          label: viewMode === "archived" ? "删除" : "移到回收站",
+          label: viewMode === "archived" ? t("browser.delete") : t("browser.moveToTrash"),
           danger: true,
           onClick: () => {
             if (
               window.confirm(
-                node.type === "folder" ? "确定删除此文件夹？" : "确定删除？",
+                node.type === "folder" ? t("browser.deleteConfirm") : t("browser.deleteNodeConfirm"),
               )
             ) {
               onDeleteNode(node.relPath);
@@ -143,7 +146,7 @@ export function DocBrowserView({
       ];
       open(event, items);
     },
-    [nodeByPath, onDeleteNode, open, openNode, viewMode],
+    [nodeByPath, onDeleteNode, open, openNode, viewMode, t],
   );
 
   const handleEmptyContextMenu = useCallback(
@@ -153,17 +156,17 @@ export function DocBrowserView({
       open(event, [
         {
           key: "new-doc",
-          label: "新建文档",
+          label: t("browser.newDocument"),
           onClick: () => onCreateNode("notion", parentId),
         },
         {
           key: "new-folder",
-          label: "新建文件夹",
+          label: t("browser.newFolder"),
           onClick: () => onCreateFolder(parentId),
         },
       ]);
     },
-    [currentFolderId, onCreateFolder, onCreateNode, open, viewMode],
+    [currentFolderId, onCreateFolder, onCreateNode, open, viewMode, t],
   );
 
   const handleRenameSubmit = useCallback(
@@ -185,7 +188,7 @@ export function DocBrowserView({
             className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border-subtle bg-fill-secondary px-3 py-1.5 text-sm text-fg-secondary transition-colors hover:bg-fill-tertiary"
           >
             <FileText size={15} className="text-[var(--accent)]" />
-            新建文档
+            {t("browser.newDocument")}
           </button>
           {viewMode === "all" && (
             <button
@@ -194,7 +197,7 @@ export function DocBrowserView({
               className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border-subtle bg-fill-secondary px-3 py-1.5 text-sm text-fg-secondary transition-colors hover:bg-fill-tertiary"
             >
               <FolderPlus size={15} className="text-[var(--accent)]" />
-              新建文件夹
+              {t("browser.newFolder")}
             </button>
           )}
         </div>
@@ -209,7 +212,7 @@ export function DocBrowserView({
           <div className="flex h-full items-center justify-center">
             <Empty
               className="opacity-50"
-              description={getEmptyDescription(viewMode)}
+              description={getEmptyDescription(viewMode, t)}
             />
           </div>
         ) : (

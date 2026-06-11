@@ -6,6 +6,7 @@ use axum::response::IntoResponse;
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use std::sync::Arc;
+use ts_rs::TS;
 use uuid::Uuid;
 use yrs::encoding::read::Read as YrsRead;
 use yrs::sync::awareness::AwarenessUpdate;
@@ -20,7 +21,8 @@ use crate::handlers::user::AuthUser;
 use crate::services::collab::CollabRoom;
 use crate::services::path_utils;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct CollabQuery {
     pub rel_path: String,

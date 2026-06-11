@@ -1,4 +1,5 @@
 import { MaterialFileIcon } from "@tokimo/ui";
+import { fetchAttachmentContent } from "../../../api/client";
 import {
   AudioPlayer,
   ImagePreview,
@@ -379,12 +380,7 @@ function PreviewContent({
             key={url}
             fileName={fileName}
             fetchContent={() =>
-              fetch(url, { credentials: "include" }).then((response) => {
-                if (!response.ok) {
-                  throw new Error(`fetch failed: ${response.status}`);
-                }
-                return response.text();
-              })
+              fetchAttachmentContent(url).then((response) => response.text())
             }
             readOnly
             language={detectedLanguage}

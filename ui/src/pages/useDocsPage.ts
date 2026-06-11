@@ -30,7 +30,7 @@ import {
 } from "../lib/doc-node";
 import { onAiDocumentEdit, openAiAssistant } from "../lib/ai-assistant-events";
 import { useAuth } from "../hooks/use-auth";
-import { useMessage } from "../hooks/use-message";
+import { useToast as useMessage } from "@tokimo/ui";
 import {
   dispatchAiAction,
   exportAsDocx,
@@ -340,7 +340,7 @@ export function useDocsPage(spaceId: string) {
   );
   const restoreVersionMutation = api.docs.restoreVersion.useMutation({
     onSuccess: () => {
-      message.success("版本已恢复");
+      message.success(t("versions.restored"));
       setPreviewingVersionId(null);
       detailQuery.refetch();
       listQuery.refetch();
@@ -354,7 +354,7 @@ export function useDocsPage(spaceId: string) {
       // by the time this callback runs.
       reloadCurrentDoc();
     },
-    onError: () => message.error("恢复失败"),
+    onError: () => message.error(t("versions.restoreFailed")),
   });
 
   // ── Mutations ───────────────────────────────────────────────────────
@@ -381,7 +381,7 @@ export function useDocsPage(spaceId: string) {
       if (node.type !== "folder") selectNodeRef.current(node);
       refetchNodeQueries();
     },
-    onError: () => message.error("创建失败"),
+    onError: () => message.error(t("actions.created")),
   });
 
   const updateMutation = api.docs.update.useMutation({
@@ -409,27 +409,27 @@ export function useDocsPage(spaceId: string) {
     onSuccess: () => {
       deselectNodeRef.current();
       refetchNodeQueries();
-      message.success("已归档");
+      message.success(t("actions.archived"));
     },
-    onError: () => message.error("归档失败"),
+    onError: () => message.error(t("actions.archiveFailed")),
   });
 
   const restoreMutation = api.docs.restore.useMutation({
     onSuccess: () => {
       deselectNodeRef.current();
       refetchNodeQueries();
-      message.success("已恢复");
+      message.success(t("actions.restored"));
     },
-    onError: () => message.error("恢复失败"),
+    onError: () => message.error(t("actions.restoreFailed")),
   });
 
   const permanentDeleteMutation = api.docs.permanentDelete.useMutation({
     onSuccess: () => {
       deselectNodeRef.current();
       refetchNodeQueries();
-      message.success("已永久删除");
+      message.success(t("actions.permanentlyDeleted"));
     },
-    onError: () => message.error("删除失败"),
+    onError: () => message.error(t("actions.deleteFailed")),
   });
 
   const favoriteMutation = api.docs.toggleFavorite.useMutation({
@@ -439,9 +439,9 @@ export function useDocsPage(spaceId: string) {
   const moveMut = api.docs.move.useMutation({
     onSuccess: () => {
       refetchNodeQueries();
-      message.success("已移动");
+      message.success(t("actions.moved"));
     },
-    onError: () => message.error("移动失败"),
+    onError: () => message.error(t("actions.moveFailed")),
   });
 
   // ── Refs for stable callbacks ───────────────────────────────────────
@@ -688,9 +688,9 @@ export function useDocsPage(spaceId: string) {
     const text = editor ? getEditorPlainText(editor) : "";
     openAiAssistant({
       context: text || undefined,
-      contextLabel: selectedDoc?.title || "文档",
+      contextLabel: selectedDoc?.title || t("header.root"),
     });
-  }, [selectedDoc?.title]);
+  }, [selectedDoc?.title, t]);
 
   const handleAiAction = useCallback((actionId: string) => {
     const editor = editorRef.current;
@@ -718,7 +718,7 @@ export function useDocsPage(spaceId: string) {
     try {
       const file = await pickWithBridge<VfsFileSelection>(bridge, openModalWindow, {
         component: () => import("../components/VfsFilePickerWindow"),
-        title: "引用文件",
+        title: t("header.root"),
         width: 600,
         height: 480,
       });
@@ -820,7 +820,7 @@ export function useDocsPage(spaceId: string) {
           break;
         }
         message.error(
-          `附件上传失败: ${err instanceof Error ? err.message : "未知错误"}`,
+          t("actions.attachmentUploadFailed", { error: err instanceof Error ? err.message : t("actions.unknownError") }),
         );
       }
     },

@@ -2,6 +2,7 @@ use axum::Json;
 use axum::extract::{Path, Query, State};
 use serde::Deserialize;
 use std::sync::Arc;
+use ts_rs::TS;
 
 use super::{ensure_space_vfs, get_space, parse_uuid, validate_node_name, vfs_err};
 use crate::db::entities::DocNodeListItem;
@@ -17,7 +18,8 @@ use crate::handlers::{ApiResponse, ok, ok_empty};
 use crate::services::docs_service::DocsService;
 use crate::services::path_utils;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateNodeInput {
     pub space_id: Option<String>,
@@ -27,25 +29,30 @@ pub struct CreateNodeInput {
     pub content: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeQuery {
     pub rel_path: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateNodeInput {
     pub content: Option<serde_json::Value>,
     pub title: Option<String>,
     pub tags: Option<Vec<String>>,
     #[serde(default, with = "::serde_with::rust::double_option")]
+    #[ts(type = "string | null")]
     pub icon: Option<Option<String>>,
     #[serde(default, with = "::serde_with::rust::double_option")]
+    #[ts(type = "string | null")]
     pub cover_image: Option<Option<String>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct MoveNodeQuery {
     pub from: String,

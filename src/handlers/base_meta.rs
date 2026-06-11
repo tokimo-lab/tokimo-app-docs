@@ -20,14 +20,16 @@ pub struct BaseMetaOutput {
     pub views: serde_json::Value,
     pub active_view_id: Option<String>,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateBaseMetaInput {
     pub fields: Option<serde_json::Value>,
     pub views: Option<serde_json::Value>,
     pub active_view_id: Option<String>,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct RelPathQuery {
     pub rel_path: String,

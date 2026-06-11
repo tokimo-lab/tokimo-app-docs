@@ -13,6 +13,7 @@
 import { ArrowLeft, ChevronRight, Folder } from "lucide-react";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 interface DocCrumbNode {
   title: string;
@@ -51,8 +52,10 @@ export function DocPageHeader({
   onBack,
   viewModeSuffix,
   right,
-  rootLabel = "文档",
+  rootLabel,
 }: DocPageHeaderProps) {
+  const { t } = useTranslation();
+  const effectiveRootLabel = rootLabel ?? t("header.root");
   const segments = useMemo(
     () => (currentRelPath ? currentRelPath.split("/").filter(Boolean) : []),
     [currentRelPath],
@@ -81,10 +84,10 @@ export function DocPageHeader({
       const node = nodeByPath.get(segments.join("/"));
       return { title: node?.title ?? lastSeg, icon: node?.icon ?? null };
     }
-    if (viewModeSuffix === "favorites") return { title: "收藏", icon: null };
-    if (viewModeSuffix === "archived") return { title: "回收站", icon: null };
+    if (viewModeSuffix === "favorites") return { title: t("header.favorites"), icon: null };
+    if (viewModeSuffix === "archived") return { title: t("header.archived"), icon: null };
     return null;
-  }, [leaf, segments, nodeByPath, viewModeSuffix]);
+  }, [leaf, segments, nodeByPath, viewModeSuffix, t]);
 
   const showBack = !!onBack && (segments.length > 0 || !!viewModeSuffix);
 
@@ -95,7 +98,7 @@ export function DocPageHeader({
           type="button"
           onClick={onBack}
           className="mr-1 flex cursor-pointer items-center gap-1 rounded px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary"
-          title="返回"
+          title={t("header.back")}
         >
           <ArrowLeft size={14} />
         </button>
@@ -111,7 +114,7 @@ export function DocPageHeader({
               : "text-fg-muted hover:text-fg-secondary"
           }`}
         >
-          {rootLabel}
+          {effectiveRootLabel}
         </button>
         {ancestors.map((crumb) => (
           <span key={crumb.relPath} className="flex items-center gap-1">

@@ -604,6 +604,20 @@ export async function downloadWhiteboardLibrary(
   );
 }
 
+export async function fetchWhiteboardLibraryDownload(
+  libraryId: string,
+): Promise<unknown> {
+  return request<unknown>(`/whiteboard/libraries/${libraryId}/download`);
+}
+
+export async function fetchAttachmentContent(url: string): Promise<Response> {
+  const response = await fetch(url, { credentials: "include" });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  return response;
+}
+
 export async function getWhiteboardUserLibrary(): Promise<unknown> {
   return request("/whiteboard/user-library");
 }

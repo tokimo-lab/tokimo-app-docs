@@ -7,29 +7,19 @@
 import { useHandleLibrary } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useCallback, useMemo } from "react";
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    credentials: "include",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
-  if (json.success === false) throw new Error(json.error ?? "API error");
-  return json.data;
-}
+import {
+  getWhiteboardUserLibrary,
+  saveWhiteboardUserLibrary,
+} from "../../api/client";
 
 export function useWhiteboardLibraryAdapter(
   excalidrawAPI: ExcalidrawImperativeAPI | null,
 ) {
   const load = useCallback(async () => {
     try {
-      const data = await apiFetch<{ items: unknown[] }>(
-        "/api/apps/docs/whiteboard/user-library",
-      );
+      const data = (await getWhiteboardUserLibrary()) as {
+        items: unknown[];
+      };
       return { libraryItems: data.items as never[] };
     } catch {
       return { libraryItems: [] };
@@ -39,10 +29,7 @@ export function useWhiteboardLibraryAdapter(
   const save = useCallback(
     async (libraryData: { libraryItems: readonly unknown[] }) => {
       try {
-        await apiFetch<void>("/api/apps/docs/whiteboard/user-library", {
-          method: "PUT",
-          body: JSON.stringify({ items: libraryData.libraryItems }),
-        });
+        await saveWhiteboardUserLibrary(libraryData.libraryItems);
       } catch (err) {
         console.error("Failed to save library:", err);
       }

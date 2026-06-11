@@ -56,7 +56,7 @@ export default function DocsApp() {
       });
       openModalWindow({
         component: () => import("./DocSpaceEditorWindow"),
-        title: isEdit ? "TokimoDocs · 设置" : "TokimoDocs · 新建文档空间",
+        title: isEdit ? "TokimoDocs · Settings" : "TokimoDocs · New Document Space",
         width: 720,
         height: 640,
         metadata: {

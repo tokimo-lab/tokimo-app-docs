@@ -71,6 +71,7 @@ export function LazyTreeNode({
   depth: number;
   actions: TreeActions;
 }) {
+  const { t } = useTranslation();
   const isFolder = node.type === "folder";
   const isExpanded = actions.expandedFolders.has(node.relPath);
   const childQuery = api.docs.list.useQuery(
@@ -99,14 +100,14 @@ export function LazyTreeNode({
               style={{ paddingLeft: `${(depth + 1) * 20 + 28}px` }}
             >
               <Spin size="small" />
-              加载中…
+              {t("sidebar.loading")}
             </div>
           ) : children.length === 0 ? (
             <div
               className="py-1 text-xs text-fg-muted"
               style={{ paddingLeft: `${(depth + 1) * 20 + 28}px` }}
             >
-              空文件夹
+              {t("sidebar.emptyFolder")}
             </div>
           ) : (
             children.map((child) => (
@@ -222,32 +223,32 @@ export function NodeTreeItem({
       ...(isFolder ? [...createItems, { type: "divider" as const }] : []),
       {
         key: "favorite",
-        label: node.isFavorite ? "取消收藏" : "收藏",
+        label: node.isFavorite ? t("tree.unfavorite") : t("tree.favorite"),
         icon: <Heart size={14} />,
         onClick: () => onFavoriteDoc(node.relPath),
       },
       {
         key: "rename",
-        label: "重命名",
+        label: t("tree.rename"),
         icon: <Pencil size={14} />,
         onClick: () => onStartRename(node),
       },
       {
         key: "copy",
-        label: "复制 relPath",
+        label: t("tree.copyRelPath"),
         icon: <Copy size={14} />,
         onClick: () => navigator.clipboard.writeText(node.relPath),
       },
       { type: "divider" as const },
       {
         key: "delete",
-        label: isFolder ? "删除文件夹" : "删除",
+        label: isFolder ? t("tree.deleteFolder") : t("tree.delete"),
         icon: <Trash2 size={14} />,
         danger: true,
         onClick: () => onDeleteNode(node),
       },
     ],
-    [isFolder, createItems, node, onDeleteNode, onFavoriteDoc, onStartRename],
+    [isFolder, createItems, node, onDeleteNode, onFavoriteDoc, onStartRename, t],
   );
 
   const handleClick = () => {
@@ -434,7 +435,7 @@ export function NodeTreeItem({
                     : "text-fg-muted opacity-0 hover:text-amber-500 group-hover:opacity-100",
                 )}
                 onClick={() => onFavoriteDoc(node.relPath)}
-                title={node.isFavorite ? "取消收藏" : "收藏"}
+                title={node.isFavorite ? t("tree.unfavorite") : t("tree.favorite")}
               >
                 <Heart
                   size={13}
@@ -502,7 +503,7 @@ export function ArchivedNodeRow({
           type="button"
           className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-green-500"
           onClick={onRestore}
-          title="恢复"
+          title={t("tree.restore")}
         >
           <RotateCcw size={14} />
         </button>
@@ -510,7 +511,7 @@ export function ArchivedNodeRow({
           type="button"
           className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-red-500"
           onClick={onPermanentDelete}
-          title="永久删除"
+          title={t("tree.permanentDelete")}
         >
           <Trash2 size={14} />
         </button>

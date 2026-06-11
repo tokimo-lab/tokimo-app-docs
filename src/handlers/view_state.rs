@@ -2,6 +2,7 @@ use axum::Json;
 use axum::extract::{Path, Query, State};
 use serde::Deserialize;
 use std::sync::Arc;
+use ts_rs::TS;
 
 use super::parse_uuid;
 use crate::db::repos::view_ctx_repo::DocNodeViewCtxRepo;
@@ -10,12 +11,14 @@ use crate::handlers::AppCtx;
 use crate::handlers::user::AuthUser;
 use crate::handlers::{ApiResponse, ok, ok_empty};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct PutViewStateBody {
     pub view_ctx: serde_json::Value,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct RelPathQuery {
     pub rel_path: String,

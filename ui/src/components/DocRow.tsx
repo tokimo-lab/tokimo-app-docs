@@ -48,7 +48,7 @@ export function DocRow({
     const items: DropdownMenuItem[] = [
       {
         key: "root",
-        label: "根目录",
+        label: t("row.rootFolder"),
         icon: <Folder size={14} />,
         onClick: () => onMove(null),
       },
@@ -64,7 +64,7 @@ export function DocRow({
       }
     }
     return items;
-  }, [allFolders, node.parentId, onMove]);
+  }, [allFolders, node.parentId, onMove, t]);
 
   const menuItems: DropdownMenuItem[] = useMemo(
     () =>
@@ -72,7 +72,7 @@ export function DocRow({
         ? [
             {
               key: "delete",
-              label: "永久删除",
+              label: t("row.permanentDelete"),
               icon: <Trash2 size={14} />,
               danger: true,
               onClick: onDelete,
@@ -81,33 +81,33 @@ export function DocRow({
         : [
             {
               key: "fav",
-              label: node.isFavorite ? "取消收藏" : "收藏",
+              label: node.isFavorite ? t("tree.unfavorite") : t("tree.favorite"),
               icon: <Heart size={14} />,
               onClick: onFavorite,
             },
             {
               key: "move",
-              label: "移动到…",
+              label: t("row.moveTo"),
               icon: <MoveRight size={14} />,
               children: moveChildren,
             },
             { key: "d1", type: "divider" as const },
             {
               key: "copy-id",
-              label: "复制文档 ID",
+              label: t("row.copyId"),
               icon: <Copy size={14} />,
               onClick: onCopyId,
             },
             { key: "d2", type: "divider" as const },
             {
               key: "delete",
-              label: "删除",
+              label: t("common.delete"),
               icon: <Trash2 size={14} />,
               danger: true,
               onClick: onDelete,
             },
           ],
-    [node.isFavorite, isTrash, moveChildren, onFavorite, onDelete, onCopyId],
+    [node.isFavorite, isTrash, moveChildren, onFavorite, onDelete, onCopyId, t],
   );
 
   const displayTitle = node.title || t(untitledI18nKey(node.type));

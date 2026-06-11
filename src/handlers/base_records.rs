@@ -45,18 +45,21 @@ pub struct RelPathQuery {
     #[serde(flatten)]
     pub page: PageInput,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateRecordInput {
     pub data: Option<serde_json::Value>,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateRecordInput {
     pub data: Option<serde_json::Value>,
     pub sort_order: Option<i32>,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct BatchDeleteInput {
     pub ids: Vec<String>,

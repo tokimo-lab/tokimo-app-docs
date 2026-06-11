@@ -1,6 +1,7 @@
 import { Dropdown, type DropdownMenuItem } from "@tokimo/ui";
 import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { DocNode } from "../lib/doc-node";
 import { DocNodeIcon } from "./DocNodeIcon";
 
@@ -21,19 +22,20 @@ export function FolderCard({
 }: FolderCardProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [localName, setLocalName] = useState(node.title);
+  const { t } = useTranslation();
 
   const menuItems: DropdownMenuItem[] = useMemo(
     () => [
       {
         key: "new-doc",
-        label: "新建文档",
+        label: t("folder.newDocument"),
         icon: <Plus size={14} />,
         onClick: () => onCreateDoc(),
       },
       { key: "d1", type: "divider" as const },
       {
         key: "rename",
-        label: "重命名",
+        label: t("folder.rename"),
         icon: <Pencil size={14} />,
         onClick: () => {
           setLocalName(node.title);
@@ -43,13 +45,13 @@ export function FolderCard({
       { key: "d2", type: "divider" as const },
       {
         key: "delete",
-        label: "删除文件夹",
+        label: t("folder.delete"),
         icon: <Trash2 size={14} />,
         danger: true,
         onClick: () => {
           if (
             window.confirm(
-              `确定删除文件夹「${node.title}」？其中的文档将移至根目录。`,
+              t("folder.deleteConfirm", { name: node.title }),
             )
           ) {
             onDelete();
@@ -57,7 +59,7 @@ export function FolderCard({
         },
       },
     ],
-    [node.title, onCreateDoc, onDelete],
+    [node.title, onCreateDoc, onDelete, t],
   );
 
   return (

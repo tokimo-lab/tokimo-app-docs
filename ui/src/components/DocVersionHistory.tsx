@@ -1,10 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { cn, Modal } from "@tokimo/ui";
+import { cn, Modal, useToast as useMessage } from "@tokimo/ui";
 import { Clock, RotateCcw, X } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useDateFormat } from "@tokimo/ui";
+import { useTranslation } from "react-i18next";
 import { api, type DocNodeVersionOutput } from "../api/generated";
-import { useMessage } from "../hooks/use-message";
 
 interface DocVersionHistoryProps {
   spaceId: string;
@@ -30,6 +30,7 @@ export function DocVersionHistory({
 }: DocVersionHistoryProps) {
   const queryClient = useQueryClient();
   const message = useMessage();
+  const { t } = useTranslation();
 
   const versionsQuery = api.docs.listVersions.useQuery(
     { spaceId, relPath },
@@ -40,29 +41,29 @@ export function DocVersionHistory({
 
   const restoreMutation = api.docs.restoreVersion.useMutation({
     onSuccess: () => {
-      message.success("版本已恢复");
+      message.success(t("versions.restored"));
       onClearPreview();
       api.docs.getNode.invalidate(queryClient, { spaceId, relPath });
       api.docs.listVersions.invalidate(queryClient, { spaceId, relPath });
       onRestored?.();
     },
-    onError: () => message.error("恢复失败"),
+    onError: () => message.error(t("versions.restoreFailed")),
   });
 
   const handleRestore = useCallback(
     (versionId: string) => {
       Modal.confirm({
-        title: "恢复到此版本",
-        content: "当前文档将被这个版本的内容覆盖，是否继续？",
-        okText: "恢复",
-        cancelText: "取消",
+        title: t("confirm.restoreVersion"),
+        content: t("confirm.restoreVersionContent"),
+        okText: t("confirm.restore"),
+        cancelText: t("common.cancel"),
         variant: "warning",
         onOk: () => {
           restoreMutation.mutate({ spaceId, relPath, versionId });
         },
       });
     },
-    [restoreMutation, spaceId, relPath],
+    [restoreMutation, spaceId, relPath, t],
   );
 
   if (!open) return null;
@@ -73,7 +74,7 @@ export function DocVersionHistory({
       <div className="flex items-center justify-between border-b border-border-base px-3 py-2">
         <div className="flex items-center gap-1.5 text-sm font-medium text-fg-secondary">
           <Clock className="size-4" />
-          <span>版本历史</span>
+          <span>{t("editor.versionHistory")}</span>
           {versions.length > 0 && (
             <span className="rounded-full bg-[var(--accent-subtle)] px-1.5 text-xs text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]">
               {versions.length}
@@ -96,14 +97,14 @@ export function DocVersionHistory({
       <div className="flex-1 overflow-y-auto">
         {versionsQuery.isLoading ? (
           <div className="flex items-center justify-center py-12 text-sm text-fg-muted">
-            加载中…
+            {t("common.loading")}
           </div>
         ) : versions.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-12 text-fg-muted">
             <Clock className="size-8" strokeWidth={1} />
-            <p className="text-sm">暂无版本历史</p>
+            <p className="text-sm">{t("versions.empty")}</p>
             <p className="px-4 text-center text-xs text-fg-muted">
-              编辑文档时会自动保存版本快照
+              {t("versions.empty")}
             </p>
           </div>
         ) : (
@@ -142,6 +143,7 @@ function VersionItem({
 }) {
   const [showRestore, setShowRestore] = useState(false);
   const { formatLong } = useDateFormat();
+  const { t } = useTranslation();
 
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: version item
@@ -164,14 +166,14 @@ function VersionItem({
                 isActive ? "text-[var(--accent)]" : "text-fg-secondary",
               )}
             >
-              版本 {version.version}
+              {t("versions.version", { version: version.version })}
             </span>
             <span className="text-[10px] text-fg-muted">
               {formatLong(version.createdAt)}
             </span>
           </div>
           <span className="text-[11px] text-fg-muted">
-            {version.wordCount} 字
+            {t("versions.wordCount", { count: version.wordCount })}
           </span>
         </div>
         {showRestore && (
@@ -183,10 +185,10 @@ function VersionItem({
             }}
             disabled={isRestoring}
             className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-[var(--accent)] transition-colors hover:bg-[var(--accent-subtle)] disabled:opacity-50 dark:text-[var(--accent)] dark:hover:bg-[var(--accent-subtle)]"
-            title="恢复此版本"
+            title={t("versions.restoreThis")}
           >
             <RotateCcw className="size-3" />
-            恢复
+            {t("versions.restoreThis")}
           </button>
         )}
       </div>
@@ -212,10 +214,11 @@ export function VersionPreviewBar({
   isRestoring,
 }: VersionPreviewBarProps) {
   const { formatLong } = useDateFormat();
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between border-b border-amber-200 bg-amber-50 px-4 py-1.5 dark:border-amber-800 dark:bg-amber-900/20">
       <span className="text-xs text-amber-800 dark:text-amber-300">
-        正在查看版本 {version} · {formatLong(createdAt)}
+        {t("versions.previewing", { version, date: formatLong(createdAt) })}
       </span>
       <div className="flex items-center gap-2">
         <button
@@ -224,14 +227,14 @@ export function VersionPreviewBar({
           disabled={isRestoring}
           className="rounded bg-amber-600 px-2.5 py-1 text-xs text-white transition-colors hover:bg-amber-700 disabled:opacity-50 dark:bg-amber-700 dark:hover:bg-amber-600"
         >
-          恢复此版本
+          {t("versions.restoreThis")}
         </button>
         <button
           type="button"
           onClick={onBack}
           className="rounded px-2.5 py-1 text-xs text-amber-700 transition-colors hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/30"
         >
-          返回当前版本
+          {t("versions.backToCurrent")}
         </button>
       </div>
     </div>

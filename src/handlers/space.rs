@@ -3,6 +3,7 @@ use axum::extract::{Path, State};
 use sea_orm::EntityTrait;
 use serde::Deserialize;
 use std::sync::Arc;
+use ts_rs::TS;
 
 use super::{parse_uuid, vfs_err};
 use crate::db::entities::DocSpaceOutput;
@@ -13,7 +14,8 @@ use crate::handlers::AppCtx;
 use crate::handlers::{ApiResponse, ok, ok_empty};
 use crate::services::path_utils;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateSpaceInput {
     pub name: String,
@@ -23,17 +25,22 @@ pub struct CreateSpaceInput {
     pub root_path: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSpaceInput {
     pub name: Option<String>,
     #[serde(default, with = "::serde_with::rust::double_option")]
+    #[ts(type = "unknown | null")]
     pub avatar: Option<Option<serde_json::Value>>,
     #[serde(default, with = "::serde_with::rust::double_option")]
+    #[ts(type = "string | null")]
     pub description: Option<Option<String>>,
     #[serde(default, with = "::serde_with::rust::double_option")]
+    #[ts(type = "string | null")]
     pub vfs_id: Option<Option<String>>,
     #[serde(default, with = "::serde_with::rust::double_option")]
+    #[ts(type = "string | null")]
     pub root_path: Option<Option<String>>,
     pub sort_order: Option<i32>,
 }

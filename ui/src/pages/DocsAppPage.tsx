@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useMenuBar } from "@tokimo/sdk";
 import { Component, type ErrorInfo, type ReactNode, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { BaseEditor } from "../components/base/BaseEditor";
 import { CollabPresenceBar } from "../components/collab/CollabPresenceBar";
 import { DocBrowserView } from "../components/DocBrowserView";
@@ -58,7 +59,7 @@ class PageErrorBoundary extends Component<
     if (this.state.error) {
       return (
         <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-red-500">
-          <p className="font-semibold">页面加载失败</p>
+          <p className="font-semibold">Page failed to load</p>
           <pre className="max-w-lg overflow-auto whitespace-pre-wrap text-xs text-red-400">
             {this.state.error.message}
             {"\n\n"}
@@ -69,7 +70,7 @@ class PageErrorBoundary extends Component<
             className="mt-2 rounded bg-red-100 px-3 py-1 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300"
             onClick={() => this.setState({ error: null })}
           >
-            重试
+            Retry
           </button>
         </div>
       );
@@ -88,6 +89,7 @@ export default function DocsAppPage({ spaceId }: { spaceId: string }) {
 
 function DocsAppPageInner({ spaceId }: { spaceId: string }) {
   const s = useDocsPage(spaceId);
+  const { t } = useTranslation();
 
   // ── Menu bar ───────────────────────────────────────────────────────
   useMenuBar(
@@ -96,29 +98,29 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
         menus: [
           {
             key: "doc",
-            label: "文档",
+            label: t("menuBar.doc"),
             items: [
               {
                 key: "new",
-                label: "新建文档",
+                label: t("menuBar.newDocument"),
                 shortcut: "⌘N",
                 onClick: () => s.handleCreate("notion"),
               },
               {
                 key: "md-import",
-                label: "从 Markdown 导入",
+                label: t("menuBar.importMarkdown"),
                 icon: <Upload size={14} />,
                 onClick: s.handleImportMarkdown,
               },
               {
                 key: "md-export",
-                label: "导出为 Markdown",
+                label: t("menuBar.exportMarkdown"),
                 icon: <Download size={14} />,
                 onClick: s.handleExportMarkdown,
               },
               {
                 key: "docx-export",
-                label: "导出为 Word (.docx)",
+                label: t("menuBar.exportDocx"),
                 icon: <FileType size={14} />,
                 onClick: s.handleExportDocx,
               },
@@ -131,6 +133,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
         s.handleImportMarkdown,
         s.handleExportMarkdown,
         s.handleExportDocx,
+        t,
       ],
     ),
   );
@@ -138,7 +141,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
   if (!s.spaceId) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Empty description="未找到应用" />
+        <Empty description={t("empty.notFound")} />
       </div>
     );
   }
@@ -178,8 +181,8 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
           if (
             window.confirm(
               node.type === "folder"
-                ? "确定删除此文件夹？子节点将移至上级。"
-                : "确定删除？",
+                ? t("confirm.deleteFolder")
+                : t("confirm.delete"),
             )
           ) {
             s.archiveMutation.mutate({
@@ -198,7 +201,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
           s.restoreMutation.mutate({ relPath: id, spaceId: s.spaceId })
         }
         onPermanentDeleteNode={(id) => {
-          if (window.confirm("确定永久删除？此操作不可恢复。")) {
+          if (window.confirm(t("confirm.permanentDelete"))) {
             s.permanentDeleteMutation.mutate({
               relPath: id,
               spaceId: s.spaceId,
@@ -279,6 +282,7 @@ function DocMainLoading() {
 type DocsPageState = ReturnType<typeof useDocsPage>;
 
 function DocsMainArea({ s }: { s: DocsPageState }) {
+  const { t } = useTranslation();
   const leaf =
     s.selectedSheet ??
     s.selectedMind ??
@@ -350,7 +354,7 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
           className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary"
         >
           <Sparkles size={14} />
-          AI 助手
+          {t("editor.aiAssistant")}
         </button>
         <button
           type="button"
@@ -365,7 +369,7 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
           }`}
         >
           <Clock size={14} />
-          版本历史
+          {t("editor.versionHistory")}
         </button>
         <button
           type="button"
@@ -377,7 +381,7 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
           }`}
         >
           <MessageSquare size={14} />
-          评论
+          {t("editor.comments")}
         </button>
       </>
     );
@@ -400,6 +404,7 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
 }
 
 function DocsMainBody({ s }: { s: DocsPageState }) {
+  const { t } = useTranslation();
   if (s.isSelectedNodeLoading) return <DocMainLoading />;
 
   if (s.selectedSheet) {
@@ -496,10 +501,10 @@ function DocsMainBody({ s }: { s: DocsPageState }) {
                 const docId = s.selectedDocId;
                 const versionId = s.previewingVersionId;
                 Modal.confirm({
-                  title: "恢复到此版本",
-                  content: "当前文档将被这个版本的内容覆盖，是否继续？",
-                  okText: "恢复",
-                  cancelText: "取消",
+                  title: t("confirm.restoreVersion"),
+                  content: t("confirm.restoreVersionContent"),
+                  okText: t("confirm.restore"),
+                  cancelText: t("common.cancel"),
                   variant: "warning",
                   onOk: () => {
                     s.restoreVersionMutation.mutate({
@@ -519,7 +524,7 @@ function DocsMainBody({ s }: { s: DocsPageState }) {
           <div className="flex items-center justify-between border-b border-[var(--accent)]/30 bg-[var(--accent-subtle)] px-4 py-2 text-sm dark:border-[var(--accent)] dark:bg-[var(--accent-subtle)]">
             <span className="text-[var(--accent)] dark:text-[var(--accent-text)]">
               <Sparkles size={14} className="mr-1.5 inline" />
-              AI 已修改文档{s.aiUndoSummary ? `：${s.aiUndoSummary}` : ""}
+              {t("editor.aiModified")}{s.aiUndoSummary ? t("editor.aiSummary", { summary: s.aiUndoSummary }) : ""}
             </span>
             <div className="flex gap-2">
               <button
@@ -527,14 +532,14 @@ function DocsMainBody({ s }: { s: DocsPageState }) {
                 onClick={s.handleAiUndo}
                 className="cursor-pointer rounded px-2 py-0.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)] dark:hover:bg-[var(--accent-subtle-hover)]"
               >
-                撤销
+                {t("editor.undo")}
               </button>
               <button
                 type="button"
                 onClick={s.dismissAiUndo}
                 className="cursor-pointer rounded px-2 py-0.5 text-xs text-fg-muted hover:bg-fill-tertiary"
               >
-                确认
+                {t("editor.confirm")}
               </button>
             </div>
           </div>

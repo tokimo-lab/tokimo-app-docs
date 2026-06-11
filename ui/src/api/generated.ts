@@ -5,6 +5,7 @@
  */
 
 import {
+  callApi,
   createPathMutation,
   createQuery,
   createMutation,
@@ -681,15 +682,9 @@ export interface UserProfile {
   avatar?: string;
 }
 
-const userApi = {
+export const userApi = {
   getProfile: {
-    fetch: (): Promise<UserProfile> =>
-      fetch("/api/user/profile", { credentials: "include" })
-        .then((r) => r.json())
-        .then((json: { success: boolean; data?: UserProfile; error?: string }) => {
-          if (!json.success) throw new Error(json.error ?? "Failed");
-          return json.data as UserProfile;
-        }),
+    fetch: (): Promise<UserProfile> => callApi<UserProfile>("/api/user/profile"),
   },
 };
 
