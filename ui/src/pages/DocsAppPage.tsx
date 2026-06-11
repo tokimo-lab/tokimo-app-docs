@@ -15,7 +15,7 @@ import {
   Upload,
 } from "lucide-react";
 import { useMenuBar } from "@tokimo/sdk";
-import { Component, type ErrorInfo, type ReactNode, useMemo } from "react";
+import { Component, type ErrorInfo, type ReactNode, memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { BaseEditor } from "../components/base/BaseEditor";
 import { CollabPresenceBar } from "../components/collab/CollabPresenceBar";
@@ -79,13 +79,13 @@ class PageErrorBoundary extends Component<
   }
 }
 
-export default function DocsAppPage({ spaceId }: { spaceId: string }) {
+export default memo(function DocsAppPage({ spaceId }: { spaceId: string }) {
   return (
     <PageErrorBoundary>
       <DocsAppPageInner spaceId={spaceId} />
     </PageErrorBoundary>
   );
-}
+});
 
 function DocsAppPageInner({ spaceId }: { spaceId: string }) {
   const s = useDocsPage(spaceId);

@@ -179,7 +179,7 @@ export function DocBrowserView({
   );
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="relative flex h-full flex-col overflow-hidden">
       {viewMode !== "archived" && (
         <div className="flex items-center gap-2 border-b border-border-subtle px-4 py-2">
           <button
@@ -209,7 +209,7 @@ export function DocBrowserView({
             <Spin />
           </div>
         ) : fileNodes.length === 0 ? (
-          <div className="flex h-full items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center">
             <Empty
               className="opacity-50"
               description={getEmptyDescription(viewMode, t)}
