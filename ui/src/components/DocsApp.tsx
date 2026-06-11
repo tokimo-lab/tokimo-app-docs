@@ -122,7 +122,7 @@ export default function DocsApp() {
   }
 
   return (
-    <div ref={containerRef} className="relative flex h-full">
+    <div ref={containerRef} className="relative flex h-full w-full">
       <DocsSpaceSidebar
         spaces={spaces as DocSpaceOutput[]}
         activeId={activeSpaceId}
