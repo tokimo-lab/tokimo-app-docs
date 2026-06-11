@@ -487,8 +487,19 @@ export function useDocsPage(spaceId: string) {
   const handleCreate = useCallback(
     (type: DocNodeType, parentId?: string) => {
       if (type === "notion") {
-        setPendingParentId(parentId);
-        setTemplateChooserOpen(true);
+        const { spaceId: id, treeNodes: nodes } = stateRef.current;
+        if (!id) return;
+        const title = nextUniqueName(
+          t("docs.untitledDocument"),
+          nodes,
+          parentId ?? null,
+        );
+        createMutRef.current.mutate({
+          spaceId: id,
+          type: "notion",
+          title,
+          parentRelPath: parentId,
+        });
       } else {
         const { spaceId: id, treeNodes: nodes } = stateRef.current;
         if (!id) return;
