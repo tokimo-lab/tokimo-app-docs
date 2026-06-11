@@ -11,18 +11,9 @@ use std::sync::Arc;
 
 pub fn build_docs_app_routes() -> Router<Arc<AppCtx>> {
     Router::new()
-        .route(
-            "/spaces",
-            get(space::list_spaces).post(space::create_space),
-        )
-        .route(
-            "/spaces/{id}",
-            patch(space::update_space).delete(space::delete_space),
-        )
-        .route(
-            "/spaces/{id}/nodes",
-            get(browse::list_nodes).post(crud::create_node),
-        )
+        .route("/spaces", get(space::list_spaces).post(space::create_space))
+        .route("/spaces/{id}", patch(space::update_space).delete(space::delete_space))
+        .route("/spaces/{id}/nodes", get(browse::list_nodes).post(crud::create_node))
         .route("/spaces/{id}/nodes/tags", get(browse::list_node_tags))
         .route(
             "/spaces/{id}/node",
@@ -30,17 +21,11 @@ pub fn build_docs_app_routes() -> Router<Arc<AppCtx>> {
         )
         .route("/spaces/{id}/node/restore", patch(crud::restore_node))
         .route("/spaces/{id}/node/permanent", delete(crud::delete_node))
-        .route(
-            "/spaces/{id}/node/favorite",
-            patch(browse::toggle_favorite),
-        )
+        .route("/spaces/{id}/node/favorite", patch(browse::toggle_favorite))
         .route("/spaces/{id}/node/pin", patch(browse::toggle_pin))
         .route("/spaces/{id}/node/move", patch(crud::move_node))
         .route("/spaces/{id}/node/versions", get(versions::list_versions))
-        .route(
-            "/spaces/{id}/node/version/{versionId}",
-            get(versions::get_version),
-        )
+        .route("/spaces/{id}/node/version/{versionId}", get(versions::get_version))
         .route(
             "/spaces/{id}/node/version/{versionId}/restore",
             post(versions::restore_version),
@@ -92,10 +77,7 @@ pub fn build_docs_app_routes() -> Router<Arc<AppCtx>> {
             post(base_records::batch_delete_records),
         )
         .route("/spaces/{id}/collab", get(collab::collab_ws))
-        .route(
-            "/whiteboard/libraries",
-            get(whiteboard_library::list_libraries),
-        )
+        .route("/whiteboard/libraries", get(whiteboard_library::list_libraries))
         .route(
             "/whiteboard/libraries/{id}/download",
             get(whiteboard_library::download_library),

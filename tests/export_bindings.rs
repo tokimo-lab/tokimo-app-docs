@@ -8,8 +8,8 @@ use ts_rs::TS;
 
 // ── Entity output types (db/entities/mod.rs) ────────────────────
 use tokimo_app_docs::db::entities::{
-    DocNodeAttachmentOutput, DocNodeCommentOutput, DocNodeListItem, DocNodeMetaOutput,
-    DocNodeOutput, DocNodeVersionDetailOutput, DocNodeVersionOutput, DocSpaceOutput,
+    DocNodeAttachmentOutput, DocNodeCommentOutput, DocNodeListItem, DocNodeMetaOutput, DocNodeOutput,
+    DocNodeVersionDetailOutput, DocNodeVersionOutput, DocSpaceOutput,
 };
 
 // ── handlers::space ─────────────────────────────────────────────
@@ -33,9 +33,7 @@ use tokimo_app_docs::handlers::collab::CollabQuery;
 use tokimo_app_docs::handlers::versions::RelPathQuery as VersionsRelPathQuery;
 
 // ── handlers::view_state ────────────────────────────────────────
-use tokimo_app_docs::handlers::view_state::{
-    PutViewStateBody, RelPathQuery as ViewStateRelPathQuery,
-};
+use tokimo_app_docs::handlers::view_state::{PutViewStateBody, RelPathQuery as ViewStateRelPathQuery};
 
 // ── handlers::view_ctx ──────────────────────────────────────────
 use tokimo_app_docs::handlers::view_ctx::ViewCtxOutput;
@@ -46,14 +44,10 @@ use tokimo_app_docs::handlers::base_records::{
 };
 
 // ── handlers::base_meta ─────────────────────────────────────────
-use tokimo_app_docs::handlers::base_meta::{
-    BaseMetaOutput, RelPathQuery as BaseMetaRelPathQuery, UpdateBaseMetaInput,
-};
+use tokimo_app_docs::handlers::base_meta::{BaseMetaOutput, RelPathQuery as BaseMetaRelPathQuery, UpdateBaseMetaInput};
 
 // ── handlers::whiteboard_library ────────────────────────────────
-use tokimo_app_docs::handlers::whiteboard_library::{
-    LibraryAuthor, LibraryCatalogItem, SaveUserLibraryBody,
-};
+use tokimo_app_docs::handlers::whiteboard_library::{LibraryAuthor, LibraryCatalogItem, SaveUserLibraryBody};
 
 #[test]
 fn export_bindings() {
