@@ -697,3 +697,30 @@ export const api = {
 };
 
 export { docAttachmentApi };
+
+// ── Standalone helpers (migrated from client.ts) ────────────────────
+
+export async function getWhiteboardUserLibrary(): Promise<unknown> {
+  return callApi("/whiteboard/user-library");
+}
+
+export async function saveWhiteboardUserLibrary(items: unknown): Promise<void> {
+  return callApi("/whiteboard/user-library", {
+    method: "PUT",
+    body: JSON.stringify({ items }),
+  });
+}
+
+export async function fetchWhiteboardLibraryDownload(
+  libraryId: string,
+): Promise<unknown> {
+  return callApi(`/whiteboard/libraries/${libraryId}/download`);
+}
+
+export async function fetchAttachmentContent(url: string): Promise<Response> {
+  const response = await fetch(url, { credentials: "include" });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  return response;
+}

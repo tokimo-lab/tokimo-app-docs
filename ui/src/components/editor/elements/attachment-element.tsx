@@ -1,5 +1,5 @@
 import { MaterialFileIcon } from "@tokimo/ui";
-import { fetchAttachmentContent } from "../../../api/client";
+import { fetchAttachmentContent } from "../../../api/generated";
 import {
   AudioPlayer,
   ImagePreview,

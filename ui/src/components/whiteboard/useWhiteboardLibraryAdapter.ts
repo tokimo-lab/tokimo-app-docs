@@ -10,7 +10,7 @@ import { useCallback, useMemo } from "react";
 import {
   getWhiteboardUserLibrary,
   saveWhiteboardUserLibrary,
-} from "../../api/client";
+} from "../../api/generated";
 
 export function useWhiteboardLibraryAdapter(
   excalidrawAPI: ExcalidrawImperativeAPI | null,

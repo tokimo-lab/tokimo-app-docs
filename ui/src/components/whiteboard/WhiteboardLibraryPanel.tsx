@@ -11,8 +11,7 @@ import { cn } from "@tokimo/ui";
 import { Check, Library, Plus, RefreshCw, Search, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchWhiteboardLibraryDownload } from "../../api/client";
-import { api } from "../../api/generated";
+import { api, fetchWhiteboardLibraryDownload } from "../../api/generated";
 
 interface WhiteboardLibraryPanelProps {
   excalidrawAPI: ExcalidrawImperativeAPI | null;
