@@ -8,8 +8,9 @@
  */
 
 import dayjs from "dayjs";
-import type { DocNodeListItem } from "@/generated/rust-api";
-import { DEFAULT_DATE_FORMAT } from "@/system";
+import type { DocNodeListItem } from "../api/generated";
+
+const DEFAULT_DATE_FORMAT = "YYYY-MM-DD";
 
 // ── Node type enum ─────────────────────────────────────────────────────────
 
@@ -58,9 +59,9 @@ export function apiNodeToLocal(n: DocNodeListItem): DocNode {
     id: n.relPath,
     relPath: n.relPath,
     type: n.type as DocNodeType,
-    parentId: n.parentId,
+    parentId: n.parentId ?? null,
     title: n.title,
-    icon: n.icon,
+    icon: n.icon ?? null,
     sortOrder: n.sortOrder,
     createdAt: n.createdAt,
     updatedAt: n.updatedAt,
@@ -176,11 +177,12 @@ export function untitledI18nKey(type: DocNodeType | string): string {
  */
 export function nextUniqueName(
   baseName: string,
-  allNodes: { parentId: string | null; title: string }[],
-  parentId: string | null,
+  allNodes: { parentId?: string | null; title: string }[],
+  parentId?: string | null,
 ): string {
+  const normPid = parentId ?? null;
   const siblings = new Set(
-    allNodes.filter((n) => n.parentId === parentId).map((n) => n.title),
+    allNodes.filter((n) => (n.parentId ?? null) === normPid).map((n) => n.title),
   );
   if (!siblings.has(baseName)) return baseName;
   for (let i = 2; ; i++) {

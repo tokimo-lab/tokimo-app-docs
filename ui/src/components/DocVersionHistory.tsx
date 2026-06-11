@@ -2,9 +2,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { cn, Modal } from "@tokimo/ui";
 import { Clock, RotateCcw, X } from "lucide-react";
 import { useCallback, useState } from "react";
-import { api } from "@/generated/rust-api";
-import type { DocNodeVersionOutput } from "@/generated/rust-types/index";
-import { useDateFormat, useMessage } from "@/system";
+import { useDateFormat } from "@tokimo/ui";
+import { api, type DocNodeVersionOutput } from "../api/generated";
+import { useMessage } from "../hooks/use-message";
 
 interface DocVersionHistoryProps {
   spaceId: string;

@@ -17,11 +17,13 @@ import {
   HardDrive,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import type { VfsDto } from "@/generated/rust-api";
-import { api } from "@/generated/rust-api";
-import { useWindowActions } from "@/system/window/WindowManagerContext";
-import type { WindowState } from "@/system/window/window-types";
-import { emitPick } from "@/system/window-bridge";
+import {
+  emitPick,
+  useShellApi,
+  useWindowActions,
+  type ShellWindowHandle,
+} from "@tokimo/sdk";
+import { api, type VfsDto } from "../api/generated";
 
 export interface VfsFileSelection {
   fileSystemId: string;
@@ -43,8 +45,9 @@ function formatFileSize(bytes: number | null | undefined): string {
   return `${val < 10 ? val.toFixed(1) : Math.round(val)} ${units[i]}`;
 }
 
-export default function VfsFilePickerWindow({ win }: { win: WindowState }) {
+export default function VfsFilePickerWindow({ win }: { win: ShellWindowHandle }) {
   const { closeWindow } = useWindowActions();
+  const { bridge } = useShellApi();
   const [selectedFs, setSelectedFs] = useState<VfsDto | null>(null);
   const [currentPath, setCurrentPath] = useState("/");
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -56,7 +59,7 @@ export default function VfsFilePickerWindow({ win }: { win: WindowState }) {
   const handleSelectFs = useCallback((fs: VfsDto) => {
     setSelectedFs(fs);
     setCurrentPath(
-      fs.type === "local" ? fs.displayHints?.rootPath || "/" : "/",
+      fs.type === "local" ? ((fs.displayHints as Record<string, unknown>)?.rootPath as string) || "/" : "/",
     );
     setSelectedFile(null);
   }, []);
@@ -69,7 +72,7 @@ export default function VfsFilePickerWindow({ win }: { win: WindowState }) {
 
   const handleConfirmSelection = useCallback(
     (file: VfsFileSelection) => {
-      emitPick(win, file);
+      emitPick(bridge, win as unknown as import("@tokimo/sdk").WindowState, file);
       closeWindow(win.id);
     },
     [win, closeWindow],
@@ -173,11 +176,11 @@ function FileBrowser({
     { enabled: true, retry: false, staleTime: 0 },
   );
 
-  const entries = browseQuery.data?.entries ?? [];
-  const parentPath = browseQuery.data?.parentPath ?? null;
+  const entries = browseQuery.data?.items ?? [];
+  const parentPath = currentPath !== "/" ? currentPath.replace(/\/[^/]*\/?$/, "") || "/" : null;
 
-  const dirs = entries.filter((e) => e.isDirectory);
-  const files = entries.filter((e) => !e.isDirectory);
+  const dirs = entries.filter((e: { isDirectory: boolean }) => e.isDirectory);
+  const files = entries.filter((e: { isDirectory: boolean }) => !e.isDirectory);
   const rows = [
     ...(parentPath ? [{ kind: "up" as const, path: parentPath }] : []),
     ...dirs.map((e) => ({ kind: "dir" as const, entry: e })),
@@ -193,18 +196,19 @@ function FileBrowser({
   });
 
   const selectedEntry = selectedFile
-    ? entries.find((e) => e.path === selectedFile)
+    ? entries.find((e: { path: string }) => e.path === selectedFile)
     : null;
 
   const handleConfirm = useCallback(() => {
     if (!selectedEntry) return;
+    const entry = selectedEntry as { path: string; name: string; size?: number; modifiedAt?: string };
     onConfirm({
       fileSystemId: fileSystem.id,
       fileSystemName: fileSystem.name,
-      filePath: selectedEntry.path,
-      fileName: selectedEntry.name,
-      fileSize: selectedEntry.size ?? null,
-      modifiedAt: selectedEntry.modifiedAt ?? null,
+      filePath: entry.path,
+      fileName: entry.name,
+      fileSize: entry.size ?? null,
+      modifiedAt: entry.modifiedAt ?? null,
     });
   }, [selectedEntry, fileSystem, onConfirm]);
 
@@ -319,7 +323,7 @@ function FileBrowser({
                       onClick={() => onSelectFile(row.entry.path)}
                       onDoubleClick={() => {
                         onSelectFile(row.entry.path);
-                        const entry = row.entry;
+                        const entry = row.entry as { path: string; name: string; size?: number; modifiedAt?: string };
                         onConfirm({
                           fileSystemId: fileSystem.id,
                           fileSystemName: fileSystem.name,
@@ -335,7 +339,7 @@ function FileBrowser({
                         {row.entry.name}
                       </span>
                       <span className="shrink-0 text-xs text-fg-muted">
-                        {formatFileSize(row.entry.size)}
+                        {formatFileSize((row.entry as { size?: number }).size)}
                       </span>
                     </button>
                   )}

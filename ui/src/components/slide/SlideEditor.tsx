@@ -1,7 +1,6 @@
 import { Maximize } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useWindowActions } from "@/system";
-import { useWindowId } from "@/system/window/WindowNavContext";
+import { useWindowActions, useWindowId } from "@tokimo/sdk";
 import { useDocViewport } from "../../hooks/use-doc-viewport";
 import { SearchReplace } from "./components/SearchReplace";
 import { SlidePanel } from "./panels/SlidePanel";
@@ -41,7 +40,8 @@ export function SlideEditor({
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
-  const { toggleFullscreen } = useWindowActions();
+  const windowActions = useWindowActions();
+  const toggleFullscreen = (windowActions as unknown as { toggleFullscreen?: (id: string, flag?: boolean) => void }).toggleFullscreen ?? (() => {});
   const windowId = useWindowId();
 
   // Viewport state persistence

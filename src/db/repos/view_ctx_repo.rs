@@ -24,10 +24,10 @@ impl DocNodeViewCtxRepo {
 
 impl DocNodeViewCtxRepo {
     pub async fn upsert_view_ctx(
-        db: &DatabaseConnection,
-        space_id: Uuid,
-        rel_path: &str,
-        scroll_position: Option<i32>,
+        _db: &DatabaseConnection,
+        _space_id: Uuid,
+        _rel_path: &str,
+        _scroll_position: Option<i32>,
     ) -> Result<docs_node_view_ctxs::Model, AppError> {
         // Placeholder implementation
         Err(AppError::Internal("not implemented".into()))
@@ -44,20 +44,20 @@ impl DocNodeViewCtxRepo {
 
 impl DocNodeViewCtxRepo {
     pub async fn rename_path(
-        db: &DatabaseConnection,
-        space_id: Uuid,
-        old_rel: &str,
-        new_rel: &str,
+        _db: &DatabaseConnection,
+        _space_id: Uuid,
+        _old_rel: &str,
+        _new_rel: &str,
     ) -> Result<(), AppError> {
         // Placeholder implementation
         Ok(())
     }
 
     pub async fn rename_path_prefix(
-        db: &DatabaseConnection,
-        space_id: Uuid,
-        old_prefix: &str,
-        new_prefix: &str,
+        _db: &DatabaseConnection,
+        _space_id: Uuid,
+        _old_prefix: &str,
+        _new_prefix: &str,
     ) -> Result<(), AppError> {
         // Placeholder implementation
         Ok(())

@@ -1,8 +1,8 @@
 import { Folder } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { untitledI18nKey } from "@/apps/docs/lib/doc-node";
-import type { DocNodeListItem } from "@/generated/rust-api";
+import type { DocNodeListItem } from "../api/generated";
+import { untitledI18nKey } from "../lib/doc-node";
 import type { DocNodeDetail } from "./useDocsPage";
 
 export function DocBreadcrumb({

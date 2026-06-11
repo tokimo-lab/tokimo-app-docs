@@ -1,5 +1,7 @@
 //! Library facade — exposes modules for ts-rs type generation and testing.
 
+#![allow(dead_code, unused_imports)]
+
 use axum::{
     Json,
     http::StatusCode,

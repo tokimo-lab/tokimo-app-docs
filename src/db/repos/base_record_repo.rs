@@ -115,7 +115,7 @@ impl BaseRecordRepo {
         if let Some(s) = sort_order {
             stmt = stmt.col_expr(docs_base_records::Column::SortOrder, Expr::value(s));
         }
-        let mut results = stmt.exec_with_returning(db).await?;
+        let results = stmt.exec_with_returning(db).await?;
         results
             .into_iter()
             .next()

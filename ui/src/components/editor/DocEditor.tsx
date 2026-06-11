@@ -73,7 +73,7 @@ import {
 } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
+import { docAttachmentApi } from "../../api/generated";
 import { PROVIDER_TYPE, type TokimoWsProviderOptions } from "./collab-provider";
 import { AttachmentElement } from "./elements/attachment-element";
 import { BlockquoteElement } from "./elements/blockquote-element";

@@ -2,7 +2,7 @@ import mermaid from "mermaid";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useEditorRef, useElement } from "platejs/react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { useThemeCore } from "@/system/appearance/ThemeContext";
+import { useThemeCore } from "../../../hooks/use-theme";
 import { BlockToolbar } from "../components/BlockToolbar";
 import { useBlockDrag } from "../hooks/use-block-drag";
 

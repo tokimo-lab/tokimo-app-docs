@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api } from "@/generated/rust-api";
+import { api } from "../api/generated";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
 import {
   apiNodeToLocal,

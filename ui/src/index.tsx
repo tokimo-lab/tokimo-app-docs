@@ -3,11 +3,11 @@
  *
  * Uses @tokimo/sdk for app lifecycle, @tokimo/ui for components.
  */
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   type AppRuntimeCtx,
   type Dispose,
   defineApp,
-  makeTranslator,
   RuntimeProvider,
 } from "@tokimo/sdk";
 import {
@@ -19,16 +19,25 @@ import {
 import { FileText } from "lucide-react";
 import { StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { I18nextProvider } from "react-i18next";
 import DocsApp from "./components/DocsApp";
-import { enUS, zhCN } from "./i18n";
+import i18n from "./i18n";
 import "./index.css";
 
+export const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+});
+
 function DocsWindow({ ctx }: { ctx: AppRuntimeCtx }) {
-  const t = makeTranslator({ "zh-CN": zhCN, "en-US": enUS }, ctx.locale);
+  // Sync i18next language with shell locale
+  const lang = ctx.locale.startsWith("zh") ? "zh-CN" : "en-US";
+  if (i18n.language !== lang) {
+    void i18n.changeLanguage(lang);
+  }
 
   return (
     <div className="flex h-full w-full text-[var(--color-fg-primary)]">
-      <DocsApp t={t} ctx={ctx} />
+      <DocsApp />
     </div>
   );
 }
@@ -45,19 +54,29 @@ export default defineApp({
     defaultSize: { width: 1200, height: 800 },
     category: "app",
   },
-  translations: { "zh-CN": zhCN, "en-US": enUS },
   mount(container, ctx): Dispose {
     const root: Root = createRoot(container);
     const locale = ctx.locale.startsWith("zh") ? uiZhCN : uiEnUS;
+
+    // Sync i18next language with shell locale
+    const lang = ctx.locale.startsWith("zh") ? "zh-CN" : "en-US";
+    if (i18n.language !== lang) {
+      void i18n.changeLanguage(lang);
+    }
+
     root.render(
       <StrictMode>
-        <ConfigProvider locale={locale}>
-          <ToastProvider>
-            <RuntimeProvider value={ctx}>
-              <DocsWindow ctx={ctx} />
-            </RuntimeProvider>
-          </ToastProvider>
-        </ConfigProvider>
+        <I18nextProvider i18n={i18n}>
+          <QueryClientProvider client={queryClient}>
+            <ConfigProvider locale={locale}>
+              <ToastProvider>
+                <RuntimeProvider value={ctx}>
+                  <DocsWindow ctx={ctx} />
+                </RuntimeProvider>
+              </ToastProvider>
+            </ConfigProvider>
+          </QueryClientProvider>
+        </I18nextProvider>
       </StrictMode>,
     );
     return () => root.unmount();

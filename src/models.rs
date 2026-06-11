@@ -4,7 +4,3 @@
 //! In the standalone app, models live in `db::entities::mod.rs`.
 //! This module re-exports them for backward compatibility.
 
-pub use crate::db::entities::{
-    DocNodeAttachmentOutput, DocNodeCommentOutput, DocNodeListItem, DocNodeMetaOutput, DocNodeOutput,
-    DocNodeVersionDetailOutput, DocNodeVersionOutput, DocSpaceOutput,
-};

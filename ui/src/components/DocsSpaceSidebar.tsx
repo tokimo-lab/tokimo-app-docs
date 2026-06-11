@@ -1,8 +1,8 @@
 import { AppSidebar, Tooltip } from "@tokimo/ui";
 import { PanelLeft, PanelLeftClose, Plus, Settings } from "lucide-react";
-import type { DocSpaceOutput } from "@/generated/rust-types/DocSpaceOutput";
-import { getAvatarColor, getAvatarIcon } from "@/shared/avatar-utils";
-import { AppIcon } from "@/shared/components/icons";
+import { getAvatarColor, getAvatarIcon } from "@tokimo/sdk";
+import type { DocSpaceOutput } from "../api/generated";
+import { AppIcon } from "./icons/AppIcon";
 
 export default function DocsSpaceSidebar({
   spaces,

@@ -13,7 +13,7 @@ import { createUniver, LocaleType, mergeLocales } from "@univerjs/presets";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useThemeCore } from "@/system";
+import { useThemeCore } from "../../hooks/use-theme";
 
 import "@univerjs/preset-sheets-core/lib/index.css";
 import "./sheet-overrides.css";

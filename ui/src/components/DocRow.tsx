@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useDateFormat } from "@/system";
+import { useDateFormat } from "@tokimo/ui";
 import type { DocNode } from "../lib/doc-node";
 import { untitledI18nKey } from "../lib/doc-node";
 import { DocNodeIcon } from "./DocNodeIcon";

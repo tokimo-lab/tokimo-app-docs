@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useWindowActions } from "@/system";
-import { useWindowId } from "@/system/window/WindowNavContext";
+import { useWindowActions, useWindowId } from "@tokimo/sdk";
 import { AudioElement } from "./elements/AudioElement";
 import { ChartElement } from "./elements/ChartElement";
 import { ImageElement } from "./elements/ImageElement";
@@ -40,7 +39,8 @@ export function SlidePresenter({
   const [animStep, setAnimStep] = useState(0);
   const slideContainerRef = useRef<HTMLDivElement>(null);
   const outerRef = useRef<HTMLDivElement>(null);
-  const { toggleFullscreen } = useWindowActions();
+  const windowActions = useWindowActions();
+  const toggleFullscreen = (windowActions as unknown as { toggleFullscreen?: (id: string, flag?: boolean) => void }).toggleFullscreen ?? (() => {});
   const windowId = useWindowId();
 
   // Presenter feature states

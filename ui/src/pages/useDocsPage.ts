@@ -1,34 +1,36 @@
 import { deserializeMd } from "@platejs/markdown";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  PickCancelled,
+  pickWithBridge,
+  useShellApi,
+  useWindowActions,
+  useWindowId,
+  useWindowNav,
+} from "@tokimo/sdk";
 import type { TElement, Value } from "platejs";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { api, docAttachmentApi, type DocNodeListItem, type DocsTab } from "../api/generated";
 import type {
   SidebarTab,
   SortDir,
   SortField,
-} from "@/apps/docs/components/DocSidebar";
-import type { DocTemplate } from "@/apps/docs/components/doc-templates";
-import type { DocEditorHandle } from "@/apps/docs/components/editor";
-import type { VfsFileSelection } from "@/apps/docs/components/VfsFilePickerWindow";
-import type { DocNode, DocNodeType } from "@/apps/docs/lib/doc-node";
+} from "../components/DocSidebar";
+import type { DocTemplate } from "../components/doc-templates";
+import type { DocEditorHandle } from "../components/editor";
+import type { VfsFileSelection } from "../components/VfsFilePickerWindow";
+import type { DocNode, DocNodeType } from "../lib/doc-node";
 import {
   buildNodePath,
   nextUniqueName,
   parentRelPathOf,
   resolveNodeByPath,
   untitledI18nKey,
-} from "@/apps/docs/lib/doc-node";
-import type { DocNodeListItem } from "@/generated/rust-api";
-import { api } from "@/generated/rust-api";
-import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
-import type { DocsTab } from "@/generated/rust-api/docs/docs";
-import { onAiDocumentEdit, openAiAssistant } from "@/lib/ai-assistant-events";
-import { useMessage, useWindowNav } from "@/system";
-import { useAuth } from "@/system/auth/useAuth";
-import { useWindowActions } from "@/system/window/WindowManagerContext";
-import { useWindowId } from "@/system/window/WindowNavContext";
-import { PickCancelled, pickWithBridge } from "@/system/window-bridge";
+} from "../lib/doc-node";
+import { onAiDocumentEdit, openAiAssistant } from "../lib/ai-assistant-events";
+import { useAuth } from "../hooks/use-auth";
+import { useMessage } from "../hooks/use-message";
 import {
   dispatchAiAction,
   exportAsDocx,
@@ -126,6 +128,7 @@ export function useDocsPage(spaceId: string) {
   const message = useMessage();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { bridge } = useShellApi();
 
   // ── UI state ─────────────────────────────────────────────────────────
   const [tab, setTab] = useState<SidebarTab>("all");
@@ -179,9 +182,9 @@ export function useDocsPage(spaceId: string) {
   const selectedNode = useMemo(
     () =>
       selectedFolderListQuery.data?.items.find(
-        (n) => n.relPath === selectedNodeId,
+        (n: DocNodeListItem) => n.relPath === selectedNodeId,
       ) ??
-      listQuery.data?.items.find((n) => n.relPath === selectedNodeId) ??
+      listQuery.data?.items.find((n: DocNodeListItem) => n.relPath === selectedNodeId) ??
       null,
     [selectedFolderListQuery.data, listQuery.data, selectedNodeId],
   );
@@ -265,7 +268,7 @@ export function useDocsPage(spaceId: string) {
     if (tab !== "all") return listQuery.data?.items ?? [];
     const nodes = browserQuery.data?.items ?? listQuery.data?.items ?? [];
     if (currentFolderId) return nodes;
-    return nodes.filter((node) => node.parentId === null);
+    return nodes.filter((node: DocNodeListItem) => node.parentId === null);
   }, [browserQuery.data, currentFolderId, listQuery.data, tab]);
   const browserIsLoading =
     tab === "all"
@@ -281,7 +284,7 @@ export function useDocsPage(spaceId: string) {
       // Don't require the node to exist in already-loaded queries —
       // ancestor folders may not be in treeNodes yet. Just navigate to the
       // relPath; the route-driven queries will resolve type/metadata.
-      const node = treeNodes.find((n) => n.relPath === nodeId);
+      const node = treeNodes.find((n: DocNodeListItem) => n.relPath === nodeId);
       const title = node?.title ?? nodeId.split("/").pop() ?? nodeId;
       navigate(buildNodePath(spaceId, nodeId), `TokimoDocs · ${title}`);
       setPreviewingVersionId(null);
@@ -382,7 +385,7 @@ export function useDocsPage(spaceId: string) {
   });
 
   const updateMutation = api.docs.update.useMutation({
-    onSuccess: (data, variables) => {
+    onSuccess: (data: DocNodeListItem, variables: { relPath?: string; id?: string; nodeId?: string; content?: unknown; title?: string }) => {
       refetchNodeQueries();
       // If the update renamed the file (title change → new rel_path),
       // bring the URL along so the still-mounted route doesn't deselect
@@ -673,7 +676,7 @@ export function useDocsPage(spaceId: string) {
     if (editor) await exportAsDocx(editor, stateRef.current.selectedDocTitle);
   }, []);
 
-  const toggleSidebar = useCallback(() => setSidebarCollapsed((v) => !v), []);
+  const toggleSidebar = useCallback(() => setSidebarCollapsed((v: boolean) => !v), []);
 
   const handleAddComment = useCallback(
     (_: string) => setCommentSidebarOpen(true),
@@ -713,9 +716,8 @@ export function useDocsPage(spaceId: string) {
 
   const handleInsertVfsFile = useCallback(async () => {
     try {
-      const file = await pickWithBridge<VfsFileSelection>(openModalWindow, {
-        component: () => import("@/apps/docs/components/VfsFilePickerWindow"),
-        parentWindowId: windowId,
+      const file = await pickWithBridge<VfsFileSelection>(bridge, openModalWindow, {
+        component: () => import("../components/VfsFilePickerWindow"),
         title: "引用文件",
         width: 600,
         height: 480,
@@ -725,7 +727,7 @@ export function useDocsPage(spaceId: string) {
       if (err instanceof PickCancelled) return;
       throw err;
     }
-  }, [openModalWindow, windowId, insertVfsFileNode]);
+  }, [bridge, openModalWindow, windowId, insertVfsFileNode]);
 
   // ── Attachment upload ──────────────────────────────────────────────
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);

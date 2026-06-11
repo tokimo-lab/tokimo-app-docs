@@ -11,9 +11,7 @@ import { cn } from "@tokimo/ui";
 import { Check, Library, Plus, RefreshCw, Search, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api } from "@/generated/rust-api";
-import { authFetch } from "@/lib/auth-fetch";
-import { rustUrl } from "@/lib/rust-api-runtime";
+import { api } from "../../api/generated";
 
 interface WhiteboardLibraryPanelProps {
   excalidrawAPI: ExcalidrawImperativeAPI | null;
@@ -53,10 +51,8 @@ export function WhiteboardLibraryPanel({
       if (!excalidrawAPI || addingId || addedIds.has(libraryId)) return;
       setAddingId(libraryId);
       try {
-        const url = rustUrl(
-          `/api/apps/docs/whiteboard/libraries/${libraryId}/download`,
-        );
-        const res = await authFetch(url);
+        const url = `/api/apps/docs/whiteboard/libraries/${libraryId}/download`;
+        const res = await fetch(url, { credentials: "include" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         // New format: { libraryItems: [{id,status,elements,...}] }
@@ -160,9 +156,7 @@ export function WhiteboardLibraryPanel({
                 {/* Preview image */}
                 <div className="relative aspect-[2/1] bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                   <img
-                    src={rustUrl(
-                      `/api/apps/docs/whiteboard/libraries/${lib.id}/preview`,
-                    )}
+                    src={`/api/apps/docs/whiteboard/libraries/${lib.id}/preview`}
                     alt={lib.name}
                     className="w-full h-full object-contain"
                     loading="lazy"

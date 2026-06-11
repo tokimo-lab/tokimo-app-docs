@@ -3,7 +3,6 @@ import { ExternalLink, FileIcon, HardDrive } from "lucide-react";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement, useElement } from "platejs/react";
 import { useRef } from "react";
-import { rustUrl } from "@/lib/rust-api-runtime";
 import { BlockToolbar } from "../components/BlockToolbar";
 import { useBlockDrag } from "../hooks/use-block-drag";
 
@@ -42,9 +41,7 @@ export function VfsFileElement(props: PlateElementProps) {
 
   const fileUrl =
     fileSystemId && filePath
-      ? rustUrl(
-          `/api/vfs/${encodeURIComponent(fileSystemId)}/read-file?path=${encodeURIComponent(filePath)}`,
-        )
+      ? `/api/vfs/${encodeURIComponent(fileSystemId)}/read-file?path=${encodeURIComponent(filePath)}`
       : null;
 
   const sizeLabel = formatFileSize(fileSize);

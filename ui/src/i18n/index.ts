@@ -1,5 +1,8 @@
-export const zhCN: Record<string, string> = {
-  "appName": "文档",
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+
+const zhCN: Record<string, unknown> = {
+  appName: "文档",
   "spaces.title": "文档空间",
   "spaces.create": "创建空间",
   "spaces.empty": "还没有文档空间，创建一个开始吧",
@@ -48,10 +51,20 @@ export const zhCN: Record<string, string> = {
   "common.error": "操作失败",
   "common.search": "搜索...",
   "common.noResults": "无结果",
+
+  "common.setupGuide.getStarted": "开始使用 {{name}}",
+  "common.setupGuide.docsTagline": "创建和管理文档、表格、幻灯片和思维导图",
+  "common.setupGuide.docsFeatures": [
+    "📝 富文本文档编辑",
+    "📊 在线表格",
+    "🎤 幻灯片演示",
+    "🧠 思维导图",
+  ],
+  "common.setupGuide.docsAction": "创建第一个文档",
 };
 
-export const enUS: Record<string, string> = {
-  "appName": "Docs",
+const enUS: Record<string, unknown> = {
+  appName: "Docs",
   "spaces.title": "Document Spaces",
   "spaces.create": "Create Space",
   "spaces.empty": "No document spaces yet. Create one to get started.",
@@ -100,4 +113,33 @@ export const enUS: Record<string, string> = {
   "common.error": "Operation failed",
   "common.search": "Search...",
   "common.noResults": "No results",
+
+  "common.setupGuide.getStarted": "Get Started with {{name}}",
+  "common.setupGuide.docsTagline": "Create and manage documents, spreadsheets, slides, and mind maps",
+  "common.setupGuide.docsFeatures": [
+    "📝 Rich text document editing",
+    "📊 Online spreadsheets",
+    "🎤 Slide presentations",
+    "🧠 Mind maps",
+  ],
+  "common.setupGuide.docsAction": "Create your first document",
 };
+
+const resources = {
+  "zh-CN": { translation: zhCN },
+  "en-US": { translation: enUS },
+} as const;
+
+export const SUPPORTED_LOCALES = Object.keys(resources);
+
+if (!i18n.isInitialized) {
+  i18n.use(initReactI18next).init({
+    lng: "zh-CN",
+    fallbackLng: "en-US",
+    interpolation: { escapeValue: false },
+    returnObjects: true,
+    resources,
+  });
+}
+
+export default i18n;

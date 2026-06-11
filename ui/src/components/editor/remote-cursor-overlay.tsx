@@ -157,7 +157,7 @@ export function RemoteCursorOverlay({
       [];
     for (const [key, state] of Object.entries(states)) {
       const clientId = Number(key);
-      const cursorData = state.data as CursorData | undefined;
+      const cursorData = (state as Record<string, unknown>).data as CursorData | undefined;
       const name = cursorData?.name ?? "Anonymous";
       remoteCursors.push({ clientId, name });
       stateEntries.push([clientId, state]);
@@ -171,7 +171,7 @@ export function RemoteCursorOverlay({
 
     const items: OverlayData[] = [];
     for (const [clientId, state] of stateEntries) {
-      const cursorData = state.data as CursorData | undefined;
+      const cursorData = (state as Record<string, unknown>).data as CursorData | undefined;
       const range = getCursorRange(
         editor as Parameters<typeof getCursorRange>[0],
         state as Parameters<typeof getCursorRange>[1],
@@ -212,7 +212,7 @@ export function RemoteCursorOverlay({
   useEffect(() => {
     if (!CursorEditor.isCursorEditor(editor)) return;
 
-    const handler: RemoteCursorChangeEventListener = (event) => {
+    const handler: RemoteCursorChangeEventListener = (event: { removed: number[] }) => {
       // If cursors were removed, refresh immediately to clear stale overlays
       if (event.removed.length > 0) {
         refresh();

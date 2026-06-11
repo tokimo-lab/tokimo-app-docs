@@ -14,28 +14,28 @@ import {
   Sparkles,
   Upload,
 } from "lucide-react";
+import { useMenuBar } from "@tokimo/sdk";
 import { Component, type ErrorInfo, type ReactNode, useMemo } from "react";
-import { BaseEditor } from "@/apps/docs/components/base/BaseEditor";
-import { CollabPresenceBar } from "@/apps/docs/components/collab/CollabPresenceBar";
-import { DocBrowserView } from "@/apps/docs/components/DocBrowserView";
-import { DocSidebar } from "@/apps/docs/components/DocSidebar";
-import { DocTemplateChooser } from "@/apps/docs/components/DocTemplateChooser";
+import { BaseEditor } from "../components/base/BaseEditor";
+import { CollabPresenceBar } from "../components/collab/CollabPresenceBar";
+import { DocBrowserView } from "../components/DocBrowserView";
+import { DocSidebar } from "../components/DocSidebar";
+import { DocTemplateChooser } from "../components/DocTemplateChooser";
 import {
   DocVersionHistory,
   VersionPreviewBar,
-} from "@/apps/docs/components/DocVersionHistory";
-import { CommentSidebar } from "@/apps/docs/components/editor/elements/comment-sidebar";
-import { MarkdownEditor } from "@/apps/docs/components/markdown/MarkdownEditor";
-import { MindEditor } from "@/apps/docs/components/mind/MindEditor";
-import { SheetEditor } from "@/apps/docs/components/sheet/SheetEditor";
-import { SlideEditor } from "@/apps/docs/components/slide/SlideEditor";
-import { WhiteboardEditor } from "@/apps/docs/components/whiteboard/WhiteboardEditor";
+} from "../components/DocVersionHistory";
+import { CommentSidebar } from "../components/editor/elements/comment-sidebar";
+import { MarkdownEditor } from "../components/markdown/MarkdownEditor";
+import { MindEditor } from "../components/mind/MindEditor";
+import { SheetEditor } from "../components/sheet/SheetEditor";
+import { SlideEditor } from "../components/slide/SlideEditor";
+import { WhiteboardEditor } from "../components/whiteboard/WhiteboardEditor";
 import {
   apiNodeToLocal,
   nextUniqueName,
   untitledI18nKey,
-} from "@/apps/docs/lib/doc-node";
-import { useMenuBar } from "@/system";
+} from "../lib/doc-node";
 import { DocEditorArea } from "./DocEditorArea";
 import { DocPageHeader } from "./DocPageHeader";
 import { useDocsPage } from "./useDocsPage";
@@ -293,7 +293,7 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
   const nodeByPath = useMemo(
     () =>
       new Map(
-        s.allNodes.map((n) => [
+        s.allNodes.map((n: { relPath: string; title: string; icon?: string | null }) => [
           n.relPath,
           { title: n.title, icon: n.icon ?? null },
         ]),
@@ -355,7 +355,7 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
         <button
           type="button"
           onClick={() => {
-            s.setVersionHistoryOpen((v) => !v);
+            s.setVersionHistoryOpen((v: boolean) => !v);
             if (s.versionHistoryOpen) s.setPreviewingVersionId(null);
           }}
           className={`flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
@@ -369,7 +369,7 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
         </button>
         <button
           type="button"
-          onClick={() => s.setCommentSidebarOpen((v) => !v)}
+          onClick={() => s.setCommentSidebarOpen((v: boolean) => !v)}
           className={`flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
             s.commentSidebarOpen
               ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"

@@ -45,7 +45,7 @@ export function TextElement({
     if (!editor || editing) return;
     const current = editor.getHTML();
     if (current !== element.content) {
-      editor.commands.setContent(element.content, { emitUpdate: false });
+      editor.commands.setContent(element.content, false);
     }
   }, [editor, element.content, editing]);
 

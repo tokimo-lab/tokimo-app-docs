@@ -115,7 +115,7 @@ export function useSlideCollab({
       }
 
       // Observe remote changes
-      slidesMap.observe((event) => {
+      slidesMap.observe((event: { transaction: { local: boolean } }) => {
         if (event.transaction.local) return;
         const snapshot = slidesMap.get("snapshot");
         if (!isSlidePresentation(snapshot)) return;

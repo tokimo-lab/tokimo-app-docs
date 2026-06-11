@@ -6,12 +6,12 @@ import {
   type ContextMenuItem,
   Empty,
   type FileNode,
+  FileGrid,
   Spin,
   useContextMenu,
 } from "@tokimo/ui";
 import { FileText, FolderPlus } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
-import { FinderFileGridView } from "@/apps/finder/components/FinderFileGrid";
+import { type ComponentProps, useCallback, useMemo, useState } from "react";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
 import { DocNodeIcon } from "./DocNodeIcon";
 
@@ -213,7 +213,7 @@ export function DocBrowserView({
             />
           </div>
         ) : (
-          <FinderFileGridView
+          <FileGrid
             nodes={fileNodes}
             selectedPaths={selectedPaths}
             viewMode="list"

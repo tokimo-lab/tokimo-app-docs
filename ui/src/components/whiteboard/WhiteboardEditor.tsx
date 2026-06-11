@@ -17,7 +17,7 @@ import type {
 } from "@excalidraw/excalidraw/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useThemeCore } from "@/system";
+import { useThemeCore } from "../../hooks/use-theme";
 import { useDocViewport } from "../../hooks/use-doc-viewport";
 import { useWhiteboardLibraryAdapter } from "./useWhiteboardLibraryAdapter";
 import { WhiteboardLibraryPanel } from "./WhiteboardLibraryPanel";

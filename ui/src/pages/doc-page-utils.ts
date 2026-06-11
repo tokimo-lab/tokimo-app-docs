@@ -1,6 +1,6 @@
 import { serializeMd } from "@platejs/markdown";
-import type { DocEditorHandle } from "@/apps/docs/components/editor";
-import { openAiAssistant } from "@/lib/ai-assistant-events";
+import type { DocEditorHandle } from "../components/editor";
+import { openAiAssistant } from "../lib/ai-assistant-events";
 
 /** Serialize editor content to Markdown and trigger download. */
 export function exportAsMarkdown(
@@ -42,7 +42,7 @@ export async function exportAsDocx(
 ): Promise<void> {
   if (!editor) return;
   const { exportDocx } = await import(
-    "@/apps/docs/components/export/serialize-docx"
+    "../components/export/serialize-docx"
   );
   await exportDocx(editor.children, title || "document");
 }

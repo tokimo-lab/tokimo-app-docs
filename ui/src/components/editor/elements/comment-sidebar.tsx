@@ -10,9 +10,9 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useState } from "react";
-import { api } from "@/generated/rust-api";
-import type { DocNodeCommentOutput } from "@/generated/rust-types/index";
-import { useAuth, useDateFormat } from "@/system";
+import { useDateFormat } from "@tokimo/ui";
+import { api, type DocNodeCommentOutput } from "../../../api/generated";
+import { useAuth } from "../../../hooks/use-auth";
 
 interface CommentSidebarProps {
   spaceId: string;

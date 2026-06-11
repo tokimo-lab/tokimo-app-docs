@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef } from "react";
-import { api } from "@/generated/rust-api";
+import { api } from "../../api/generated";
 import type {
   BaseRecord,
   BaseView,

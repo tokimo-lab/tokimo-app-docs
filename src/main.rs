@@ -6,6 +6,8 @@
 //! 3. Report the socket to broker (via `data_plane_socket` field)
 //! 4. Server-side `/api/apps/docs/<rest>` proxies to this sock's `/<rest>`
 
+#![allow(dead_code, unused_imports)]
+
 /// Compile-time embedded app manifest; shared with the library crate via lib.rs.
 const MANIFEST: &str = include_str!("../tokimo-app.toml");
 

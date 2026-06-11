@@ -3,17 +3,17 @@ import type { Value } from "platejs";
 import type { MutableRefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { DocTagInput } from "@/apps/docs/components/DocTagInput";
-import { DocEditor, type DocEditorHandle } from "@/apps/docs/components/editor";
-import { useDocViewport } from "@/apps/docs/hooks/use-doc-viewport";
+import { DocTagInput } from "../components/DocTagInput";
+import { DocEditor, type DocEditorHandle } from "../components/editor";
+import { useDocViewport } from "../hooks/use-doc-viewport";
 import {
   BlockFocusContext,
   ScrollGuardContext,
   useBlockFocusProvider,
   useScrollGuardProvider,
-} from "@/apps/docs/hooks/use-scroll-guard";
-import { untitledI18nKey } from "@/apps/docs/lib/doc-node";
-import { useAuth } from "@/system/auth/useAuth";
+} from "../hooks/use-scroll-guard";
+import { untitledI18nKey } from "../lib/doc-node";
+import { useAuth } from "../hooks/use-auth";
 import type { DocNodeDetail } from "./useDocsPage";
 
 const PLACEHOLDER_HEIGHT = 120;

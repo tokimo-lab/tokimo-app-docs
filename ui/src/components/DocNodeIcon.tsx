@@ -7,7 +7,7 @@
  */
 
 import { memo } from "react";
-import { MaterialFileIcon } from "@/shared/components/icons/MaterialFileIcon";
+import { MaterialFileIcon } from "./icons/MaterialFileIcon";
 import type { DocNode } from "../lib/doc-node";
 
 const DOC_TYPE_ICON: Record<string, string> = {

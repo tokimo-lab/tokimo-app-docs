@@ -9,8 +9,8 @@ import type { MindElixirInstance } from "mind-elixir";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { useThemeCore, useWindowActions } from "@/system";
-import { useWindowId } from "@/system/window/WindowNavContext";
+import { useWindowActions, useWindowId } from "@tokimo/sdk";
+import { useThemeCore } from "../../hooks/use-theme";
 import {
   angularMain,
   angularSub,
@@ -193,7 +193,8 @@ function BranchPopover({
 export function MindBottomToolbar({ mind }: MindBottomToolbarProps) {
   const { t } = useTranslation();
   const { theme } = useThemeCore();
-  const { toggleFullscreen } = useWindowActions();
+  const windowActions = useWindowActions();
+  const toggleFullscreen = (windowActions as unknown as { toggleFullscreen?: (id: string) => void }).toggleFullscreen ?? (() => {});
   const windowId = useWindowId();
   const isDark = theme === "dark";
 

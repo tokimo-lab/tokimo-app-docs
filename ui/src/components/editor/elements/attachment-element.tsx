@@ -23,10 +23,8 @@ import { createPortal } from "react-dom";
 import {
   useBlockFocus,
   WheelCaptureShield,
-} from "@/apps/docs/hooks/use-scroll-guard";
-import { docAttachmentApi } from "@/generated/rust-api/docs/attachment";
-import { authFetch } from "@/lib/auth-fetch";
-import { rustUrl } from "@/lib/rust-api-runtime";
+} from "../../../hooks/use-scroll-guard";
+import { docAttachmentApi } from "../../../api/generated";
 import { BlockToolbar } from "../components/BlockToolbar";
 import { useDocEditorContext } from "../DocEditor";
 import { useBlockDrag } from "../hooks/use-block-drag";
@@ -111,7 +109,7 @@ interface AttachmentData {
 }
 
 function getStorageUrl(storageKey: string): string {
-  return rustUrl(`/storage/${storageKey}`);
+  return `/storage/${storageKey}`;
 }
 
 function isImageType(mime: string): boolean {
@@ -381,7 +379,7 @@ function PreviewContent({
             key={url}
             fileName={fileName}
             fetchContent={() =>
-              authFetch(url).then((response) => {
+              fetch(url, { credentials: "include" }).then((response) => {
                 if (!response.ok) {
                   throw new Error(`fetch failed: ${response.status}`);
                 }

@@ -15,7 +15,7 @@ import type { LangPack } from "mind-elixir/i18n";
 import { en, ja, zh_CN } from "mind-elixir/i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useThemeCore } from "@/system";
+import { useThemeCore } from "../../hooks/use-theme";
 import { useDocViewport } from "../../hooks/use-doc-viewport";
 import { MindBottomToolbar } from "./MindBottomToolbar";
 import { MindOutlineView } from "./MindOutlineView";

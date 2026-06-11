@@ -19,8 +19,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { DocNodeListItem } from "@/generated/rust-api";
-import { api } from "@/generated/rust-api";
+import { api, type DocNodeListItem } from "../api/generated";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
 import { apiNodeToLocal, parentRelPathOf } from "../lib/doc-node";
 import { DocNodeTipPanel, useDocNodeTip } from "./DocNodeTip";

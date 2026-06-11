@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { api } from "@/generated/rust-api";
+import { api } from "../api/generated";
 
 export function useDocViewport(
   spaceId: string | undefined,
