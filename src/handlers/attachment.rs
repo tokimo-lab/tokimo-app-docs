@@ -50,15 +50,10 @@ pub async fn upload_attachment(
     );
     if let Err(e) = ctx
         .storage
-        .upload(
-            std::path::Path::new(&storage_key),
-            &data,
-            Some(content_type.clone()),
-        )
+        .upload(std::path::Path::new(&storage_key), &data, Some(content_type.clone()))
         .await
     {
-        return err_resp(StatusCode::INTERNAL_SERVER_ERROR, format!("Storage upload failed: {e}"))
-            .into_response();
+        return err_resp(StatusCode::INTERNAL_SERVER_ERROR, format!("Storage upload failed: {e}")).into_response();
     }
     match AttachmentRepo::create(
         &ctx.db,
