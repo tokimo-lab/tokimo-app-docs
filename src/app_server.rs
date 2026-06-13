@@ -16,11 +16,10 @@ use axum::{
 use tokimo_bus_protocol::{BusListener, DataPlaneSocket};
 use tracing::{error, info};
 
-use crate::{assets, handlers::AppCtx};
 use crate::handlers::{
-    attachment, base_meta, base_records, browse, collab, comments, crud, space, versions,
-    view_ctx, whiteboard_library,
+    attachment, base_meta, base_records, browse, collab, comments, crud, space, versions, view_ctx, whiteboard_library,
 };
+use crate::{assets, handlers::AppCtx};
 
 /// Start axum server on local socket, return `DataPlaneSocket` for broker registration.
 pub async fn spawn(service: &str, ctx: Arc<AppCtx>) -> anyhow::Result<DataPlaneSocket> {
