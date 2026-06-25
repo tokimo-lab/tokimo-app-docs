@@ -53,8 +53,9 @@
     "@tokimo/ui": "github:tokimo-lab/tokimo-ui#0d09afd6d88365fa40dfe729fedf9fb30331eb5e",
     "@tokimo/viewers": "github:tokimo-lab/tokimo-viewers#e0caf1fad80486cde8a4682695c73298c1401945",
     "@univerjs/core": "0.20.1",
-    "@univerjs/preset-sheets-core": "^0.20.0",
-    "@univerjs/presets": "^0.20.0",
+    "@univerjs/icons": "1.10.0",
+    "@univerjs/preset-sheets-core": "0.20.1",
+    "@univerjs/presets": "0.20.1",
     "dayjs": "^1.11.20",
     "docx": "^9.5.0",
     "i18next": "^26.3.1",
@@ -91,7 +92,8 @@
     "overrides": {
       "@types/react": "$@types/react",
       "@types/react-dom": "$@types/react-dom",
-      "@univerjs/core": "$@univerjs/core"
+      "@univerjs/core": "$@univerjs/core",
+      "@univerjs/icons": "$@univerjs/icons"
     }
   }
 }
