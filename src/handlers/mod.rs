@@ -8,7 +8,6 @@ pub mod crud;
 pub mod space;
 pub mod user;
 pub mod versions;
-pub mod view_ctx;
 pub mod view_state;
 pub mod whiteboard_library;
 

@@ -4,21 +4,21 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "docs_node_view_ctxs")]
+#[sea_orm(table_name = "docs_node_view_states")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    #[sea_orm(unique_key = "docs_node_view_ctxs_user_id_space_id_rel_path_key")]
+    #[sea_orm(unique_key = "docs_node_view_states_user_id_space_id_rel_path_key")]
     pub user_id: Uuid,
-    #[sea_orm(unique_key = "docs_node_view_ctxs_user_id_space_id_rel_path_key")]
+    #[sea_orm(unique_key = "docs_node_view_states_user_id_space_id_rel_path_key")]
     pub space_id: Uuid,
     #[sea_orm(
         column_type = "Text",
-        unique_key = "docs_node_view_ctxs_user_id_space_id_rel_path_key"
+        unique_key = "docs_node_view_states_user_id_space_id_rel_path_key"
     )]
     pub rel_path: String,
     #[sea_orm(column_type = "JsonBinary")]
-    pub view_ctx: Json,
+    pub view_state: Json,
     pub updated_at: DateTimeWithTimeZone,
 }
 

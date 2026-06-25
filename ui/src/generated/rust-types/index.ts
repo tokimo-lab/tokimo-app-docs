@@ -31,4 +31,3 @@ export type { UpdateBaseMetaInput } from "./UpdateBaseMetaInput";
 export type { UpdateNodeInput } from "./UpdateNodeInput";
 export type { UpdateRecordInput } from "./UpdateRecordInput";
 export type { UpdateSpaceInput } from "./UpdateSpaceInput";
-export type { ViewCtxOutput } from "./ViewCtxOutput";

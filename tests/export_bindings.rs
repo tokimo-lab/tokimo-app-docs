@@ -35,9 +35,6 @@ use tokimo_app_docs::handlers::versions::RelPathQuery as VersionsRelPathQuery;
 // ── handlers::view_state ────────────────────────────────────────
 use tokimo_app_docs::handlers::view_state::{PutViewStateBody, RelPathQuery as ViewStateRelPathQuery};
 
-// ── handlers::view_ctx ──────────────────────────────────────────
-use tokimo_app_docs::handlers::view_ctx::ViewCtxOutput;
-
 // ── handlers::base_records ──────────────────────────────────────
 use tokimo_app_docs::handlers::base_records::{
     BaseRecordOutput, BatchDeleteInput, BatchDeleteOutput, CreateRecordInput, UpdateRecordInput,
@@ -83,8 +80,6 @@ fn export_bindings() {
 
     PutViewStateBody::export_all(&Default::default()).unwrap();
     ViewStateRelPathQuery::export_all(&Default::default()).unwrap();
-
-    ViewCtxOutput::export_all(&Default::default()).unwrap();
 
     BaseRecordOutput::export_all(&Default::default()).unwrap();
     BatchDeleteOutput::export_all(&Default::default()).unwrap();

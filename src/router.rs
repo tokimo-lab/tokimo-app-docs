@@ -1,6 +1,6 @@
 use crate::handlers::AppCtx;
 use crate::handlers::{
-    attachment, base_meta, base_records, browse, collab, comments, crud, space, versions, view_ctx, whiteboard_library,
+    attachment, base_meta, base_records, browse, collab, comments, crud, space, versions, view_state, whiteboard_library,
 };
 use axum::{
     Router,
@@ -57,8 +57,8 @@ pub fn build_docs_app_routes() -> Router<Arc<AppCtx>> {
             post(attachment::restore_attachment),
         )
         .route(
-            "/spaces/{id}/node/view-ctx",
-            get(view_ctx::get_view_ctx).put(view_ctx::put_view_ctx),
+            "/spaces/{id}/node/view-state",
+            get(view_state::get_view_state).put(view_state::put_view_state),
         )
         .route(
             "/spaces/{id}/base",

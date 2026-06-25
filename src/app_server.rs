@@ -17,7 +17,8 @@ use tokimo_bus_protocol::{BusListener, DataPlaneSocket};
 use tracing::{error, info};
 
 use crate::handlers::{
-    attachment, base_meta, base_records, browse, collab, comments, crud, space, versions, view_ctx, whiteboard_library,
+    attachment, base_meta, base_records, browse, collab, comments, crud, space, versions, view_state,
+    whiteboard_library,
 };
 use crate::{assets, handlers::AppCtx};
 
@@ -106,10 +107,10 @@ fn build_router(ctx: Arc<AppCtx>) -> Router {
             "/spaces/{id}/attachments/{attachmentId}/restore",
             post(attachment::restore_attachment),
         )
-        // ── View context ────────────────────────────────────────
+        // ── View state ──────────────────────────────────────────
         .route(
-            "/spaces/{id}/node/view-ctx",
-            get(view_ctx::get_view_ctx).put(view_ctx::put_view_ctx),
+            "/spaces/{id}/node/view-state",
+            get(view_state::get_view_state).put(view_state::put_view_state),
         )
         // ── Base (spreadsheet) ──────────────────────────────────
         .route(

@@ -1,4 +1,4 @@
-import { useWindowActions, type WindowState } from "@tokimo/sdk";
+import { type ShellWindowHandle, useWindowActions } from "@tokimo/sdk";
 import { useState } from "react";
 import { queryClient } from "../index";
 import { getBridge, type SpaceEditorBridge } from "../modal-bridge";
@@ -9,7 +9,7 @@ function DocSpaceEditorContent({
   win,
   bridge,
 }: {
-  win: WindowState;
+  win: ShellWindowHandle;
   bridge: SpaceEditorBridge;
 }) {
   const { closeWindow } = useWindowActions();
@@ -37,7 +37,7 @@ function DocSpaceEditorContent({
 export default function DocSpaceEditorWindow({
   win,
 }: {
-  win: WindowState;
+  win: ShellWindowHandle;
 }) {
   const bridgeId =
     typeof win.metadata?.bridgeId === "string"

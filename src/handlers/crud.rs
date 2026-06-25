@@ -11,7 +11,7 @@ use crate::db::repos::base_record_repo::BaseRecordRepo;
 use crate::db::repos::comment_repo::DocNodeCommentRepo;
 use crate::db::repos::node_meta_repo::{DocNodeMetaRepo, UpsertDocNodeMetaInput};
 use crate::db::repos::version_repo::DocNodeVersionRepo;
-use crate::db::repos::view_ctx_repo::DocNodeViewCtxRepo;
+use crate::db::repos::view_state_repo::DocNodeViewStateRepo;
 use crate::error::AppError;
 use crate::handlers::AppCtx;
 use crate::handlers::{ApiResponse, ok, ok_empty};
@@ -91,14 +91,14 @@ async fn rename_related(
         DocNodeVersionRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
         DocNodeCommentRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
         AttachmentRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
-        DocNodeViewCtxRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
+        DocNodeViewStateRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
         BaseRecordRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
     } else {
         DocNodeMetaRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
         DocNodeVersionRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
         DocNodeCommentRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
         AttachmentRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
-        DocNodeViewCtxRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
+        DocNodeViewStateRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
         BaseRecordRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
     }
     Ok(())

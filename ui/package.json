@@ -78,7 +78,7 @@
     "yjs": "^13.6.27"
   },
   "devDependencies": {
-    "@tokimo/app-builder": "github:tokimo-lab/tokimo-app-builder#9c6343752b68d63a129f134495468d80b8a62141",
+    "@tokimo/app-builder": "github:tokimo-lab/tokimo-app-builder#79016019a62924e2cbfba582afe53bbb14006340",
     "@types/file-saver": "^2.0.7",
     "@types/node": "^22.15.0",
     "@types/react": "^19.2.14",

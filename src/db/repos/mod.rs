@@ -4,4 +4,4 @@ pub mod comment_repo;
 pub mod node_meta_repo;
 pub mod space_repo;
 pub mod version_repo;
-pub mod view_ctx_repo;
+pub mod view_state_repo;
