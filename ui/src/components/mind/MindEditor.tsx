@@ -101,14 +101,18 @@ export function MindEditor({
   } = useDocViewport(spaceId, relPath);
   const viewportRestoredRef = useRef(false);
 
+  const flushPendingSave = useCallback(() => {
+    if (!mindRef.current || isReplayingRef.current) return;
+    const { theme: _t, ...data } = mindRef.current.getData();
+    onChangeRef.current(data as MindElixirData);
+  }, []);
+
   const debouncedSave = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      if (!mindRef.current || isReplayingRef.current) return;
-      const { theme: _t, ...data } = mindRef.current.getData();
-      onChangeRef.current(data as MindElixirData);
+      flushPendingSave();
     }, 800);
-  }, []);
+  }, [flushPendingSave]);
 
   // ── Init mind-elixir on mount ──────────────────────────────────────────
   useEffect(() => {
@@ -158,12 +162,16 @@ export function MindEditor({
     setMindInstance(mind);
 
     return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+        flushPendingSave();
+      }
       mind.destroy();
       mindRef.current = null;
       setMindInstance(null);
     };
-  }, [debouncedSave]);
+  }, [debouncedSave, flushPendingSave]);
 
   // ── Middle mouse button drag ────────────────────────────────────────────
   useEffect(() => {

@@ -97,6 +97,8 @@ const zhCN: Record<string, unknown> = {
   "docs.untitledSlide": "无标题幻灯片",
   "docs.untitledWhiteboard": "无标题白板",
   "docs.slideNewSlide": "新建幻灯片",
+  "docs.slidePresent": "演示",
+  "docs.slideEmpty": "无幻灯片",
   "docs.slideExpandSidebar": "展开幻灯片侧栏",
   "docs.slideCollapseSidebar": "收起幻灯片侧栏",
   "docs.slideDuplicate": "复制幻灯片",
@@ -346,6 +348,7 @@ const zhCN: Record<string, unknown> = {
   "actions.deleteFailed": "删除失败",
   "actions.moved": "已移动",
   "actions.moveFailed": "移动失败",
+  "actions.updateFailed": "更新失败",
   "actions.attachmentUploadFailed": "附件上传失败: {{error}}",
   "actions.unknownError": "未知错误",
 
@@ -463,6 +466,8 @@ const enUS: Record<string, unknown> = {
   "docs.untitledSlide": "Untitled Slide",
   "docs.untitledWhiteboard": "Untitled Whiteboard",
   "docs.slideNewSlide": "New Slide",
+  "docs.slidePresent": "Present",
+  "docs.slideEmpty": "No slides",
   "docs.slideExpandSidebar": "Expand slide sidebar",
   "docs.slideCollapseSidebar": "Collapse slide sidebar",
   "docs.slideDuplicate": "Duplicate Slide",
@@ -712,6 +717,7 @@ const enUS: Record<string, unknown> = {
   "actions.deleteFailed": "Delete failed",
   "actions.moved": "Moved",
   "actions.moveFailed": "Move failed",
+  "actions.updateFailed": "Update failed",
   "actions.attachmentUploadFailed": "Attachment upload failed: {{error}}",
   "actions.unknownError": "Unknown error",
 

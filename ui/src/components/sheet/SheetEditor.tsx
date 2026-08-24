@@ -93,20 +93,23 @@ export function SheetEditor({
   // Stable reference to initial content — only used on mount
   const initialContentRef = useRef(content);
 
+  const flushPendingSave = useCallback(() => {
+    const api = univerRef.current?.univerAPI;
+    if (!api || isReplayingRef.current) return;
+    const workbook = api.getActiveWorkbook();
+    if (!workbook) return;
+    onChangeRef.current(workbook.save());
+  }, []);
+
   const debouncedSave = useCallback(() => {
     // Skip saves triggered by remote collab replay
     if (isReplayingRef.current) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       if (isReplayingRef.current) return;
-      const api = univerRef.current?.univerAPI;
-      if (!api) return;
-      const workbook = api.getActiveWorkbook();
-      if (!workbook) return;
-      const snapshot = workbook.save();
-      onChangeRef.current(snapshot);
+      flushPendingSave();
     }, 800);
-  }, []);
+  }, [flushPendingSave]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -173,13 +176,17 @@ export function SheetEditor({
 
     return () => {
       disposable.dispose();
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+        flushPendingSave();
+      }
       result.univer.dispose();
       if (univerRef.current === result) univerRef.current = null;
       setUniverInstance(null);
     };
     // Only re-create on mount / language change
-  }, [i18n.language, debouncedSave]);
+  }, [i18n.language, debouncedSave, flushPendingSave]);
 
   // Real-time collaboration via Yjs
   useSheetCollab({

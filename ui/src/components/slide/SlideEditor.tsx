@@ -1,5 +1,6 @@
 import { Maximize } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useWindowActions, useWindowId } from "@tokimo/sdk";
 import { useDocViewport } from "../../hooks/use-doc-viewport";
 import { SearchReplace } from "./components/SearchReplace";
@@ -38,10 +39,12 @@ export function SlideEditor({
   const [presenting, setPresenting] = useState(false);
   const [zoom, setZoom] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { t } = useTranslation();
   const isReplayingRef = useRef(false);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const pendingPresentationRef = useRef<typeof presentation | null>(null);
   const windowActions = useWindowActions();
   const toggleFullscreen = (windowActions as unknown as { toggleFullscreen?: (id: string, flag?: boolean) => void }).toggleFullscreen ?? (() => {});
   const windowId = useWindowId();
@@ -63,21 +66,34 @@ export function SlideEditor({
     setPresentation(data);
   }, [setPresentation]);
 
+  const flushPendingSave = useCallback(() => {
+    const pending = pendingPresentationRef.current;
+    if (!pending || isReplayingRef.current) return;
+    pendingPresentationRef.current = null;
+    onChangeRef.current(pending);
+  }, []);
+
   // Debounced save
   useEffect(() => {
     const unsub = useSlideStore.subscribe(() => {
       const current = useSlideStore.getState();
       if (isReplayingRef.current) return;
+      pendingPresentationRef.current = current.presentation;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
-        onChangeRef.current(current.presentation);
+        saveTimerRef.current = null;
+        flushPendingSave();
       }, 800);
     });
     return () => {
       unsub();
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+        flushPendingSave();
+      }
     };
-  }, []);
+  }, [flushPendingSave]);
 
   // Collab
   useSlideCollab({
@@ -156,18 +172,18 @@ export function SlideEditor({
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {/* Top bar: toolbar + zoom + present */}
-      <div className="flex items-center border-b border-border-subtle bg-white px-2 dark:bg-neutral-900">
+      <div className="flex items-center border-b border-border-subtle bg-surface-base px-2">
         <SlideToolbar />
         <div className="flex-1" />
         <SlideZoomControls zoom={zoom || 100} onZoomChange={setZoom} />
         <div className="mx-2 h-4 w-px bg-border-subtle" />
         <button
           type="button"
-          className="flex cursor-pointer items-center gap-1 rounded bg-[var(--accent-subtle)]0 px-3 py-1 text-xs text-white transition-colors hover:bg-[var(--accent-hover)]"
+          className="flex cursor-pointer items-center gap-1 rounded bg-accent px-3 py-1 text-xs text-fg-on-accent transition-colors hover:bg-accent-hover"
           onClick={handlePresent}
         >
           <Maximize size={14} />
-          演示
+          {t("docs.slidePresent")}
         </button>
       </div>
 
@@ -182,7 +198,7 @@ export function SlideEditor({
             <SlideCanvas slide={currentSlide} zoom={zoom} />
           ) : (
             <div className="flex flex-1 items-center justify-center text-fg-muted">
-              无幻灯片
+              {t("docs.slideEmpty")}
             </div>
           )}
           <SearchReplace />

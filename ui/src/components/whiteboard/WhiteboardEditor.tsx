@@ -79,6 +79,7 @@ export function WhiteboardEditor({
   onChangeRef.current = onChange;
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSceneRef = useRef<WhiteboardData | null>(null);
   // Track whether this is the initial mount to avoid saving the initial load
   const initializedRef = useRef(false);
 
@@ -103,12 +104,23 @@ export function WhiteboardEditor({
     };
   }, [relPath]);
 
-  // Cleanup timer on unmount
+  const flushPendingSave = useCallback(() => {
+    const pending = pendingSceneRef.current;
+    if (!pending) return;
+    pendingSceneRef.current = null;
+    onChangeRef.current(pending);
+  }, []);
+
+  // Flush the last edit before switching documents or closing the window.
   useEffect(() => {
     return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+        flushPendingSave();
+      }
     };
-  }, []);
+  }, [flushPendingSave]);
 
   // 3-tier viewport restore: saved state → fit content → default
   useEffect(() => {
@@ -295,26 +307,26 @@ export function WhiteboardEditor({
       }
 
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      const activeElements = elements.filter((el) => !el.isDeleted);
+      const {
+        collaborators: _c,
+        selectedElementIds: _s,
+        ...persistAppState
+      } = appState;
+      pendingSceneRef.current = {
+        elements: activeElements,
+        appState: {
+          viewBackgroundColor: persistAppState.viewBackgroundColor,
+          gridSize: persistAppState.gridSize,
+        },
+        files,
+      };
       saveTimerRef.current = setTimeout(() => {
-        // Only save non-deleted elements
-        const activeElements = elements.filter((el) => !el.isDeleted);
-        // Strip volatile appState fields
-        const {
-          collaborators: _c,
-          selectedElementIds: _s,
-          ...persistAppState
-        } = appState;
-        onChangeRef.current({
-          elements: activeElements,
-          appState: {
-            viewBackgroundColor: persistAppState.viewBackgroundColor,
-            gridSize: persistAppState.gridSize,
-          },
-          files,
-        });
+        saveTimerRef.current = null;
+        flushPendingSave();
       }, SAVE_DEBOUNCE_MS);
     },
-    [],
+    [flushPendingSave],
   );
 
   return (

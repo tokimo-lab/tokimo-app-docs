@@ -387,6 +387,11 @@ export function useDocsPage(spaceId: string) {
   useEffect(() => {
     setSaveState("saved");
   }, [selectedContentNodeId]);
+  const selectedContentNodeIdRef = useRef(selectedContentNodeId);
+  selectedContentNodeIdRef.current = selectedContentNodeId;
+  const contentSaveQueueRef = useRef(
+    new Map<string, { pending: number; lastFailed: boolean }>(),
+  );
 
   // ── Version preview ─────────────────────────────────────────────────
   const versionQuery = api.docs.getVersion.useQuery(
@@ -433,13 +438,71 @@ export function useDocsPage(spaceId: string) {
   });
 
   const updateMutation = api.docs.update.useMutation({
-    onSuccess: (_data: DocNodeListItem, variables: { content?: unknown }) => {
+    scope: { id: `docs-node-updates:${spaceId}` },
+    onMutate: (variables) => {
+      if (variables.content === undefined) return;
+      const nodeId = variables.nodeId ?? variables.id ?? variables.relPath;
+      if (!nodeId) return;
+      const current = contentSaveQueueRef.current.get(nodeId) ?? {
+        pending: 0,
+        lastFailed: false,
+      };
+      contentSaveQueueRef.current.set(nodeId, {
+        ...current,
+        pending: current.pending + 1,
+      });
+      if (selectedContentNodeIdRef.current === nodeId) {
+        setSaveState("saving");
+      }
+    },
+    onSuccess: (_data, variables) => {
       refetchNodeQueries();
-      if (variables.content !== undefined) setSaveState("saved");
-      else detailQueryRef.current.refetch();
+      if (variables.content === undefined) {
+        void detailQueryRef.current.refetch();
+        return;
+      }
+      const nodeId = variables.nodeId ?? variables.id ?? variables.relPath;
+      const current = nodeId
+        ? contentSaveQueueRef.current.get(nodeId)
+        : undefined;
+      if (nodeId && current) {
+        contentSaveQueueRef.current.set(nodeId, {
+          ...current,
+          lastFailed: false,
+        });
+      }
     },
     onError: (_error, variables) => {
-      if (variables.content !== undefined) setSaveState("error");
+      if (variables.content === undefined) {
+        message.error(t("actions.updateFailed"));
+        return;
+      }
+      const nodeId = variables.nodeId ?? variables.id ?? variables.relPath;
+      const current = nodeId
+        ? contentSaveQueueRef.current.get(nodeId)
+        : undefined;
+      if (nodeId && current) {
+        contentSaveQueueRef.current.set(nodeId, {
+          ...current,
+          lastFailed: true,
+        });
+      }
+    },
+    onSettled: (_data, _error, variables) => {
+      if (variables.content === undefined) return;
+      const nodeId = variables.nodeId ?? variables.id ?? variables.relPath;
+      if (!nodeId) return;
+      const current = contentSaveQueueRef.current.get(nodeId);
+      if (!current) return;
+      const pending = Math.max(0, current.pending - 1);
+      if (pending > 0) {
+        contentSaveQueueRef.current.set(nodeId, { ...current, pending });
+        return;
+      }
+      contentSaveQueueRef.current.delete(nodeId);
+      if (selectedContentNodeIdRef.current === nodeId) {
+        setSaveState(current.lastFailed ? "error" : "saved");
+      }
     },
   });
 
