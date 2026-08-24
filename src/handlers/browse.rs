@@ -99,11 +99,10 @@ pub async fn list_nodes(
             }
         }
         "archived" => {
-            let trash_path = path_utils::vfs_path(&root_path, ".trash");
-            if let Ok(entries) = vfs.list(&trash_path).await {
-                for entry in entries {
-                    let rel = format!(".trash/{}", entry.name);
-                    raw.push((rel, entry.is_dir, entry.modified));
+            for meta in DocNodeMetaRepo::list_archived(&ctx.db, space_id).await? {
+                let path = path_utils::vfs_path(&root_path, &meta.rel_path);
+                if let Ok(info) = vfs.stat(&path).await {
+                    raw.push((meta.rel_path, info.is_dir, info.modified));
                 }
             }
         }
