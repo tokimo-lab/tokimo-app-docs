@@ -95,7 +95,7 @@ export function ImageStylePanel({ element }: { element: SlideImageElement }) {
             className={cn(
               iconBtnClass,
               element.flipH &&
-                "bg-[var(--accent-subtle)]0/10 text-[var(--accent)]",
+                "bg-accent-subtle text-accent-text",
             )}
             title="水平翻转"
             onClick={() => update({ flipH: !element.flipH })}
@@ -107,7 +107,7 @@ export function ImageStylePanel({ element }: { element: SlideImageElement }) {
             className={cn(
               iconBtnClass,
               element.flipV &&
-                "bg-[var(--accent-subtle)]0/10 text-[var(--accent)]",
+                "bg-accent-subtle text-accent-text",
             )}
             title="垂直翻转"
             onClick={() => update({ flipV: !element.flipV })}

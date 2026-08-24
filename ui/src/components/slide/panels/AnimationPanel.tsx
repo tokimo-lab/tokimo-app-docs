@@ -200,7 +200,7 @@ function AnimationItem({
       type="button"
       className={`flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
         selected
-          ? "bg-[var(--accent-subtle)]0/10 text-[var(--accent)]"
+          ? "bg-accent-subtle text-accent-text"
           : "text-fg-default hover:bg-black/5 dark:hover:bg-white/5"
       }`}
       onClick={onSelect}

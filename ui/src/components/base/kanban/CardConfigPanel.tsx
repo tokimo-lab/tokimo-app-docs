@@ -69,7 +69,7 @@ export function CardConfigPanel({ state }: CardConfigPanelProps) {
             className={cn(
               "h-4 w-8 cursor-pointer rounded-full transition-colors",
               config.showFieldNames
-                ? "bg-[var(--accent-subtle)]0"
+                ? "bg-accent"
                 : "bg-fill-tertiary",
             )}
             onClick={() =>

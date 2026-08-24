@@ -106,7 +106,7 @@ export function SlideFormatPanel({ onClose }: SlideFormatPanelProps) {
                     className={cn(
                       "flex cursor-pointer flex-col items-center rounded-md border-2 p-1.5 transition-colors hover:bg-black/5 dark:hover:bg-white/5",
                       activeLayoutId === layout.id
-                        ? "border-[var(--accent)] bg-[var(--accent-subtle)] dark:bg-[var(--accent-subtle)]0/10"
+                        ? "border-accent bg-accent-subtle"
                         : "border-border-subtle",
                     )}
                     onClick={() => handleApplyLayout(layout.id)}

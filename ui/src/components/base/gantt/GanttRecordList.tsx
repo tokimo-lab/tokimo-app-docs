@@ -46,7 +46,7 @@ export function GanttRecordList({
                 )}
               </button>
               <span
-                className="inline-block h-2 w-2 rounded-full bg-[var(--accent-subtle)]0"
+                className="inline-block h-2 w-2 rounded-full bg-accent"
                 aria-hidden
               />
               <span className="truncate text-xs font-medium text-fg-primary">

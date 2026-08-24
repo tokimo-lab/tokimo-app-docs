@@ -173,10 +173,10 @@ export function GalleryView({ state }: GalleryViewProps) {
               onPointerDown={(e) => handlePointerDown(record.id, e)}
             >
               {isDropLeft && (
-                <div className="absolute top-0 -left-[3px] z-10 h-full w-[3px] rounded-full bg-[var(--accent-subtle)]0" />
+                <div className="absolute top-0 -left-[3px] z-10 h-full w-[3px] rounded-full bg-accent" />
               )}
               {isDropRight && (
-                <div className="absolute top-0 -right-[3px] z-10 h-full w-[3px] rounded-full bg-[var(--accent-subtle)]0" />
+                <div className="absolute top-0 -right-[3px] z-10 h-full w-[3px] rounded-full bg-accent" />
               )}
               <GalleryCard record={record} state={state} />
             </div>

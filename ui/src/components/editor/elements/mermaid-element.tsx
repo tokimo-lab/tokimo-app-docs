@@ -132,7 +132,7 @@ export function MermaidElement(props: PlateElementProps) {
                   e.preventDefault();
                   commitEdit();
                 }}
-                className="cursor-pointer rounded bg-[var(--accent-subtle)]0 px-3 py-1 text-xs font-medium text-white hover:bg-[var(--accent-hover)]"
+                className="cursor-pointer rounded bg-accent px-3 py-1 text-xs font-medium text-fg-on-accent hover:bg-accent-hover"
               >
                 确认 (⌘+Enter)
               </button>

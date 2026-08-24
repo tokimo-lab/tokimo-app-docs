@@ -31,7 +31,7 @@ export function LatexStylePanel({ element }: { element: SlideLatexElement }) {
       <div className={sectionClass}>
         <button
           type="button"
-          className="h-8 w-full cursor-pointer rounded bg-[var(--accent-subtle)]0 text-xs font-medium text-white hover:bg-[var(--accent-hover)] dark:bg-[var(--accent)] dark:hover:bg-[var(--accent-subtle)]0"
+          className="h-8 w-full cursor-pointer rounded bg-accent text-xs font-medium text-fg-on-accent hover:bg-accent-hover"
           onClick={handleEditFormula}
         >
           {t("docs.editFormula")}

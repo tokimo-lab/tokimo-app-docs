@@ -340,7 +340,7 @@ function HeaderCell({
       {/* Resize handle */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: resize handle */}
       <div
-        className="absolute top-0 right-0 h-full w-1 cursor-col-resize opacity-0 hover:bg-[var(--accent-subtle)]0 hover:opacity-100 group-hover:opacity-50"
+        className="absolute top-0 right-0 h-full w-1 cursor-col-resize opacity-0 hover:bg-accent hover:opacity-100 group-hover:opacity-50"
         onMouseDown={startResize}
       />
     </div>

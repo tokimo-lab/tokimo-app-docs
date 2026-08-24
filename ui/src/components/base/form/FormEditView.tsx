@@ -274,7 +274,7 @@ function FormFieldRow({
           <div
             className={cn(
               "h-4 w-7 rounded-full transition-colors",
-              isRequired ? "bg-[var(--accent-subtle)]0" : "bg-fill-secondary",
+              isRequired ? "bg-accent" : "bg-fill-secondary",
             )}
           >
             <div

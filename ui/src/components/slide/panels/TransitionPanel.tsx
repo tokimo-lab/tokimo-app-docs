@@ -78,7 +78,7 @@ export function TransitionPanel() {
               className={cn(
                 "flex cursor-pointer flex-col items-center gap-1 rounded-md border-2 p-2 transition-colors",
                 transition.type === opt.type
-                  ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)]0/10"
+                  ? "border-accent bg-accent-subtle text-accent-text"
                   : "border-border-subtle text-fg-muted hover:bg-black/5 dark:hover:bg-white/5",
               )}
               onClick={() => handleTypeChange(opt.type)}

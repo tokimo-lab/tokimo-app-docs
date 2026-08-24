@@ -198,7 +198,7 @@ export function FormulaEditDialog({
             </button>
             <button
               type="button"
-              className="cursor-pointer rounded bg-[var(--accent-subtle)]0 px-4 py-1.5 text-sm text-white hover:bg-[var(--accent-hover)]"
+              className="cursor-pointer rounded bg-accent px-4 py-1.5 text-sm text-fg-on-accent hover:bg-accent-hover"
               onClick={() => onClose()}
             >
               {t("docs.confirm")}

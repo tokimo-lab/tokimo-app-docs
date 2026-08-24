@@ -135,7 +135,7 @@ export function HamburgerMenu() {
             "flex cursor-pointer items-center justify-center rounded-md p-1.5",
             "hover:bg-black/5 dark:hover:bg-white/5",
             open &&
-              "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)]0/10",
+              "bg-accent-subtle text-accent-text",
           )}
           onClick={() => setOpen(!open)}
           title={t("docs.slideMenu")}

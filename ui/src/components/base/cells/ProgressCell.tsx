@@ -27,7 +27,7 @@ export function ProgressCell({ value, onChange }: ProgressCellProps) {
     >
       <div className="h-1.5 flex-1 rounded-full bg-fill-tertiary">
         <div
-          className="h-full rounded-full bg-[var(--accent-subtle)]0 transition-all"
+          className="h-full rounded-full bg-accent transition-all"
           style={{ width: `${num}%` }}
         />
       </div>

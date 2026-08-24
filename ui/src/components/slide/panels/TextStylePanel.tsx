@@ -33,7 +33,7 @@ const labelClass = "mb-2 text-xs font-medium text-fg-muted";
 const iconBtnClass =
   "flex cursor-pointer items-center justify-center rounded p-1.5 hover:bg-black/5 dark:hover:bg-white/5";
 const activeBtnClass =
-  "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)]0/10 dark:text-[var(--accent)]";
+  "bg-accent-subtle text-accent-text";
 const selectClass =
   "h-7 flex-1 cursor-pointer rounded border border-border-subtle bg-transparent px-2 text-xs text-fg-default outline-none dark:bg-neutral-800";
 const numberInputClass =
