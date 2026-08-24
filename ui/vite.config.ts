@@ -24,8 +24,43 @@ function univerjsDayjsShim(): Plugin {
   };
 }
 
+/**
+ * Plate's compiled packages import the CommonJS-only
+ * `react-compiler-runtime`, which calls `require("react")` at runtime when
+ * React is externalized by the Tokimo app bundle. Only its memo-cache helper
+ * is used, so provide the React 19-compatible ESM implementation directly.
+ */
+function reactCompilerRuntimeShim(): Plugin {
+  const virtualId = "\0tokimo:react-compiler-runtime";
+  return {
+    name: "react-compiler-runtime-shim",
+    enforce: "pre",
+    resolveId(id) {
+      return id === "react-compiler-runtime" ? virtualId : null;
+    },
+    load(id) {
+      if (id !== virtualId) return null;
+      return `
+        import { useMemo } from "react";
+        const sentinel = Symbol.for("react.memo_cache_sentinel");
+        export function c(size) {
+          return useMemo(() => {
+            const cache = Array(size).fill(sentinel);
+            cache[sentinel] = true;
+            return cache;
+          }, []);
+        }
+      `;
+    },
+  };
+}
+
 const base = defineTokimoApp();
 export default {
   ...base,
-  plugins: [...(base.plugins ?? []), univerjsDayjsShim()],
+  plugins: [
+    ...(base.plugins ?? []),
+    reactCompilerRuntimeShim(),
+    univerjsDayjsShim(),
+  ],
 };
