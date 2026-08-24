@@ -184,7 +184,7 @@ async fn run_server() -> anyhow::Result<()> {
         http_client,
         collab,
         storage: Arc::new(services::local_fs::LocalStorage::new()),
-        sources: Arc::new(services::vfs_registry::VfsRegistry::new()),
+        sources: Arc::new(services::vfs_registry::VfsRegistry::new(Arc::clone(&client_slot))),
     });
 
     // Start axum router listening on UDS (business + assets + data all on this sock)

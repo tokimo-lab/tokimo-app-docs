@@ -52,6 +52,14 @@ export async function callApi<T>(url: string, init?: RequestInit): Promise<T> {
   } catch {
     throw new RustApiError("Invalid JSON response", res.status);
   }
+  if (!res.ok) {
+    const error = json as Record<string, unknown>;
+    const message =
+      error && typeof error.error === "string"
+        ? error.error
+        : `HTTP ${res.status}: ${res.statusText}`;
+    throw new RustApiError(message, res.status);
+  }
   // Handle both {success: true, data: T} and {data: T} formats.
   // The backend uses HTTP status codes for success/failure, so we just
   // need to extract the data field.

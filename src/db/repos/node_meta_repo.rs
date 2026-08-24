@@ -103,7 +103,8 @@ impl DocNodeMetaRepo {
                     .do_nothing()
                     .to_owned(),
             )
-            .exec(db)
+            .try_insert()
+            .exec_without_returning(db)
             .await?;
         Self::find_by_paths(db, space_id, rel_paths).await
     }

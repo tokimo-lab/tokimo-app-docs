@@ -5,6 +5,13 @@ import type { ReactNode } from "react";
 import { I18nextProvider } from "react-i18next";
 import i18n from "../i18n";
 
+export const docsDateFormat = {
+  defaultLong: "YYYY-MM-DD HH:mm:ss",
+  defaultDate: "YYYY-MM-DD",
+  defaultTime: "HH:mm:ss",
+  storage: "none" as const,
+};
+
 export function withProviders(
   ctx: AppRuntimeCtx,
   queryClient: QueryClient,
@@ -12,7 +19,7 @@ export function withProviders(
 ): ReactNode {
   return (
     <I18nextProvider i18n={i18n}>
-      <ConfigProvider>
+      <ConfigProvider dateFormat={docsDateFormat}>
         <ToastProvider>
           <QueryClientProvider client={queryClient}>
             <RuntimeProvider value={ctx}>{node}</RuntimeProvider>

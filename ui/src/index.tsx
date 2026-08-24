@@ -23,6 +23,7 @@ import { I18nextProvider } from "react-i18next";
 import DocsApp from "./components/DocsApp";
 import i18n from "./i18n";
 import "./index.css";
+import { docsDateFormat } from "./shared/providers";
 
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -68,7 +69,7 @@ export default defineApp({
       <StrictMode>
         <I18nextProvider i18n={i18n}>
           <QueryClientProvider client={queryClient}>
-            <ConfigProvider locale={locale}>
+            <ConfigProvider locale={locale} dateFormat={docsDateFormat}>
               <ToastProvider>
                 <RuntimeProvider value={ctx}>
                   <DocsWindow ctx={ctx} />
