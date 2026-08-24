@@ -49,9 +49,13 @@ export function MentionInputElement(props: PlateElementProps) {
 
   const selectUser = useCallback(
     (user: (typeof MOCK_USERS)[number]) => {
+      const inputPath = editor.api.findPath(element);
       onSelectItem(editor, user, query);
+      if (inputPath) {
+        editor.tf.removeNodes({ at: inputPath });
+      }
     },
-    [editor, onSelectItem, query],
+    [editor, element, onSelectItem, query],
   );
 
   const handleKeyDown = useCallback(
@@ -118,7 +122,7 @@ export function MentionInputElement(props: PlateElementProps) {
         createPortal(
           <div
             ref={menuRef}
-            className="fixed z-[9999] w-56 overflow-y-auto rounded-lg border border-border-base bg-surface-elevated py-1 shadow-xl "
+            className="fixed z-[9999] w-56 overflow-y-auto rounded-lg border border-base bg-surface-overlay py-1 text-fg-on-overlay shadow-md backdrop-blur-glass"
             style={{ top: menuPos.top, left: menuPos.left, maxHeight: 200 }}
           >
             {filtered.length === 0 ? (
@@ -133,8 +137,8 @@ export function MentionInputElement(props: PlateElementProps) {
                   data-selected={idx === selectedIndex}
                   className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors ${
                     idx === selectedIndex
-                      ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]"
-                      : "text-fg-secondary hover:bg-fill-tertiary /50"
+                      ? "bg-accent-subtle text-accent-text"
+                      : "text-fg-secondary hover:bg-fill-tertiary"
                   }`}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -142,7 +146,7 @@ export function MentionInputElement(props: PlateElementProps) {
                   }}
                   onMouseEnter={() => setSelectedIndex(idx)}
                 >
-                  <span className="flex size-6 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-xs font-medium text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]">
+                  <span className="flex size-6 items-center justify-center rounded-full bg-accent-subtle text-xs font-medium text-accent-text">
                     {user.text[0]}
                   </span>
                   {user.text}

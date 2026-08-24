@@ -4,7 +4,8 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(schema_name = "docs", table_name = "users")]
+// Docs comments and whiteboard libraries join the host's shared user identities.
+#[sea_orm(schema_name = "public", table_name = "users")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

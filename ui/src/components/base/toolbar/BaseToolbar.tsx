@@ -5,6 +5,7 @@ import {
   ArrowUpDown,
   Filter,
   Group,
+  Loader2,
   Paintbrush,
   Plus,
   Redo2,
@@ -77,10 +78,15 @@ export function BaseToolbar({ state }: BaseToolbarProps) {
         {/* Add record */}
         <button
           type="button"
-          className="flex cursor-pointer items-center gap-1 rounded px-2.5 py-1 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent-subtle)] dark:text-[var(--accent)] dark:hover:bg-[var(--accent-subtle)]"
+          disabled={state.isAddingRecord}
+          className="flex cursor-pointer items-center gap-1 rounded px-2.5 py-1 text-xs font-medium text-accent-text hover:bg-accent-subtle disabled:cursor-wait disabled:text-fg-disabled"
           onClick={state.addRecord}
         >
-          <Plus size={14} />
+          {state.isAddingRecord ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <Plus size={14} />
+          )}
           添加记录
         </button>
 

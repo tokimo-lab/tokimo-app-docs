@@ -1,4 +1,4 @@
-import { Dropdown, type DropdownMenuItem } from "@tokimo/ui";
+import { Dropdown, type DropdownMenuItem, useConfirm } from "@tokimo/ui";
 import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,6 +22,7 @@ export function FolderCard({
 }: FolderCardProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [localName, setLocalName] = useState(node.title);
+  const [confirmHolder, confirm] = useConfirm();
   const { t } = useTranslation();
 
   const menuItems: DropdownMenuItem[] = useMemo(
@@ -49,25 +50,28 @@ export function FolderCard({
         icon: <Trash2 size={14} />,
         danger: true,
         onClick: () => {
-          if (
-            window.confirm(
-              t("folder.deleteConfirm", { name: node.title }),
-            )
-          ) {
-            onDelete();
-          }
+          confirm({
+            title: t("confirm.archiveTitle"),
+            content: t("confirm.archiveFolderContent"),
+            okText: t("nodes.archive"),
+            cancelText: t("common.cancel"),
+            variant: "warning",
+            onOk: onDelete,
+          });
         },
       },
     ],
-    [node.title, onCreateDoc, onDelete, t],
+    [confirm, node.title, onCreateDoc, onDelete, t],
   );
 
   return (
-    <Dropdown
-      trigger={["contextMenu"]}
-      menu={{ items: menuItems }}
-      placement="bottomLeft"
-    >
+    <>
+      {confirmHolder}
+      <Dropdown
+        trigger={["contextMenu"]}
+        menu={{ items: menuItems }}
+        placement="bottomLeft"
+      >
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: folder card */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: click container */}
       <div
@@ -119,6 +123,7 @@ export function FolderCard({
           </Dropdown>
         </div>
       </div>
-    </Dropdown>
+      </Dropdown>
+    </>
   );
 }

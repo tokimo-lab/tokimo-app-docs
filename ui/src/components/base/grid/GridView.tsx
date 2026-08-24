@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ColorRule, RowHeight } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
@@ -97,7 +97,8 @@ export function GridView({ state }: GridViewProps) {
           {/* Add row — Feishu style: just "+" at the left margin */}
           <button
             type="button"
-            className="flex w-full cursor-pointer items-center border-b border-border-subtle text-fg-muted hover:bg-fill-tertiary"
+            disabled={state.isAddingRecord}
+            className="flex w-full cursor-pointer items-center border-b border-border-subtle text-fg-muted hover:bg-fill-tertiary disabled:cursor-wait disabled:text-fg-disabled"
             style={{ height: rowHeightPx }}
             onClick={state.addRecord}
           >
@@ -105,14 +106,18 @@ export function GridView({ state }: GridViewProps) {
               className="flex shrink-0 items-center justify-center"
               style={{ width: CHECKBOX_COL_WIDTH + ROW_NUMBER_WIDTH }}
             >
-              <Plus size={14} />
+              {state.isAddingRecord ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Plus size={14} />
+              )}
             </div>
           </button>
         </div>
       </div>
 
       {/* Bottom status bar */}
-      <div className="sticky bottom-0 flex items-center justify-center border-t border-border-subtle bg-surface-secondary px-3 py-1.5 text-xs text-fg-muted">
+      <div className="sticky bottom-0 flex items-center justify-center border-t border-border-subtle bg-surface-raised px-3 py-1.5 text-xs text-fg-muted">
         {records.length} 条记录
       </div>
     </div>
@@ -138,7 +143,7 @@ function GroupSection({
     <div>
       <button
         type="button"
-        className="flex w-full cursor-pointer items-center gap-1.5 bg-surface-secondary px-3 py-1.5 text-xs font-medium text-fg-secondary hover:bg-fill-tertiary"
+        className="flex w-full cursor-pointer items-center gap-1.5 bg-surface-raised px-3 py-1.5 text-xs font-medium text-fg-secondary hover:bg-fill-tertiary"
         onClick={() => setCollapsed((v) => !v)}
       >
         {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}

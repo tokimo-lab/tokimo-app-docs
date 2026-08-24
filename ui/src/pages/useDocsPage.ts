@@ -178,6 +178,9 @@ export function useDocsPage(spaceId: string) {
     "saved" | "saving" | "error"
   >("saved");
   const [commentSidebarOpen, setCommentSidebarOpen] = useState(false);
+  const [pendingCommentKey, setPendingCommentKey] = useState<string | null>(
+    null,
+  );
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const [previewingVersionId, setPreviewingVersionId] = useState<string | null>(
     null,
@@ -380,6 +383,10 @@ export function useDocsPage(spaceId: string) {
       ? selectedMarkdown.content
       : "";
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    setSaveState("saved");
+  }, [selectedContentNodeId]);
 
   // ── Version preview ─────────────────────────────────────────────────
   const versionQuery = api.docs.getVersion.useQuery(
@@ -657,6 +664,7 @@ export function useDocsPage(spaceId: string) {
   const handleSheetContentChange = useCallback(
     (snapshot: unknown) => {
       if (!selectedSheetId) return;
+      setSaveState("saving");
       updateMutRef.current.mutate({
         nodeId: selectedSheetId,
         spaceId: stateRef.current.spaceId,
@@ -669,6 +677,7 @@ export function useDocsPage(spaceId: string) {
   const handleMindContentChange = useCallback(
     (data: unknown) => {
       if (!selectedMindId) return;
+      setSaveState("saving");
       updateMutRef.current.mutate({
         nodeId: selectedMindId,
         spaceId: stateRef.current.spaceId,
@@ -681,6 +690,7 @@ export function useDocsPage(spaceId: string) {
   const handleSlideContentChange = useCallback(
     (data: unknown) => {
       if (!selectedSlideId) return;
+      setSaveState("saving");
       updateMutRef.current.mutate({
         nodeId: selectedSlideId,
         spaceId: stateRef.current.spaceId,
@@ -693,6 +703,7 @@ export function useDocsPage(spaceId: string) {
   const handleWhiteboardContentChange = useCallback(
     (data: unknown) => {
       if (!selectedWhiteboardId) return;
+      setSaveState("saving");
       updateMutRef.current.mutate({
         nodeId: selectedWhiteboardId,
         spaceId: stateRef.current.spaceId,
@@ -705,6 +716,7 @@ export function useDocsPage(spaceId: string) {
   const handleBaseContentChange = useCallback(
     (data: unknown) => {
       if (!selectedBaseId) return;
+      setSaveState("saving");
       updateMutRef.current.mutate({
         nodeId: selectedBaseId,
         spaceId: stateRef.current.spaceId,
@@ -743,10 +755,12 @@ export function useDocsPage(spaceId: string) {
 
   const toggleSidebar = useCallback(() => setSidebarCollapsed((v: boolean) => !v), []);
 
-  const handleAddComment = useCallback(
-    (_: string) => setCommentSidebarOpen(true),
-    [],
-  );
+  const handleAddComment = useCallback((commentKey: string) => {
+    setPendingCommentKey(commentKey);
+    setCommentSidebarOpen(true);
+    setVersionHistoryOpen(false);
+    setPreviewingVersionId(null);
+  }, []);
 
   const handleOpenAi = useCallback(() => {
     const editor = editorRef.current;
@@ -965,6 +979,8 @@ export function useDocsPage(spaceId: string) {
     saveState,
     commentSidebarOpen,
     setCommentSidebarOpen,
+    pendingCommentKey,
+    setPendingCommentKey,
     versionHistoryOpen,
     setVersionHistoryOpen,
     previewingVersionId,

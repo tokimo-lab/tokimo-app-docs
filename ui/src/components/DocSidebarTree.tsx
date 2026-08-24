@@ -5,8 +5,11 @@ import {
   ChevronRight,
   Copy,
   FileText,
+  Folder,
   FolderPlus,
   Heart,
+  MoreHorizontal,
+  MoveRight,
   Pencil,
   PenTool,
   Plus,
@@ -54,6 +57,7 @@ interface TreeActions {
   expandedFolders: Set<string>;
   onToggleExpand: (relPath: string) => void;
   onMoveNode: (srcRelPath: string, destFolderRelPath: string | null) => void;
+  moveTargets: DocNode[];
   onNodeHover?: (el: HTMLElement, node: DocNode) => void;
   onNodeLeave?: () => void;
 }
@@ -143,6 +147,7 @@ export function NodeTreeItem({
   onCancelRename,
   renamingRelPath,
   onMoveNode,
+  moveTargets,
   onNodeHover,
   onNodeLeave,
 }: {
@@ -234,6 +239,26 @@ export function NodeTreeItem({
         onClick: () => onStartRename(node),
       },
       {
+        key: "move-root",
+        label: `${t("row.moveTo")} ${t("row.rootFolder")}`,
+        icon: <MoveRight size={14} />,
+        onClick: () => onMoveNode(node.relPath, null),
+      },
+      ...moveTargets
+        .filter(
+          (folder) =>
+            folder.relPath !== node.relPath &&
+            !folder.relPath.startsWith(`${node.relPath}/`),
+        )
+        .map((folder) => ({
+          key: `move-${folder.relPath}`,
+          label: `${t("row.moveTo")} ${
+            folder.icon ? `${folder.icon} ${folder.title}` : folder.title
+          }`,
+          icon: <Folder size={14} className="text-amber-500" />,
+          onClick: () => onMoveNode(node.relPath, folder.relPath),
+        })),
+      {
         key: "copy",
         label: t("tree.copyRelPath"),
         icon: <Copy size={14} />,
@@ -248,7 +273,17 @@ export function NodeTreeItem({
         onClick: () => onDeleteNode(node),
       },
     ],
-    [isFolder, createItems, node, onDeleteNode, onFavoriteDoc, onStartRename, t],
+    [
+      isFolder,
+      createItems,
+      node,
+      onDeleteNode,
+      onFavoriteDoc,
+      onMoveNode,
+      onStartRename,
+      moveTargets,
+      t,
+    ],
   );
 
   const handleClick = () => {
@@ -396,7 +431,7 @@ export function NodeTreeItem({
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="min-w-0 flex-1 rounded border border-accent bg-surface-elevated px-1.5 py-0 text-sm outline-none"
+              className="min-w-0 flex-1 rounded border border-accent bg-surface-sunken px-1.5 py-0 text-sm text-fg-primary outline-none"
             />
           ) : (
             <span className="min-w-0 flex-1 truncate">
@@ -442,6 +477,19 @@ export function NodeTreeItem({
                   fill={node.isFavorite ? "currentColor" : "none"}
                 />
               </button>
+              <Dropdown
+                menu={{ items: contextMenuItems }}
+                trigger={["click"]}
+                placement="bottomRight"
+              >
+                <button
+                  type="button"
+                  className="cursor-pointer rounded p-0.5 text-fg-muted opacity-0 transition-opacity hover:text-accent-text focus:opacity-100 group-hover:opacity-100"
+                  title={t("docs.moreActions")}
+                >
+                  <MoreHorizontal size={14} />
+                </button>
+              </Dropdown>
             </div>
           )}
         </div>

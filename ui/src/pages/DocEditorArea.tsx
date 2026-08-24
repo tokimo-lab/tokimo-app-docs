@@ -84,7 +84,7 @@ function upsertPlaceholder(index: number): void {
       "rounded-xl border-2 border-dashed border-fill-brand bg-fill-brand-secondary/20 flex items-center justify-center pointer-events-none my-1";
     const badge = document.createElement("div");
     badge.className =
-      "flex items-center gap-2 rounded-lg bg-surface-elevated px-4 py-3 shadow-lg";
+      "flex items-center gap-2 rounded-lg bg-surface-overlay px-4 py-3 text-fg-on-overlay shadow-md backdrop-blur-glass";
     badge.innerHTML =
       '<span class="text-sm font-medium text-fg-primary">松开以添加附件</span>';
     ph.appendChild(badge);

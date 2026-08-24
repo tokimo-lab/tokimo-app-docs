@@ -55,8 +55,8 @@ interface DocSidebarProps {
   onFavoriteNode: (relPath: string) => void;
   onDeleteNode: (node: DocNode) => void;
   onUpdateNode: (relPath: string, title: string) => void;
-  onRestoreNode: (relPath: string) => void;
-  onPermanentDeleteNode: (relPath: string) => void;
+  onRestoreNode: (nodeId: string) => void;
+  onPermanentDeleteNode: (nodeId: string) => void;
   onMoveNode: (srcRelPath: string, destFolderRelPath: string | null) => void;
   sortField: SortField;
   sortDir: SortDir;
@@ -265,6 +265,7 @@ export function DocSidebar({
     expandedFolders,
     onToggleExpand: toggleFolder,
     onMoveNode,
+    moveTargets: flatDocNodes.filter((node) => node.type === "folder"),
     onNodeHover: tip.enter,
     onNodeLeave: tip.leave,
   };
@@ -499,8 +500,8 @@ export function DocSidebar({
                 node={node}
                 isActive={node.id === selectedNodeId}
                 onClick={() => onSelectNode(node)}
-                onRestore={() => onRestoreNode(node.relPath)}
-                onPermanentDelete={() => onPermanentDeleteNode(node.relPath)}
+                onRestore={() => onRestoreNode(node.id)}
+                onPermanentDelete={() => onPermanentDeleteNode(node.id)}
               />
             ))}
           </div>

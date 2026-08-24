@@ -8,6 +8,7 @@ import {
   type FileNode,
   FileGrid,
   Spin,
+  useConfirm,
   useContextMenu,
 } from "@tokimo/ui";
 import { FileText, FolderPlus } from "lucide-react";
@@ -23,7 +24,7 @@ interface DocBrowserViewProps {
   onOpenDoc: (docId: string, type: DocNodeType) => void;
   onCreateNode: (type: DocNodeType, parentId?: string) => void;
   onCreateFolder: (parentId?: string) => void;
-  onDeleteNode: (id: string) => void;
+  onDeleteNode: (node: DocNode) => void | Promise<void>;
   onUpdateNode: (id: string, title: string) => void;
   onMoveNode?: (srcRelPath: string, destFolderRelPath: string | null) => void;
   isLoading: boolean;
@@ -68,6 +69,7 @@ export function DocBrowserView({
   const [draggingPaths, setDraggingPaths] = useState<Set<string>>(new Set());
   const [renaming, setRenaming] = useState<string | null>(null);
   const { open, contextMenu } = useContextMenu();
+  const [confirmHolder, confirm] = useConfirm();
   const { t } = useTranslation();
 
   const nodeByPath = useMemo(
@@ -134,19 +136,29 @@ export function DocBrowserView({
           label: viewMode === "archived" ? t("browser.delete") : t("browser.moveToTrash"),
           danger: true,
           onClick: () => {
-            if (
-              window.confirm(
-                node.type === "folder" ? t("browser.deleteConfirm") : t("browser.deleteNodeConfirm"),
-              )
-            ) {
-              onDeleteNode(node.relPath);
-            }
+            const isPermanentDelete = viewMode === "archived";
+            confirm({
+              title: isPermanentDelete
+                ? t("browser.delete")
+                : t("confirm.archiveTitle"),
+              content: isPermanentDelete
+                ? t("confirm.permanentDelete")
+                : node.type === "folder"
+                  ? t("confirm.archiveFolderContent")
+                  : t("confirm.archiveDocumentContent"),
+              okText: isPermanentDelete
+                ? t("browser.delete")
+                : t("nodes.archive"),
+              cancelText: t("common.cancel"),
+              variant: isPermanentDelete ? "danger" : "warning",
+              onOk: () => onDeleteNode(node),
+            });
           },
         },
       ];
       open(event, items);
     },
-    [nodeByPath, onDeleteNode, open, openNode, viewMode, t],
+    [confirm, nodeByPath, onDeleteNode, open, openNode, viewMode, t],
   );
 
   const handleEmptyContextMenu = useCallback(
@@ -268,6 +280,7 @@ export function DocBrowserView({
         )}
       </div>
       {contextMenu}
+      {confirmHolder}
     </div>
   );
 }

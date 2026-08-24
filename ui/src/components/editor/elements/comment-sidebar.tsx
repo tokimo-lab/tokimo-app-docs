@@ -18,6 +18,8 @@ interface CommentSidebarProps {
   spaceId: string;
   relPath: string;
   open: boolean;
+  pendingCommentKey: string | null;
+  onCommentCreated: () => void;
   onClose: () => void;
 }
 
@@ -25,6 +27,8 @@ export function CommentSidebar({
   spaceId,
   relPath,
   open,
+  pendingCommentKey,
+  onCommentCreated,
   onClose,
 }: CommentSidebarProps) {
   const { user } = useAuth();
@@ -48,7 +52,10 @@ export function CommentSidebar({
   if (!open) return null;
 
   return (
-    <div className="flex w-72 shrink-0 flex-col border-l border-border-base bg-surface-elevated ">
+    <div
+      data-pending-comment-key={pendingCommentKey ?? ""}
+      className="flex w-72 shrink-0 flex-col border-l border-border-base bg-surface-raised text-fg-on-raised"
+    >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border-base px-3 py-2">
         <div className="flex items-center gap-1.5 text-sm font-medium text-fg-secondary">
@@ -63,11 +70,23 @@ export function CommentSidebar({
         <button
           type="button"
           onClick={onClose}
-          className="flex size-6 items-center justify-center rounded text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary"
+          className="flex size-6 cursor-pointer items-center justify-center rounded text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary"
         >
           <X className="size-4" />
         </button>
       </div>
+
+      {pendingCommentKey && (
+        <NewCommentComposer
+          spaceId={spaceId}
+          relPath={relPath}
+          commentKey={pendingCommentKey}
+          onCreated={() => {
+            invalidateComments();
+            onCommentCreated();
+          }}
+        />
+      )}
 
       {/* Comment list */}
       <div className="flex-1 overflow-y-auto">
@@ -129,6 +148,72 @@ export function CommentSidebar({
             )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+interface NewCommentComposerProps {
+  spaceId: string;
+  relPath: string;
+  commentKey: string;
+  onCreated: () => void;
+}
+
+function NewCommentComposer({
+  spaceId,
+  relPath,
+  commentKey,
+  onCreated,
+}: NewCommentComposerProps) {
+  const [content, setContent] = useState("");
+  const createMutation = api.docs.createComment.useMutation({
+    onSuccess: onCreated,
+  });
+
+  const handleSubmit = useCallback(() => {
+    const nextContent = content.trim();
+    if (!nextContent || createMutation.isPending) return;
+    createMutation.mutate({
+      spaceId,
+      relPath,
+      commentKey,
+      content: nextContent,
+    });
+  }, [commentKey, content, createMutation, relPath, spaceId]);
+
+  return (
+    <div className="border-b border-border-base bg-surface-overlay p-3">
+      <textarea
+        autoFocus
+        value={content}
+        onChange={(event) => setContent(event.target.value)}
+        onKeyDown={(event) => {
+          if (
+            event.key === "Enter" &&
+            !event.shiftKey &&
+            !event.nativeEvent.isComposing
+          ) {
+            event.preventDefault();
+            handleSubmit();
+          }
+        }}
+        placeholder="输入评论…"
+        rows={3}
+        className="w-full resize-none rounded-md border border-border-base bg-surface-base px-2.5 py-2 text-sm text-fg-primary outline-none placeholder:text-fg-muted focus:border-accent"
+      />
+      {createMutation.isError && (
+        <p className="mt-1.5 text-xs text-status-error">评论发送失败，请重试</p>
+      )}
+      <div className="mt-2 flex justify-end">
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!content.trim() || createMutation.isPending}
+          className="cursor-pointer rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-fg-on-accent transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {createMutation.isPending ? "发送中…" : "发送"}
+        </button>
       </div>
     </div>
   );
@@ -239,7 +324,7 @@ function CommentThread({
         <button
           type="button"
           onClick={() => setShowReplyInput((v) => !v)}
-          className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary"
+          className="flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-xs text-fg-muted transition-colors hover:bg-fill-tertiary hover:text-fg-secondary"
         >
           <Reply className="size-3" />
           回复
@@ -248,7 +333,7 @@ function CommentThread({
           type="button"
           onClick={handleResolve}
           className={cn(
-            "flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors",
+            "flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors",
             resolved
               ? "text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
               : "text-fg-muted hover:bg-fill-tertiary hover:text-fg-secondary",
@@ -283,7 +368,7 @@ function CommentThread({
             type="button"
             onClick={handleReply}
             disabled={!replyText.trim() || createMutation.isPending}
-            className="rounded bg-[var(--accent-subtle)]0 px-2 py-1 text-xs text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50"
+            className="cursor-pointer rounded bg-accent px-2 py-1 text-xs text-fg-on-accent transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             发送
           </button>
@@ -322,7 +407,7 @@ function CommentItem({
           <button
             type="button"
             onClick={onDelete}
-            className="flex size-5 items-center justify-center rounded text-fg-muted opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+            className="flex size-5 cursor-pointer items-center justify-center rounded text-fg-muted opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 dark:hover:bg-red-900/20 dark:hover:text-red-400"
             title="删除"
           >
             <Trash2 className="size-3" />

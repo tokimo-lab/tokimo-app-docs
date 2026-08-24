@@ -31,6 +31,13 @@ interface CollabMutation {
   clientId: number;
 }
 
+function isShareableSheetMutation(id: string): boolean {
+  // Univer uses doc.* mutations for transient rich-text editors such as the
+  // formula bar and font controls. The final cell commit is emitted as a
+  // sheet mutation, so replaying doc.* has no workbook target and always fails.
+  return !id.startsWith("doc.");
+}
+
 /** Univer API surface we depend on (avoid importing internal types) */
 interface UniverAPI {
   syncExecuteCommand: <P extends object = object>(
@@ -154,6 +161,33 @@ export function useSheetCollab({
     let selectionDisposable: { dispose: () => void } | null = null;
     let observerAttached = false;
 
+    const handleRemoteSheetOps = (event: Y.YArrayEvent<CollabMutation>) => {
+      if (event.transaction.local) return;
+
+      isReplayingRef.current = true;
+      for (const delta of event.changes.delta) {
+        if ("insert" in delta) {
+          const items = delta.insert as CollabMutation[];
+          for (const op of items) {
+            if (op.clientId === doc.clientID) continue;
+            if (!isShareableSheetMutation(op.id)) continue;
+            try {
+              univerAPI.syncExecuteCommand(op.id, op.params, {
+                fromCollab: true,
+              });
+            } catch (e) {
+              console.warn(
+                "[SheetCollab] Failed to apply remote mutation:",
+                op.id,
+                e,
+              );
+            }
+          }
+        }
+      }
+      isReplayingRef.current = false;
+    };
+
     // Wait for initial sync, then set up forwarding
     const onSync = (synced: boolean) => {
       if (!synced) return;
@@ -176,6 +210,7 @@ export function useSheetCollab({
       if (existingOps.length > 0) {
         isReplayingRef.current = true;
         for (const op of existingOps) {
+          if (!isShareableSheetMutation(op.id)) continue;
           try {
             univerAPI.syncExecuteCommand(op.id, op.params, {
               fromCollab: true,
@@ -188,31 +223,7 @@ export function useSheetCollab({
       }
 
       // Set up remote mutation observer (only fires for NEW additions)
-      sheetOps.observe((event) => {
-        if (event.transaction.local) return;
-
-        isReplayingRef.current = true;
-        for (const delta of event.changes.delta) {
-          if ("insert" in delta) {
-            const items = delta.insert as CollabMutation[];
-            for (const op of items) {
-              if (op.clientId === doc.clientID) continue;
-              try {
-                univerAPI.syncExecuteCommand(op.id, op.params, {
-                  fromCollab: true,
-                });
-              } catch (e) {
-                console.warn(
-                  "[SheetCollab] Failed to apply remote mutation:",
-                  op.id,
-                  e,
-                );
-              }
-            }
-          }
-        }
-        isReplayingRef.current = false;
-      });
+      sheetOps.observe(handleRemoteSheetOps);
       observerAttached = true;
 
       // Set up local mutation forwarding
@@ -224,6 +235,7 @@ export function useSheetCollab({
           (info, options) => {
             if (options?.fromCollab) return;
             if (!info.params) return;
+            if (!isShareableSheetMutation(info.id)) return;
 
             // Validate params are JSON-safe before forwarding
             try {
@@ -278,13 +290,12 @@ export function useSheetCollab({
       mutationDisposable?.dispose();
       selectionDisposable?.dispose();
       if (observerAttached) {
-        sheetOps.unobserve(() => {});
+        sheetOps.unobserve(handleRemoteSheetOps);
       }
       // Broadcast cursor removal to peers BEFORE closing the WebSocket
       awareness.setLocalState(null);
       unregisterAwareness(roomKey);
       wsProvider.destroy();
-      awareness.destroy();
       doc.destroy();
     };
 

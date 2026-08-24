@@ -226,7 +226,7 @@ function FieldValueDisplay({
   const strVal = value == null ? "" : String(value);
   if (isReadonly) {
     return (
-      <div className="rounded bg-fill-quaternary px-2 py-1 text-xs text-fg-muted">
+      <div className="rounded bg-fill-tertiary px-2 py-1 text-xs text-fg-muted">
         {strVal || "--"}
       </div>
     );

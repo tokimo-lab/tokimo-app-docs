@@ -86,6 +86,27 @@ export function SlideThumbnailPanel({
     e.dataTransfer.dropEffect = "move";
   }, []);
 
+  const handleThumbnailKeyDown = useCallback(
+    (e: React.KeyboardEvent, index: number) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        setCurrentIndex(index);
+        return;
+      }
+      if (!e.altKey) return;
+      if (e.key === "ArrowUp" && index > 0) {
+        e.preventDefault();
+        reorderSlide(index, index - 1);
+        setCurrentIndex(index - 1);
+      } else if (e.key === "ArrowDown" && index < slides.length - 1) {
+        e.preventDefault();
+        reorderSlide(index, index + 1);
+        setCurrentIndex(index + 1);
+      }
+    },
+    [reorderSlide, setCurrentIndex, slides.length],
+  );
+
   const handleInsertLayout = useCallback(
     (
       elements: readonly ReturnType<
@@ -187,13 +208,16 @@ export function SlideThumbnailPanel({
       {/* Thumbnail list */}
       <div className="flex-1 overflow-y-auto py-2">
         {slides.map((slide, i) => (
-          // biome-ignore lint/a11y/useKeyWithClickEvents: thumbnail items use mouse interaction
-          // biome-ignore lint/a11y/noStaticElementInteractions: thumbnail items need drag and context menu
           <div
             key={slide.id}
             className="relative cursor-pointer"
             style={{ padding: "8px 0" }}
+            role="button"
+            tabIndex={0}
+            aria-label={t("docs.slideThumbnail", { index: i + 1 })}
+            title={t("docs.slideReorderHint")}
             onClick={() => setCurrentIndex(i)}
+            onKeyDown={(e) => handleThumbnailKeyDown(e, i)}
             onContextMenu={(e) => handleContextMenu(e, i)}
             draggable
             onDragStart={(e) => handleDragStart(e, i)}

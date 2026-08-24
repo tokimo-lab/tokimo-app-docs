@@ -69,7 +69,7 @@ export function DocVersionHistory({
   if (!open) return null;
 
   return (
-    <div className="flex w-72 shrink-0 flex-col border-l border-border-base bg-surface-elevated ">
+    <div className="flex w-72 shrink-0 flex-col border-l border-border-base bg-surface-raised text-fg-on-raised">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border-base px-3 py-2">
         <div className="flex items-center gap-1.5 text-sm font-medium text-fg-secondary">

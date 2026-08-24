@@ -235,7 +235,7 @@ export function MindEditor({
   }, [mindInstance, saveViewport]);
 
   // ── Collab ─────────────────────────────────────────────────────────────
-  useMindCollab({
+  const publishMindSnapshot = useMindCollab({
     spaceId,
     nodeId,
     userName: userName ?? "Anonymous",
@@ -279,11 +279,16 @@ export function MindEditor({
     });
   }, [viewMode]);
 
-  const handleOutlineChange = useCallback((data: MindElixirData) => {
-    setOutlineData(data);
-    const { theme: _t, ...clean } = data;
-    onChangeRef.current(clean as MindElixirData);
-  }, []);
+  const handleOutlineChange = useCallback(
+    (data: MindElixirData) => {
+      setOutlineData(data);
+      const { theme: _t, ...clean } = data;
+      const cleanData = clean as MindElixirData;
+      onChangeRef.current(cleanData);
+      publishMindSnapshot(cleanData);
+    },
+    [publishMindSnapshot],
+  );
 
   return (
     <div className="mind-feishu relative flex-1 overflow-hidden">

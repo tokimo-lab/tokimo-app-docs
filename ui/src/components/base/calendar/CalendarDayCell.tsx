@@ -33,7 +33,7 @@ export function CalendarDayCell({
       data-date={day.dateStr}
       className={cn(
         "group/cell flex min-h-0 flex-col border-r border-border-subtle p-1 last:border-r-0",
-        !day.isCurrentMonth && "bg-fill-quaternary/30",
+        !day.isCurrentMonth && "bg-fill-tertiary/30",
         isDropTarget && "bg-[var(--accent-subtle)]",
       )}
     >

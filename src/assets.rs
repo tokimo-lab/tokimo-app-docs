@@ -16,11 +16,8 @@ struct EmbeddedUi;
 pub async fn serve(Path(path): Path<String>) -> Response {
     let normalised = normalise(&path);
 
-    let ui_dist_opt = tokimo_bus_cli::manifest::parse_app_ui_dist(crate::MANIFEST)
-        .ok()
-        .flatten();
-    let bytes: Bytes = if let Some(ui_dist) = ui_dist_opt.as_deref() {
-        let candidate = std::path::Path::new(ui_dist).join(&normalised);
+    let bytes: Bytes = if let Some(ui_dist) = resolve_ui_dist() {
+        let candidate = std::path::Path::new(&ui_dist).join(&normalised);
         if candidate.exists() {
             match tokio::fs::read(&candidate).await {
                 Ok(b) => Bytes::from(b),
@@ -55,6 +52,23 @@ pub async fn serve(Path(path): Path<String>) -> Response {
         bytes,
     )
         .into_response()
+}
+
+fn resolve_ui_dist() -> Option<String> {
+    if let Some(configured) = tokimo_bus_cli::manifest::parse_app_ui_dist(crate::MANIFEST)
+        .ok()
+        .flatten()
+    {
+        return Some(configured);
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        Some(concat!(env!("CARGO_MANIFEST_DIR"), "/ui/dist").to_string())
+    }
+
+    #[cfg(not(debug_assertions))]
+    None
 }
 
 fn normalise(path: &str) -> String {

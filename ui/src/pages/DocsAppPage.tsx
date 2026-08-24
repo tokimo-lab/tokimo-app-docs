@@ -5,7 +5,7 @@
  * Right area: Plate editor for the selected doc
  */
 
-import { Empty, Modal, Spin } from "@tokimo/ui";
+import { Empty, Modal, Spin, useConfirm } from "@tokimo/ui";
 import {
   Clock,
   Download,
@@ -76,7 +76,7 @@ const WhiteboardEditor = lazy(() =>
 );
 
 class PageErrorBoundary extends Component<
-  { children: ReactNode },
+  { children: ReactNode; retryLabel: string; title: string },
   { error: Error | null }
 > {
   state: { error: Error | null } = { error: null };
@@ -93,7 +93,7 @@ class PageErrorBoundary extends Component<
     if (this.state.error) {
       return (
         <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-state-danger-text">
-          <p className="font-semibold">Page failed to load</p>
+          <p className="font-semibold">{this.props.title}</p>
           <p className="max-w-lg text-center text-sm text-fg-muted">
             {this.state.error.message}
           </p>
@@ -102,7 +102,7 @@ class PageErrorBoundary extends Component<
             className="mt-2 cursor-pointer rounded bg-state-danger-subtle px-3 py-1 text-sm text-state-danger-text"
             onClick={() => this.setState({ error: null })}
           >
-            Retry
+            {this.props.retryLabel}
           </button>
         </div>
       );
@@ -120,8 +120,12 @@ interface DocsAppPageProps {
 }
 
 export default memo(function DocsAppPage(props: DocsAppPageProps) {
+  const { t } = useTranslation();
   return (
-    <PageErrorBoundary>
+    <PageErrorBoundary
+      title={t("errorBoundary.title")}
+      retryLabel={t("errorBoundary.retry")}
+    >
       <DocsAppPageInner {...props} />
     </PageErrorBoundary>
   );
@@ -136,6 +140,7 @@ function DocsAppPageInner({
 }: DocsAppPageProps) {
   const s = useDocsPage(spaceId);
   const { t } = useTranslation();
+  const [confirmHolder, confirm] = useConfirm();
 
   // ── Menu bar ───────────────────────────────────────────────────────
   useMenuBar(
@@ -228,35 +233,46 @@ function DocsAppPageInner({
           s.favoriteMutation.mutate({ relPath: id, spaceId: s.spaceId })
         }
         onDeleteNode={(node) => {
-          if (
-            window.confirm(
+          confirm({
+            title: t("confirm.archiveTitle"),
+            content:
               node.type === "folder"
-                ? t("confirm.deleteFolder")
-                : t("confirm.delete"),
-            )
-          ) {
-            s.archiveMutation.mutate({
-              relPath: node.relPath,
-              spaceId: s.spaceId,
-            });
-            if (s.selectedNodeId === node.id) {
-              s.deselectNode();
-            }
-          }
+                ? t("confirm.archiveFolderContent")
+                : t("confirm.archiveDocumentContent"),
+            okText: t("nodes.archive"),
+            cancelText: t("common.cancel"),
+            variant: "warning",
+            onOk: async () => {
+              await s.archiveMutation.mutateAsync({
+                nodeId: node.id,
+                spaceId: s.spaceId,
+              });
+              if (s.selectedNodeId === node.id) {
+                s.deselectNode();
+              }
+            },
+          });
         }}
         onUpdateNode={(id, title) =>
           s.updateMutation.mutate({ relPath: id, spaceId: s.spaceId, title })
         }
         onRestoreNode={(id) =>
-          s.restoreMutation.mutate({ relPath: id, spaceId: s.spaceId })
+          s.restoreMutation.mutate({ nodeId: id, spaceId: s.spaceId })
         }
         onPermanentDeleteNode={(id) => {
-          if (window.confirm(t("confirm.permanentDelete"))) {
-            s.permanentDeleteMutation.mutate({
-              relPath: id,
-              spaceId: s.spaceId,
-            });
-          }
+          confirm({
+            title: t("browser.delete"),
+            content: t("confirm.permanentDelete"),
+            okText: t("browser.delete"),
+            cancelText: t("common.cancel"),
+            variant: "danger",
+            onOk: async () => {
+              await s.permanentDeleteMutation.mutateAsync({
+                nodeId: id,
+                spaceId: s.spaceId,
+              });
+            },
+          });
         }}
         onMoveNode={(from, to) => {
           if (!s.spaceId) return;
@@ -285,7 +301,12 @@ function DocsAppPageInner({
           spaceId={s.spaceId}
           relPath={s.selectedDoc.relPath}
           open={s.commentSidebarOpen}
-          onClose={() => s.setCommentSidebarOpen(false)}
+          pendingCommentKey={s.pendingCommentKey}
+          onCommentCreated={() => s.setPendingCommentKey(null)}
+          onClose={() => {
+            s.setPendingCommentKey(null);
+            s.setCommentSidebarOpen(false);
+          }}
         />
       )}
 
@@ -318,6 +339,7 @@ function DocsAppPageInner({
         className="hidden"
         onChange={s.handleAttachmentFileChange}
       />
+      {confirmHolder}
     </div>
   );
 }
@@ -383,11 +405,19 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
 
   // Right-side action slot based on current selection type.
   let right: ReactNode = null;
-  if (
-    leaf &&
-    (leaf === s.selectedSheet || leaf === s.selectedMind || leaf === s.selectedSlide)
-  ) {
-    right = <CollabPresenceBar nodeId={leaf.id} saveState={s.saveState} />;
+  if (leaf) {
+    const showConnection =
+      leaf === s.selectedDoc ||
+      leaf === s.selectedSheet ||
+      leaf === s.selectedMind ||
+      leaf === s.selectedSlide;
+    right = (
+      <CollabPresenceBar
+        nodeId={leaf.id}
+        saveState={s.saveState}
+        showConnection={showConnection}
+      />
+    );
   }
   if (s.selectedDoc && leaf === s.selectedDoc) {
     right = (
@@ -395,6 +425,7 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
         <CollabPresenceBar
           nodeId={s.selectedDoc.id}
           saveState={s.saveState}
+          showConnection={!s.previewingVersionId}
         />
         <button
           type="button"
@@ -408,6 +439,8 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
           type="button"
           onClick={() => {
             s.setVersionHistoryOpen((v: boolean) => !v);
+            s.setCommentSidebarOpen(false);
+            s.setPendingCommentKey(null);
             if (s.versionHistoryOpen) s.setPreviewingVersionId(null);
           }}
           className={`flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
@@ -421,7 +454,12 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
         </button>
         <button
           type="button"
-          onClick={() => s.setCommentSidebarOpen((v: boolean) => !v)}
+          onClick={() => {
+            s.setCommentSidebarOpen((v: boolean) => !v);
+            s.setVersionHistoryOpen(false);
+            s.setPreviewingVersionId(null);
+            s.setPendingCommentKey(null);
+          }}
           className={`flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
             s.commentSidebarOpen
               ? "bg-accent-subtle text-accent-text"
@@ -455,6 +493,27 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
 
 function DocsMainBody({ s }: { s: DocsPageState }) {
   const { t } = useTranslation();
+  if (s.detailQuery.isError) {
+    const message =
+      s.detailQuery.error instanceof Error
+        ? s.detailQuery.error.message
+        : t("common.error");
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+        <p className="font-semibold text-state-danger-text">
+          {t("errorBoundary.title")}
+        </p>
+        <p className="max-w-lg text-sm text-fg-muted">{message}</p>
+        <button
+          type="button"
+          className="cursor-pointer rounded-md bg-accent px-3 py-1.5 text-sm text-fg-on-accent transition-colors hover:bg-accent-hover"
+          onClick={() => void s.detailQuery.refetch()}
+        >
+          {t("errorBoundary.retry")}
+        </button>
+      </div>
+    );
+  }
   if (s.isSelectedNodeLoading) return <DocMainLoading />;
 
   if (s.selectedSheet) {
@@ -665,8 +724,16 @@ function DocsMainBody({ s }: { s: DocsPageState }) {
           parentRelPath: parentId ?? undefined,
         });
       }}
-      onDeleteNode={(id) =>
-        s.archiveMutation.mutate({ relPath: id, spaceId: s.spaceId })
+      onDeleteNode={(node) =>
+        s.tab === "archived"
+          ? s.permanentDeleteMutation.mutateAsync({
+              nodeId: node.id,
+              spaceId: s.spaceId,
+            })
+          : s.archiveMutation.mutateAsync({
+              nodeId: node.id,
+              spaceId: s.spaceId,
+            })
       }
       onUpdateNode={(id, title) =>
         s.updateMutation.mutate({

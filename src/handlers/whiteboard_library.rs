@@ -96,6 +96,10 @@ pub async fn download_library(State(ctx): State<Arc<AppCtx>>, Path(id): Path<Str
                 header::CONTENT_DISPOSITION,
                 "attachment; filename=\"library.excalidrawlib\"",
             ),
+            (
+                header::CACHE_CONTROL,
+                "public, max-age=86400, stale-while-revalidate=604800",
+            ),
         ],
         bytes,
     )

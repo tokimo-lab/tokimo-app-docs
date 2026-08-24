@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { CalendarToolbar } from "./calendar/CalendarToolbar";
 import { CalendarView } from "./calendar/CalendarView";
 import { FormToolbar } from "./form/FormToolbar";
@@ -26,6 +26,30 @@ export function BaseEditor({ spaceId, relPath }: BaseEditorProps) {
     return (
       <div className="flex h-full items-center justify-center bg-surface-base">
         <Loader2 size={24} className="animate-spin text-fg-muted" />
+      </div>
+    );
+  }
+
+  if (state.error) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 bg-surface-base px-6 text-center">
+        <AlertCircle size={28} className="text-state-danger-text" />
+        <div>
+          <p className="font-medium text-fg-primary">多维表格加载失败</p>
+          <p className="mt-1 max-w-md text-sm text-fg-muted">
+            {state.error instanceof Error
+              ? state.error.message
+              : "请检查服务状态后重试"}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="flex cursor-pointer items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm text-fg-on-accent hover:bg-accent-hover"
+          onClick={state.retry}
+        >
+          <RefreshCw size={14} />
+          重试
+        </button>
       </div>
     );
   }

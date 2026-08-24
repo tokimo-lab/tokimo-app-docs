@@ -42,6 +42,7 @@ export function GroupBuilder({
         <span className="text-xs font-medium text-fg-secondary">分组</span>
         <button
           type="button"
+          aria-label="关闭分组"
           className="cursor-pointer text-fg-muted hover:text-fg-primary"
           onClick={onClose}
         >
@@ -79,6 +80,7 @@ export function GroupBuilder({
             </select>
             <button
               type="button"
+              aria-label="删除分组条件"
               className="cursor-pointer text-fg-muted hover:text-red-500"
               onClick={() => removeGroup(group.id)}
             >

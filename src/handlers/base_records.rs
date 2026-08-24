@@ -42,8 +42,17 @@ impl From<docs_base_records::Model> for BaseRecordOutput {
 #[serde(rename_all = "camelCase")]
 pub struct RelPathQuery {
     pub rel_path: String,
-    #[serde(flatten)]
-    pub page: PageInput,
+    pub page: Option<u64>,
+    pub page_size: Option<u64>,
+}
+impl RelPathQuery {
+    fn pagination(&self) -> PageInput {
+        let defaults = PageInput::default();
+        PageInput {
+            page: self.page.unwrap_or(defaults.page).max(1),
+            page_size: self.page_size.unwrap_or(defaults.page_size).clamp(1, 1000),
+        }
+    }
 }
 #[derive(Debug, Deserialize, TS)]
 #[ts(export)]
@@ -78,15 +87,17 @@ pub async fn list_records(
     Path(id): Path<String>,
     Query(q): Query<RelPathQuery>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+    let page = q.pagination();
     let result: Page<docs_base_records::Model> =
-        BaseRecordRepo::list(&ctx.db, parse_uuid(&id)?, &q.rel_path, &q.page).await?;
+        BaseRecordRepo::list(&ctx.db, parse_uuid(&id)?, &q.rel_path, &page).await?;
     let output = Page::new(
         result.items.into_iter().map(BaseRecordOutput::from).collect(),
         result.total,
-        &q.page,
+        &page,
     );
     Ok(ok(serde_json::to_value(output)?))
 }
+
 pub async fn create_record(
     State(ctx): State<Arc<AppCtx>>,
     AuthUser(_): AuthUser,
@@ -135,4 +146,51 @@ pub async fn batch_delete_records(
     Ok(ok(BatchDeleteOutput {
         deleted: BaseRecordRepo::batch_delete(&ctx.db, ids).await? as i64,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::extract::Query;
+    use axum::http::Uri;
+
+    use super::RelPathQuery;
+
+    #[test]
+    fn parses_optional_pagination_from_query_string() {
+        let uri: Uri = "/base/records?relPath=Demo.tokimo-base.json&page=2&pageSize=1000"
+            .parse()
+            .expect("valid URI");
+        let Query(query) = Query::<RelPathQuery>::try_from_uri(&uri).expect("query parses");
+
+        assert_eq!(query.rel_path, "Demo.tokimo-base.json");
+        assert_eq!(query.pagination().page, 2);
+        assert_eq!(query.pagination().page_size, 1000);
+    }
+
+    #[test]
+    fn allows_record_creation_query_without_pagination() {
+        let uri: Uri = "/base/records?relPath=Demo.tokimo-base.json"
+            .parse()
+            .expect("valid URI");
+        let Query(query) = Query::<RelPathQuery>::try_from_uri(&uri).expect("query parses");
+
+        assert_eq!(query.pagination().page, 1);
+        assert_eq!(query.pagination().page_size, 20);
+    }
+
+    #[test]
+    fn normalizes_invalid_and_oversized_pagination() {
+        let zero_uri: Uri = "/base/records?relPath=Demo.tokimo-base.json&page=0&pageSize=0"
+            .parse()
+            .expect("valid URI");
+        let Query(zero_query) = Query::<RelPathQuery>::try_from_uri(&zero_uri).expect("query parses");
+        assert_eq!(zero_query.pagination().page, 1);
+        assert_eq!(zero_query.pagination().page_size, 1);
+
+        let oversized_uri: Uri = "/base/records?relPath=Demo.tokimo-base.json&pageSize=1001"
+            .parse()
+            .expect("valid URI");
+        let Query(oversized_query) = Query::<RelPathQuery>::try_from_uri(&oversized_uri).expect("query parses");
+        assert_eq!(oversized_query.pagination().page_size, 1000);
+    }
 }

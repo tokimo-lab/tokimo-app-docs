@@ -753,7 +753,7 @@ export function SlashInputElement(props: PlateElementProps) {
         createPortal(
           <div
             ref={menuRef}
-            className="fixed z-[9999] w-72 overflow-y-auto rounded-lg border border-border-base bg-surface-elevated py-1.5 shadow-xl "
+            className="fixed z-[9999] w-72 overflow-y-auto rounded-lg border border-base bg-surface-overlay py-1.5 text-fg-on-overlay shadow-md backdrop-blur-glass"
             style={{ top: menuPos.top, left: menuPos.left, maxHeight: 320 }}
           >
             {filteredGroups.length === 0 ? (
@@ -775,10 +775,10 @@ export function SlashInputElement(props: PlateElementProps) {
                         key={item.label}
                         type="button"
                         data-selected={isSelected}
-                        className={`flex w-full items-center gap-3 px-3 py-1.5 text-left text-sm transition-colors ${
+                        className={`flex w-full cursor-pointer items-center gap-3 px-3 py-1.5 text-left text-sm transition-colors ${
                           isSelected
-                            ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)]"
-                            : "text-fg-secondary hover:bg-fill-tertiary /50"
+                            ? "bg-accent-subtle text-accent-text"
+                            : "text-fg-secondary hover:bg-surface-overlay-hover"
                         }`}
                         onMouseDown={(e) => {
                           e.preventDefault();
@@ -786,7 +786,7 @@ export function SlashInputElement(props: PlateElementProps) {
                         }}
                         onMouseEnter={() => setSelectedIndex(currentIndex)}
                       >
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border-base bg-surface-elevated ">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-base bg-surface-raised text-fg-on-raised">
                           {item.icon}
                         </span>
                         <div className="min-w-0">

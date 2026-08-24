@@ -73,7 +73,7 @@ export const GanttTimeline = forwardRef<HTMLDivElement, GanttTimelineProps>(
                     className={cn(
                       "flex shrink-0 items-center justify-center text-[11px]",
                       weekend
-                        ? "bg-fill-quaternary/30 text-fg-muted dark:bg-fill-quaternary/20"
+                        ? "bg-fill-tertiary/30 text-fg-muted"
                         : "text-fg-secondary",
                       isToday && "font-bold text-[var(--accent)]",
                     )}
@@ -100,7 +100,7 @@ export const GanttTimeline = forwardRef<HTMLDivElement, GanttTimelineProps>(
               return (
                 <div
                   key={`bg-${ds}`}
-                  className="absolute top-0 bottom-0 bg-fill-quaternary/30 dark:bg-fill-quaternary/20"
+                  className="absolute top-0 bottom-0 bg-fill-tertiary/30"
                   style={{ left: idx * colWidth, width: colWidth }}
                 />
               );

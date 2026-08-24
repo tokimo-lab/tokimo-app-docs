@@ -42,6 +42,7 @@ export function SortBuilder({
         <span className="text-xs font-medium text-fg-secondary">排序</span>
         <button
           type="button"
+          aria-label="关闭排序"
           className="cursor-pointer text-fg-muted hover:text-fg-primary"
           onClick={onClose}
         >
@@ -77,6 +78,7 @@ export function SortBuilder({
             </select>
             <button
               type="button"
+              aria-label="删除排序条件"
               className="cursor-pointer text-fg-muted hover:text-red-500"
               onClick={() => removeSort(sort.id)}
             >

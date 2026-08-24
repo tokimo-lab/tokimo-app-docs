@@ -117,11 +117,11 @@ export function MermaidElement(props: PlateElementProps) {
                 }
               }}
               placeholder={"graph TD\n  A[开始] --> B[结束]"}
-              className="w-full resize-none rounded border border-border-base bg-surface-elevated px-3 py-2 font-mono text-sm text-fg-primary outline-none focus:border-[var(--accent)]"
+              className="w-full resize-none rounded border border-border-base bg-surface-sunken px-3 py-2 font-mono text-sm text-fg-primary outline-none focus:border-accent"
               rows={6}
             />
             {draft && (
-              <div className="rounded border border-border-base bg-surface-elevated p-3 ">
+              <div className="rounded border border-border-base bg-surface-raised p-3 text-fg-on-raised">
                 <MermaidRenderer code={draft} isDark={isDark} />
               </div>
             )}

@@ -68,7 +68,7 @@ export function DocTemplateChooser({
             }}
             className={cn(
               "flex flex-col items-center gap-2 rounded-lg border px-4 py-5 text-center transition-all",
-              "border-border-base bg-surface-elevated hover:border-[var(--accent)] hover:shadow-md",
+              "border-border-base bg-surface-raised text-fg-on-raised hover:border-accent hover:shadow-md",
               "dark:hover:border-[var(--accent)] ",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
             )}

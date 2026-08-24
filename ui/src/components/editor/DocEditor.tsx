@@ -429,9 +429,15 @@ export function DocEditor({
     collabEnabled ? [nodeId] : [initialValue],
   );
 
-  // Initialize Yjs collab plugin — must be called explicitly after editor creation.
-  // Patches editor.connect() to be idempotent (Strict Mode calls init() twice).
-  const yjsInitRef = useRef(false);
+  // Initialize Yjs once per editor. Strict Mode runs effect cleanup/setup twice,
+  // so destruction is deferred one task and cancelled when the same editor is
+  // immediately mounted again.
+  const yjsLifecycleRef = useRef<{
+    editor: object;
+    destroyTimer: number | null;
+    initPromise: Promise<void>;
+    yjs: { destroy: () => void };
+  } | null>(null);
   useEffect(() => {
     if (!collabEnabled || !editor) return;
 
@@ -445,36 +451,35 @@ export function DocEditor({
       | undefined;
     if (!yjs) return;
 
-    // React Strict Mode fires effect → cleanup → effect. The first async
-    // init() may still call editor.connect() after cleanup has run, then
-    // the second init() also tries to connect → "already connected" error.
-    // Patch connect() to be idempotent so both calls succeed silently.
-    const ed = editor as unknown as {
-      connect: () => void;
-      disconnect: () => void;
-    };
-    if (!yjsInitRef.current) {
-      const origConnect = ed.connect;
-      ed.connect = () => {
-        try {
-          origConnect.call(ed);
-        } catch {
-          // "already connected" — safe to ignore
-        }
+    let lifecycle = yjsLifecycleRef.current;
+    if (!lifecycle || lifecycle.editor !== editor) {
+      const initPromise = yjs.init({ value: initialValue }).catch((err: unknown) => {
+        console.warn("[collab] yjs.init:", err);
+      });
+      lifecycle = {
+        editor,
+        destroyTimer: null,
+        initPromise,
+        yjs,
       };
-      yjsInitRef.current = true;
+      yjsLifecycleRef.current = lifecycle;
     }
 
-    yjs.init({ value: initialValue }).catch((err: unknown) => {
-      console.warn("[collab] yjs.init:", err);
-    });
+    if (lifecycle.destroyTimer !== null) {
+      window.clearTimeout(lifecycle.destroyTimer);
+      lifecycle.destroyTimer = null;
+    }
 
     return () => {
-      try {
-        yjs.destroy();
-      } catch {
-        // Cleanup may fail if init didn't complete
-      }
+      const currentLifecycle = lifecycle;
+      currentLifecycle.destroyTimer = window.setTimeout(() => {
+        void currentLifecycle.initPromise.finally(() => {
+          currentLifecycle.yjs.destroy();
+          if (yjsLifecycleRef.current === currentLifecycle) {
+            yjsLifecycleRef.current = null;
+          }
+        });
+      }, 0);
     };
   }, [collabEnabled, editor, initialValue]);
 

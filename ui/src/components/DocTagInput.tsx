@@ -172,7 +172,7 @@ export function DocTagInput({
             className="min-w-[80px] border-none bg-transparent py-0.5 text-xs text-fg-secondary outline-none placeholder:text-fg-muted  "
           />
           {suggestions.length > 0 && (
-            <div className="absolute top-full left-0 z-50 mt-1 w-48 rounded-md border border-border-base bg-surface-elevated py-1 shadow-lg ">
+            <div className="absolute top-full left-0 z-50 mt-1 w-48 rounded-md border border-base bg-surface-overlay py-1 text-fg-on-overlay shadow-md backdrop-blur-glass">
               {suggestions.map((s, i) => (
                 <button
                   key={s}

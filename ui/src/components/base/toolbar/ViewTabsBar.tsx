@@ -61,7 +61,7 @@ export function ViewTabsBar({ state }: ViewTabsBarProps) {
   }));
 
   return (
-    <div className="flex items-center border-b border-border-subtle bg-surface-secondary px-2">
+    <div className="flex items-center border-b border-border-subtle bg-surface-raised px-2 text-fg-on-raised">
       <div className="flex items-center gap-0.5 overflow-x-auto">
         {views.map((view) => (
           <ViewTab
@@ -163,15 +163,23 @@ function ViewTab({
       menu={{ items: tabMenuItems }}
     >
       <div className="group relative flex items-center">
-        <button
-          type="button"
+        <div
+          role="tab"
+          tabIndex={0}
+          aria-selected={isActive}
           className={cn(
             "flex cursor-pointer items-center gap-1.5 border-b-2 px-3 py-2 text-xs transition-colors",
             isActive
-              ? "border-[var(--accent)] text-[var(--accent)] dark:border-[var(--accent)] dark:text-[var(--accent)]"
+              ? "border-accent text-accent-text"
               : "border-transparent text-fg-muted hover:text-fg-secondary",
           )}
           onClick={onSelect}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelect();
+            }
+          }}
           onContextMenu={(e) => {
             e.preventDefault();
             setMenuOpen(true);
@@ -207,7 +215,7 @@ function ViewTab({
               <MoreVertical size={12} />
             </button>
           )}
-        </button>
+        </div>
       </div>
     </Dropdown>
   );

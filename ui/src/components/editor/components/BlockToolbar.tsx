@@ -17,7 +17,7 @@ export function BlockToolbar({
     <div className="absolute bottom-full left-1 z-20 pb-1">
       <div
         className={cn(
-          "flex items-center gap-0.5 rounded-md border border-border-base bg-surface-elevated px-0.5 py-0.5 shadow-sm",
+          "flex items-center gap-0.5 rounded-md border border-base bg-surface-overlay px-0.5 py-0.5 text-fg-on-overlay shadow-md backdrop-blur-glass",
           "opacity-0 transition-opacity group-hover/block:opacity-100",
           isDragging && "opacity-100",
         )}

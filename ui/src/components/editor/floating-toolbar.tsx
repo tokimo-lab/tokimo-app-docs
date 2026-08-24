@@ -134,7 +134,7 @@ function TurnIntoDropdown() {
         <ChevronDown className="size-3" />
       </button>
       {open && (
-        <div className="absolute top-full left-0 z-[9999] mt-1 min-w-[160px] rounded-lg border border-border-base bg-surface-elevated py-1 shadow-lg ">
+        <div className="absolute top-full left-0 z-[9999] mt-1 min-w-[160px] rounded-lg border border-base bg-surface-overlay py-1 text-fg-on-overlay shadow-md backdrop-blur-glass">
           {BLOCK_TYPES.map(({ type, label, icon: Icon }) => (
             <button
               key={type}
@@ -255,7 +255,7 @@ export function FloatingToolbar({
   return createPortal(
     <div
       ref={ref}
-      className="z-[9999] flex items-center gap-0.5 rounded-lg border border-border-base bg-surface-elevated px-1 py-0.5 shadow-lg "
+      className="z-[9999] flex items-center gap-0.5 rounded-lg border border-base bg-surface-overlay px-1 py-0.5 text-fg-on-overlay shadow-md backdrop-blur-glass"
       {...props}
     >
       <TurnIntoDropdown />

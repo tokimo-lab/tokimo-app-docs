@@ -2,6 +2,7 @@ use axum::Json;
 use axum::extract::{Path, Query, State};
 use sea_orm::{ConnectionTrait, TransactionTrait};
 use serde::Deserialize;
+use std::path::{Component, Path as FsPath};
 use std::sync::Arc;
 use ts_rs::TS;
 
@@ -147,6 +148,43 @@ async fn commit_related_rename(
         DocNodeMetaRepo::set_archived(&txn, space_id, new_rel, archived).await?;
     }
     txn.commit().await?;
+    Ok(())
+}
+
+fn archive_rel_path(node_id: uuid::Uuid, rel_path: &str) -> String {
+    format!(".trash/{node_id}/{rel_path}")
+}
+
+fn restore_rel_path(trash_rel_path: &str) -> Result<String, AppError> {
+    let archived = trash_rel_path
+        .strip_prefix(".trash/")
+        .ok_or_else(|| AppError::BadRequest("node is not archived".into()))?;
+    let Some((namespace, original)) = archived.split_once('/') else {
+        return Ok(archived.to_string());
+    };
+    if uuid::Uuid::parse_str(namespace).is_ok() {
+        if original.is_empty() {
+            return Err(AppError::BadRequest("archived node has no original path".into()));
+        }
+        return Ok(original.to_string());
+    }
+    Ok(archived.to_string())
+}
+
+async fn ensure_vfs_parent_dirs(vfs: &tokimo_vfs::Vfs, root_path: &str, rel_path: &str) -> Result<(), AppError> {
+    let Some(parent) = FsPath::new(rel_path).parent() else {
+        return Ok(());
+    };
+    let mut current = path_utils::vfs_path(root_path, "");
+    for component in parent.components() {
+        let Component::Normal(part) = component else {
+            continue;
+        };
+        current.push(part);
+        if vfs.stat(&current).await.is_err() {
+            vfs.mkdir(&current).await.map_err(vfs_err)?;
+        }
+    }
     Ok(())
 }
 
@@ -356,15 +394,17 @@ pub async fn archive_node(
     let space_id = parse_uuid(&id)?;
     let meta = resolve_node(&ctx, space_id, &q).await?;
     let rel_path = meta.rel_path;
+    let node_id = meta.id;
     let space = get_space(&ctx, &id).await?;
     let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
     let from = path_utils::vfs_path(&root_path, &rel_path);
     let info = vfs.stat(&from).await.map_err(vfs_err)?;
-    let mut trash_rel = format!(".trash/{rel_path}");
-    if vfs.stat(&path_utils::vfs_path(&root_path, &trash_rel)).await.is_ok() {
-        trash_rel = format!(".trash/{}.{rel_path}", chrono::Utc::now().timestamp());
-    }
+    let trash_rel = archive_rel_path(node_id, &rel_path);
     let trash_path = path_utils::vfs_path(&root_path, &trash_rel);
+    if vfs.stat(&trash_path).await.is_ok() {
+        return Err(AppError::BadRequest("archive target already exists".into()));
+    }
+    ensure_vfs_parent_dirs(&vfs, &root_path, &trash_rel).await?;
     vfs.rename(&from, &trash_path).await.map_err(vfs_err)?;
     if let Err(error) = commit_related_rename(&ctx, space_id, &rel_path, &trash_rel, info.is_dir, Some(true)).await {
         if let Err(rollback_error) = vfs.rename(&trash_path, &from).await {
@@ -389,7 +429,7 @@ pub async fn restore_node(
     } else {
         format!(".trash/{}", meta.rel_path)
     };
-    let restore_rel = trash_rel.trim_start_matches(".trash/").to_string();
+    let restore_rel = restore_rel_path(&trash_rel)?;
     let space = get_space(&ctx, &id).await?;
     let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
     let from = path_utils::vfs_path(&root_path, &trash_rel);
@@ -398,6 +438,7 @@ pub async fn restore_node(
     if vfs.stat(&to).await.is_ok() {
         return Err(AppError::BadRequest("restore target already exists".into()));
     }
+    ensure_vfs_parent_dirs(&vfs, &root_path, &restore_rel).await?;
     vfs.rename(&from, &to).await.map_err(vfs_err)?;
     if let Err(error) = commit_related_rename(&ctx, space_id, &trash_rel, &restore_rel, info.is_dir, Some(false)).await
     {
@@ -430,4 +471,36 @@ pub async fn delete_node(
     }
     DocNodeMetaRepo::delete(&ctx.db, space_id, &rel_path).await?;
     Ok(ok_empty())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{archive_rel_path, restore_rel_path};
+
+    #[test]
+    fn archive_path_namespaces_original_path_by_stable_node_id() {
+        let node_id = uuid::Uuid::parse_str("7c98f94d-f20d-426f-ac50-f16563c624f8").expect("valid UUID");
+        let original = "项目/演示文稿.tokimo-slide.json";
+
+        let archived = archive_rel_path(node_id, original);
+
+        assert_eq!(
+            archived,
+            ".trash/7c98f94d-f20d-426f-ac50-f16563c624f8/项目/演示文稿.tokimo-slide.json"
+        );
+        assert_eq!(restore_rel_path(&archived).expect("restorable"), original);
+    }
+
+    #[test]
+    fn restore_path_remains_compatible_with_legacy_archives() {
+        assert_eq!(
+            restore_rel_path(".trash/项目/文档.tokimo-doc.json").expect("restorable"),
+            "项目/文档.tokimo-doc.json"
+        );
+    }
+
+    #[test]
+    fn restore_path_rejects_non_archived_nodes() {
+        assert!(restore_rel_path("项目/文档.tokimo-doc.json").is_err());
+    }
 }

@@ -71,6 +71,10 @@ export function WhiteboardEditor({
   } = useDocViewport(spaceId, relPath);
   const viewportRestoredRef = useRef(false);
 
+  useEffect(() => {
+    viewportRestoredRef.current = false;
+  }, [relPath]);
+
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
@@ -134,6 +138,7 @@ export function WhiteboardEditor({
         excalidrawAPI.scrollToContent(undefined, {
           fitToViewport: true,
           viewportZoomFactor: 0.9,
+          maxZoom: 1,
         });
       }
       // Tier 3: Default viewport (Excalidraw's built-in default) — no action needed

@@ -41,7 +41,8 @@ export function GridCell({ recordId, field, value, state }: GridCellProps) {
   const startEdit = useCallback(() => setEditing(true), []);
   const endEdit = useCallback(() => setEditing(false), []);
 
-  switch (field.type) {
+  const cell = (() => {
+    switch (field.type) {
     case "text":
       return (
         <TextCell
@@ -177,5 +178,34 @@ export function GridCell({ recordId, field, value, state }: GridCellProps) {
       return <ReadonlyCell value={value} />;
     default:
       return <div className="px-2 leading-[32px]">{String(value ?? "")}</div>;
-  }
+    }
+  })();
+
+  const canEnterEdit = ![
+    "attachment",
+    "autoNumber",
+    "createdBy",
+    "modifiedBy",
+    "createdTime",
+    "modifiedTime",
+  ].includes(field.type);
+
+  return (
+    <div
+      role="gridcell"
+      aria-label={field.name}
+      aria-readonly={!canEnterEdit}
+      className="h-full w-full outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
+      tabIndex={0}
+      onDoubleClick={canEnterEdit ? startEdit : undefined}
+      onKeyDown={(event) => {
+        if (canEnterEdit && event.key === "Enter") {
+          event.preventDefault();
+          startEdit();
+        }
+      }}
+    >
+      {cell}
+    </div>
+  );
 }

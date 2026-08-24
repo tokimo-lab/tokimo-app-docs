@@ -1,4 +1,4 @@
-import { cn } from "@tokimo/ui";
+import { cn, useConfirm, useToast } from "@tokimo/ui";
 import {
   ChevronRight,
   FileDown,
@@ -9,26 +9,27 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { downloadSlideAsImage } from "../lib/export-image";
 import { createDefaultPresentation, isSlidePresentation } from "../types";
 import { useSlideStore } from "../use-slide-store";
 
-const SHORTCUTS: Array<[string, string]> = [
-  ["Ctrl+Z", "撤销"],
-  ["Ctrl+Shift+Z", "重做"],
-  ["Ctrl+C", "复制"],
-  ["Ctrl+V", "粘贴"],
-  ["Ctrl+X", "剪切"],
-  ["Ctrl+D", "复制元素"],
-  ["Ctrl+A", "全选"],
-  ["Ctrl+G", "组合"],
-  ["Ctrl+Shift+G", "取消组合"],
-  ["Delete", "删除"],
-  ["Ctrl+F", "搜索"],
-  ["Ctrl+H", "搜索替换"],
-  ["Space+拖拽", "平移画布"],
-  ["Ctrl+↑/↓", "调整层级"],
-];
+const SHORTCUTS = [
+  ["Ctrl+Z", "docs.slideShortcutUndo"],
+  ["Ctrl+Shift+Z", "docs.slideShortcutRedo"],
+  ["Ctrl+C", "docs.slideShortcutCopy"],
+  ["Ctrl+V", "docs.slideShortcutPaste"],
+  ["Ctrl+X", "docs.slideShortcutCut"],
+  ["Ctrl+D", "docs.slideShortcutDuplicate"],
+  ["Ctrl+A", "docs.slideShortcutSelectAll"],
+  ["Ctrl+G", "docs.slideShortcutGroup"],
+  ["Ctrl+Shift+G", "docs.slideShortcutUngroup"],
+  ["Delete", "docs.slideShortcutDelete"],
+  ["Ctrl+F", "docs.slideShortcutSearch"],
+  ["Ctrl+H", "docs.slideShortcutReplace"],
+  ["Space + Drag", "docs.slideShortcutPan"],
+  ["Ctrl + ↑/↓", "docs.slideShortcutLayer"],
+] as const;
 
 const menuItemClass =
   "flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-black/5 dark:hover:bg-white/5";
@@ -40,6 +41,9 @@ export function HamburgerMenu() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const presentation = useSlideStore((s) => s.presentation);
   const setPresentation = useSlideStore((s) => s.setPresentation);
+  const { t } = useTranslation();
+  const message = useToast();
+  const [confirmHolder, confirm] = useConfirm();
 
   const closeMenu = useCallback(() => {
     setOpen(false);
@@ -69,13 +73,13 @@ export function HamburgerMenu() {
 
   const handleExportPptx = useCallback(() => {
     closeMenu();
-    alert("PPTX 导出功能即将推出");
-  }, [closeMenu]);
+    message.info(t("docs.slidePptxExportComingSoon"));
+  }, [closeMenu, message, t]);
 
   const handleExportMarkdown = useCallback(() => {
     closeMenu();
-    alert("Markdown 导出功能即将推出");
-  }, [closeMenu]);
+    message.info(t("docs.slideMarkdownExportComingSoon"));
+  }, [closeMenu, message, t]);
 
   const handleImportJson = useCallback(() => {
     closeMenu();
@@ -93,29 +97,34 @@ export function HamburgerMenu() {
           if (isSlidePresentation(parsed)) {
             setPresentation(parsed);
           } else {
-            alert("无效的幻灯片文件");
+            message.error(t("docs.slideInvalidFile"));
           }
         } catch {
-          alert("文件解析失败");
+          message.error(t("docs.slideFileParseFailed"));
         }
       };
       reader.readAsText(file);
       e.target.value = "";
     },
-    [setPresentation],
+    [message, setPresentation, t],
   );
 
   const handleImportPptx = useCallback(() => {
     closeMenu();
-    alert("PPTX 导入功能即将推出");
-  }, [closeMenu]);
+    message.info(t("docs.slidePptxImportComingSoon"));
+  }, [closeMenu, message, t]);
 
   const handleReset = useCallback(() => {
     closeMenu();
-    if (window.confirm("确定要重置幻灯片吗？当前内容将丢失。")) {
-      setPresentation(createDefaultPresentation());
-    }
-  }, [closeMenu, setPresentation]);
+    confirm({
+      title: t("docs.slideReset"),
+      content: t("docs.slideResetConfirm"),
+      okText: t("docs.slideReset"),
+      cancelText: t("common.cancel"),
+      variant: "danger",
+      onOk: () => setPresentation(createDefaultPresentation()),
+    });
+  }, [closeMenu, confirm, setPresentation, t]);
 
   return (
     <>
@@ -129,7 +138,7 @@ export function HamburgerMenu() {
               "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)]0/10",
           )}
           onClick={() => setOpen(!open)}
-          title="菜单"
+          title={t("docs.slideMenu")}
         >
           <Menu size={18} />
         </button>
@@ -151,7 +160,7 @@ export function HamburgerMenu() {
               >
                 <button type="button" className={menuItemClass}>
                   <FileUp size={14} />
-                  导入文件
+                  {t("docs.slideImportFile")}
                   <ChevronRight size={12} className="ml-auto" />
                 </button>
                 {submenu === "import" && (
@@ -185,7 +194,7 @@ export function HamburgerMenu() {
               >
                 <button type="button" className={menuItemClass}>
                   <FileDown size={14} />
-                  导出文件
+                  {t("docs.slideExportFile")}
                   <ChevronRight size={12} className="ml-auto" />
                 </button>
                 {submenu === "export" && (
@@ -230,7 +239,7 @@ export function HamburgerMenu() {
                 onClick={handleReset}
               >
                 <RotateCcw size={14} />
-                重置幻灯片
+                {t("docs.slideReset")}
               </button>
 
               <div className="my-1 h-px bg-border-subtle" />
@@ -244,7 +253,7 @@ export function HamburgerMenu() {
                 }}
               >
                 <Keyboard size={14} />
-                快捷键说明
+                {t("docs.slideShortcuts")}
               </button>
             </div>
           </>
@@ -270,7 +279,9 @@ export function HamburgerMenu() {
           />
           <div className="relative z-10 w-[420px] rounded-lg bg-white p-5 shadow-2xl dark:bg-neutral-800">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold">快捷键说明</h3>
+              <h3 className="text-sm font-semibold">
+                {t("docs.slideShortcuts")}
+              </h3>
               <button
                 type="button"
                 className="cursor-pointer rounded p-1 hover:bg-black/5 dark:hover:bg-white/5"
@@ -283,15 +294,15 @@ export function HamburgerMenu() {
               <thead>
                 <tr className="border-b border-border-subtle">
                   <th className="py-1.5 text-left font-medium text-fg-muted">
-                    快捷键
+                    {t("docs.slideShortcutKey")}
                   </th>
                   <th className="py-1.5 text-left font-medium text-fg-muted">
-                    功能
+                    {t("docs.slideShortcutAction")}
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {SHORTCUTS.map(([key, desc]) => (
+                {SHORTCUTS.map(([key, descriptionKey]) => (
                   <tr
                     key={key}
                     className="border-b border-border-subtle last:border-0"
@@ -301,7 +312,7 @@ export function HamburgerMenu() {
                         {key}
                       </kbd>
                     </td>
-                    <td className="py-1.5">{desc}</td>
+                    <td className="py-1.5">{t(descriptionKey)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -309,6 +320,7 @@ export function HamburgerMenu() {
           </div>
         </div>
       )}
+      {confirmHolder}
     </>
   );
 }

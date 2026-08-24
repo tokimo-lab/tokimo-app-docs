@@ -1,3 +1,4 @@
+import { ColorPicker } from "@tokimo/ui";
 import { useCallback, useEffect, useState } from "react";
 import { SLIDE_LAYOUTS } from "../lib/layouts";
 import type { SlideBackground } from "../types";
@@ -21,8 +22,8 @@ function DesignTab() {
   const bgColor = currentSlide?.background?.color ?? "#ffffff";
 
   const handleColorChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const bg: SlideBackground = { type: "solid", color: e.target.value };
+    (color: string) => {
+      const bg: SlideBackground = { type: "solid", color };
       updateSlideBackground(bg);
     },
     [updateSlideBackground],
@@ -52,18 +53,13 @@ function DesignTab() {
         <h3 className="mb-3 text-xs font-medium text-fg-muted">背景</h3>
         <div className="mb-2 flex items-center justify-between">
           <span className="text-sm text-fg-default">颜色填充</span>
-          <label className="relative cursor-pointer">
-            <input
-              type="color"
-              className="absolute inset-0 cursor-pointer opacity-0"
-              value={bgColor}
-              onChange={handleColorChange}
-            />
-            <div
-              className="h-6 w-6 rounded border border-border-subtle"
-              style={{ backgroundColor: bgColor }}
-            />
-          </label>
+          <ColorPicker
+            value={bgColor}
+            onChange={handleColorChange}
+            size="small"
+            placement="bottom-end"
+            showInput={true}
+          />
         </div>
         <button
           type="button"

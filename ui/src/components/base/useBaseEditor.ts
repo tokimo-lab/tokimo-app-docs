@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef } from "react";
 import { api } from "../../api/generated";
+import { useMessage } from "../../hooks/use-message";
 import type {
   BaseRecord,
   BaseView,
@@ -60,6 +61,7 @@ function parseRecordData(raw: unknown): RecordData {
 
 export function useBaseEditor({ spaceId, relPath }: UseBaseEditorOptions) {
   const queryClient = useQueryClient();
+  const message = useMessage();
   const defaults = useRef(createDefaultBaseContent());
 
   // ── Queries ─────────────────────────────────────────────────────────────
@@ -87,6 +89,9 @@ export function useBaseEditor({ spaceId, relPath }: UseBaseEditorOptions) {
         relPath,
         pageSize: 1000,
       });
+    },
+    onError: (error) => {
+      message.error(error instanceof Error ? error.message : "添加记录失败");
     },
   });
 
@@ -302,6 +307,7 @@ export function useBaseEditor({ spaceId, relPath }: UseBaseEditorOptions) {
 
   // ── Record helpers ────────────────────────────────────────────────────
   const addRecord = useCallback(() => {
+    if (createRecordMut.isPending) return;
     createRecordMut.mutate({ spaceId, relPath, data: {} });
   }, [spaceId, relPath, createRecordMut]);
 
@@ -876,6 +882,12 @@ export function useBaseEditor({ spaceId, relPath }: UseBaseEditorOptions) {
     records,
     groupedRecords,
     isLoading,
+    error: metaQuery.error ?? recordsQuery.error,
+    retry: () => {
+      void metaQuery.refetch();
+      void recordsQuery.refetch();
+    },
+    isAddingRecord: createRecordMut.isPending,
 
     // View
     setActiveView,

@@ -94,6 +94,21 @@ export function useSlideCollab({
 
     const slidesMap = doc.getMap("slides");
     let storeUnsub: (() => void) | null = null;
+    let observerAttached = false;
+
+    const handleRemoteSnapshot = (event: Y.YMapEvent<unknown>) => {
+      if (event.transaction.local) return;
+      const snapshot = slidesMap.get("snapshot");
+      if (!isSlidePresentation(snapshot)) return;
+      try {
+        isReplayingRef.current = true;
+        setPresentationRef.current(JSON.parse(JSON.stringify(snapshot)));
+        isReplayingRef.current = false;
+      } catch (e) {
+        console.warn("[SlideCollab] Failed to apply remote snapshot:", e);
+        isReplayingRef.current = false;
+      }
+    };
 
     const onSync = (synced: boolean) => {
       if (!synced) return;
@@ -116,19 +131,8 @@ export function useSlideCollab({
       }
 
       // Observe remote changes
-      slidesMap.observe((event: { transaction: { local: boolean } }) => {
-        if (event.transaction.local) return;
-        const snapshot = slidesMap.get("snapshot");
-        if (!isSlidePresentation(snapshot)) return;
-        try {
-          isReplayingRef.current = true;
-          setPresentationRef.current(JSON.parse(JSON.stringify(snapshot)));
-          isReplayingRef.current = false;
-        } catch (e) {
-          console.warn("[SlideCollab] Failed to apply remote snapshot:", e);
-          isReplayingRef.current = false;
-        }
-      });
+      slidesMap.observe(handleRemoteSnapshot);
+      observerAttached = true;
 
       // Forward local changes to Y.Map
       storeUnsub = useSlideStore.subscribe(() => {
@@ -146,10 +150,12 @@ export function useSlideCollab({
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       storeUnsub?.();
+      if (observerAttached) {
+        slidesMap.unobserve(handleRemoteSnapshot);
+      }
       awareness.setLocalState(null);
       unregisterAwareness(roomKey);
       wsProvider.destroy();
-      awareness.destroy();
       doc.destroy();
     };
   }, [spaceId, nodeId, userName, isReplayingRef]);

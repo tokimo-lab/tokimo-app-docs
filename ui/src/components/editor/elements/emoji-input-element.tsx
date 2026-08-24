@@ -132,7 +132,7 @@ export function EmojiInputElement(props: PlateElementProps) {
         createPortal(
           <div
             ref={menuRef}
-            className="fixed z-[9999] w-72 overflow-y-auto rounded-lg border border-border-base bg-surface-elevated py-1 shadow-xl "
+            className="fixed z-[9999] w-72 overflow-y-auto rounded-lg border border-base bg-surface-overlay py-1 text-fg-on-overlay shadow-md backdrop-blur-glass"
             style={{ top: menuPos.top, left: menuPos.left, maxHeight: 280 }}
           >
             {filtered.length === 0 ? (

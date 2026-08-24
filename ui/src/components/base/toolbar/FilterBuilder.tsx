@@ -64,6 +64,7 @@ export function FilterBuilder({
         <span className="text-xs font-medium text-fg-secondary">筛选</span>
         <button
           type="button"
+          aria-label="关闭筛选"
           className="cursor-pointer text-fg-muted hover:text-fg-primary"
           onClick={onClose}
         >
@@ -129,6 +130,7 @@ export function FilterBuilder({
             )}
             <button
               type="button"
+              aria-label="删除筛选条件"
               className="cursor-pointer text-fg-muted hover:text-red-500"
               onClick={() => removeCondition(cond.id)}
             >

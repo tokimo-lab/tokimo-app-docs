@@ -712,11 +712,11 @@ export { docAttachmentApi };
 // ── Standalone helpers (migrated from client.ts) ────────────────────
 
 export async function getWhiteboardUserLibrary(): Promise<unknown> {
-  return callApi("/whiteboard/user-library");
+  return callApi("/api/apps/docs/whiteboard/user-library");
 }
 
 export async function saveWhiteboardUserLibrary(items: unknown): Promise<void> {
-  return callApi("/whiteboard/user-library", {
+  return callApi("/api/apps/docs/whiteboard/user-library", {
     method: "PUT",
     body: JSON.stringify({ items }),
   });
@@ -725,7 +725,9 @@ export async function saveWhiteboardUserLibrary(items: unknown): Promise<void> {
 export async function fetchWhiteboardLibraryDownload(
   libraryId: string,
 ): Promise<unknown> {
-  return callApi(`/whiteboard/libraries/${libraryId}/download`);
+  return callApi(
+    `/api/apps/docs/whiteboard/libraries/${libraryId}/download`,
+  );
 }
 
 export async function fetchAttachmentContent(url: string): Promise<Response> {

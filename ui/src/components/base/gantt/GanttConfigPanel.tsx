@@ -126,7 +126,7 @@ export function GanttConfigPanel({ state, onClose }: GanttConfigPanelProps) {
               "relative h-5 w-9 cursor-pointer rounded-full transition-colors",
               cfg?.workdaysOnly
                 ? "bg-[var(--accent)]"
-                : "bg-fill-quaternary dark:bg-fill-tertiary",
+                : "bg-fill-tertiary",
             )}
             onClick={() =>
               state.setGanttConfig({ workdaysOnly: !cfg?.workdaysOnly })

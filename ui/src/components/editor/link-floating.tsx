@@ -23,7 +23,7 @@ const BTN_CLASS =
   "flex size-8 items-center justify-center rounded text-fg-muted transition-colors hover:bg-fill-tertiary";
 
 const PANEL_CLASS =
-  "z-[9999] flex items-center gap-1 rounded-lg border border-border-base bg-surface-elevated p-1 shadow-lg ";
+  "z-[9999] flex items-center gap-1 rounded-lg border border-base bg-surface-overlay p-1 text-fg-on-overlay shadow-md backdrop-blur-glass";
 
 function LinkInsertPanel() {
   const state = useFloatingLinkInsertState();

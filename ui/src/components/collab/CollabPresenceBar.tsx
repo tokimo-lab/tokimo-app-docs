@@ -14,6 +14,7 @@ import { useCollabPresence } from "./awareness-store";
 interface CollabPresenceBarProps {
   nodeId: string;
   saveState?: "saved" | "saving" | "error";
+  showConnection?: boolean;
 }
 
 const MAX_AVATARS = 5;
@@ -21,6 +22,7 @@ const MAX_AVATARS = 5;
 export function CollabPresenceBar({
   nodeId,
   saveState = "saved",
+  showConnection = true,
 }: CollabPresenceBarProps) {
   const { users, connected } = useCollabPresence(nodeId);
   const { t } = useTranslation();
@@ -29,7 +31,7 @@ export function CollabPresenceBar({
 
   const visibleUsers = users.slice(0, MAX_AVATARS);
   const overflow = users.length - MAX_AVATARS;
-  const status = !connected
+  const status = showConnection && !connected
     ? { label: t("docs.offline", "离线，等待重连"), kind: "offline" as const }
     : saveState === "saving"
       ? { label: t("docs.saving", "保存中"), kind: "saving" as const }

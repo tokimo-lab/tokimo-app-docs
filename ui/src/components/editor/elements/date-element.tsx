@@ -54,7 +54,7 @@ export function DateElement(props: PlateElementProps) {
             value={date || ""}
             onChange={(e) => handleDateChange(e.target.value)}
             onBlur={() => setPickerOpen(false)}
-            className="absolute top-full left-0 z-50 mt-1 rounded border border-border-base bg-surface-elevated px-2 py-1 text-sm shadow-lg "
+            className="absolute top-full left-0 z-50 mt-1 rounded border border-base bg-surface-overlay px-2 py-1 text-sm text-fg-on-overlay shadow-md backdrop-blur-glass"
           />
         )}
       </span>

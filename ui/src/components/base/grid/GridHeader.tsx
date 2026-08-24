@@ -104,7 +104,7 @@ export function GridHeader({
 
   return (
     <div
-      className="sticky top-0 z-10 flex border-b border-border-base bg-surface-secondary"
+      className="sticky top-0 z-10 flex border-b border-border-base bg-surface-raised"
       style={{ height: headerHeight }}
     >
       {/* Checkbox column */}

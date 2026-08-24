@@ -11,7 +11,7 @@
  */
 
 import type { MindElixirData, MindElixirInstance, Theme } from "mind-elixir";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Awareness } from "y-protocols/awareness";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
@@ -68,10 +68,25 @@ export function useMindCollab({
   mind,
   isReplayingRef,
   customTheme,
-}: UseMindCollabOptions): void {
+}: UseMindCollabOptions): (data: MindElixirData) => void {
   const cleanupRef = useRef<(() => void) | null>(null);
   const customThemeRef = useRef(customTheme);
   customThemeRef.current = customTheme;
+  const mindMapRef = useRef<Y.Map<unknown> | null>(null);
+  const pendingLocalSnapshotRef = useRef<MindElixirData | null>(null);
+
+  const publishSnapshot = useCallback((data: MindElixirData) => {
+    const snapshot = JSON.parse(
+      JSON.stringify(stripTheme(data)),
+    ) as MindElixirData;
+    const mindMap = mindMapRef.current;
+    if (mindMap) {
+      mindMap.set("snapshot", snapshot);
+      pendingLocalSnapshotRef.current = null;
+    } else {
+      pendingLocalSnapshotRef.current = snapshot;
+    }
+  }, []);
 
   useEffect(() => {
     if (!spaceId || !nodeId || !mind) return;
@@ -107,8 +122,27 @@ export function useMindCollab({
     });
 
     const mindMap = doc.getMap("mindmap");
+    mindMapRef.current = mindMap;
     let observerAttached = false;
     let localOperationListener: (() => void) | null = null;
+
+    const handleRemoteSnapshot = (event: Y.YMapEvent<unknown>) => {
+      if (event.transaction.local) return;
+
+      const snapshot = mindMap.get("snapshot") as MindElixirData | undefined;
+      if (!snapshot?.nodeData) return;
+
+      try {
+        isReplayingRef.current = true;
+        mind.refresh(stripTheme(snapshot) as MindElixirData);
+        if (customThemeRef.current)
+          mind.changeTheme(customThemeRef.current, false);
+        isReplayingRef.current = false;
+      } catch (e) {
+        console.warn("[MindCollab] Failed to apply remote snapshot:", e);
+        isReplayingRef.current = false;
+      }
+    };
 
     // Wait for initial sync, then set up forwarding
     const onSync = (synced: boolean) => {
@@ -116,8 +150,12 @@ export function useMindCollab({
       wsProvider.off("sync", onSync);
 
       // Seed snapshot if this is a new room
+      const pendingLocalSnapshot = pendingLocalSnapshotRef.current;
       const existing = mindMap.get("snapshot");
-      if (!existing) {
+      if (pendingLocalSnapshot) {
+        mindMap.set("snapshot", pendingLocalSnapshot);
+        pendingLocalSnapshotRef.current = null;
+      } else if (!existing) {
         const data = stripTheme(mind.getData());
         mindMap.set("snapshot", JSON.parse(JSON.stringify(data)));
       } else {
@@ -137,23 +175,7 @@ export function useMindCollab({
       }
 
       // Observe remote snapshot changes
-      mindMap.observe((event) => {
-        if (event.transaction.local) return;
-
-        const snapshot = mindMap.get("snapshot") as MindElixirData | undefined;
-        if (!snapshot?.nodeData) return;
-
-        try {
-          isReplayingRef.current = true;
-          mind.refresh(stripTheme(snapshot) as MindElixirData);
-          if (customThemeRef.current)
-            mind.changeTheme(customThemeRef.current, false);
-          isReplayingRef.current = false;
-        } catch (e) {
-          console.warn("[MindCollab] Failed to apply remote snapshot:", e);
-          isReplayingRef.current = false;
-        }
-      });
+      mindMap.observe(handleRemoteSnapshot);
       observerAttached = true;
 
       // Forward local operations to Y.Map
@@ -181,13 +203,13 @@ export function useMindCollab({
         // mind-elixir instance may already be destroyed
       }
       if (observerAttached) {
-        mindMap.unobserve(() => {});
+        mindMap.unobserve(handleRemoteSnapshot);
       }
       awareness.setLocalState(null);
       unregisterAwareness(roomKey);
       wsProvider.destroy();
-      awareness.destroy();
       doc.destroy();
+      if (mindMapRef.current === mindMap) mindMapRef.current = null;
     };
 
     return () => {
@@ -195,6 +217,8 @@ export function useMindCollab({
       cleanupRef.current = null;
     };
   }, [spaceId, nodeId, userName, mind, isReplayingRef]);
+
+  return publishSnapshot;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

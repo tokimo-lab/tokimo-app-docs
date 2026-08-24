@@ -165,7 +165,7 @@ export function DocRow({
             >
               <button
                 type="button"
-                className="rounded p-0.5 opacity-0 transition-opacity hover:bg-fill-quaternary group-hover:opacity-100"
+                className="rounded p-0.5 opacity-0 transition-opacity hover:bg-fill-tertiary group-hover:opacity-100"
               >
                 <MoreHorizontal size={14} className="text-fg-muted" />
               </button>

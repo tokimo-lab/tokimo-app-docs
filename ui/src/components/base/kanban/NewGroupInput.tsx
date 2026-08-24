@@ -21,7 +21,7 @@ export function NewGroupInput({ onAdd }: NewGroupInputProps) {
 
   if (!editing) {
     return (
-      <div className="flex h-fit w-[280px] shrink-0 flex-col rounded-lg bg-fill-quaternary p-2 dark:bg-surface-secondary">
+      <div className="flex h-fit w-[280px] shrink-0 flex-col rounded-lg bg-fill-tertiary p-2">
         <button
           type="button"
           className="flex cursor-pointer items-center gap-1 rounded px-2 py-2 text-xs text-fg-muted hover:bg-fill-tertiary"
@@ -35,7 +35,7 @@ export function NewGroupInput({ onAdd }: NewGroupInputProps) {
   }
 
   return (
-    <div className="flex h-fit w-[280px] shrink-0 flex-col rounded-lg bg-fill-quaternary p-3 dark:bg-surface-secondary">
+    <div className="flex h-fit w-[280px] shrink-0 flex-col rounded-lg bg-fill-tertiary p-3">
       <input
         className="mb-2 w-full rounded border border-border-base bg-surface-base px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
         placeholder="请输入标题"

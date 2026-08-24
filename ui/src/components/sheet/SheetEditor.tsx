@@ -68,7 +68,7 @@ export function SheetEditor({
   relPath,
   userName,
 }: SheetEditorProps) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const { theme } = useThemeCore();
   const containerRef = useRef<HTMLDivElement>(null);
   const univerRef = useRef<ReturnType<typeof createUniver> | null>(null);
@@ -80,6 +80,7 @@ export function SheetEditor({
     univer: ReturnType<typeof createUniver>["univer"];
     univerAPI: ReturnType<typeof createUniver>["univerAPI"];
   } | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
 
   // Viewport state persistence (active sheet tab)
   const {
@@ -110,36 +111,59 @@ export function SheetEditor({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    setInitError(null);
 
     const lang = i18n.language;
     const locale = resolveLocale(lang);
     const localePack = resolveLocalePack(lang);
 
-    const result = createUniver({
-      locale,
-      locales: {
-        [locale]: mergeLocales(localePack as Record<string, unknown>),
-      },
-      presets: [
-        UniverSheetsCorePreset({
-          container: el,
-        }),
-      ],
-    });
+    let result: ReturnType<typeof createUniver>;
+    try {
+      result = createUniver({
+        locale,
+        locales: {
+          [locale]: mergeLocales(localePack as Record<string, unknown>),
+        },
+        presets: [
+          UniverSheetsCorePreset({
+            container: el,
+          }),
+        ],
+      });
+    } catch (error) {
+      console.error(
+        "[docs:sheet] failed to initialize Univer",
+        error instanceof Error ? error.stack : error,
+      );
+      setInitError(error instanceof Error ? error.message : String(error));
+      return;
+    }
 
     univerRef.current = result;
     setUniverInstance({ univer: result.univer, univerAPI: result.univerAPI });
 
     // Load existing snapshot or create empty workbook
     const data = initialContentRef.current;
-    if (
-      data &&
-      typeof data === "object" &&
-      "id" in (data as Record<string, unknown>)
-    ) {
-      result.univerAPI.createWorkbook(data as Record<string, unknown>);
-    } else {
-      result.univerAPI.createWorkbook({});
+    try {
+      if (
+        data &&
+        typeof data === "object" &&
+        "id" in (data as Record<string, unknown>)
+      ) {
+        result.univerAPI.createWorkbook(data as Record<string, unknown>);
+      } else {
+        result.univerAPI.createWorkbook({});
+      }
+    } catch (error) {
+      console.error(
+        "[docs:sheet] failed to create workbook",
+        error instanceof Error ? error.stack : error,
+      );
+      setInitError(error instanceof Error ? error.message : String(error));
+      result.univer.dispose();
+      univerRef.current = null;
+      setUniverInstance(null);
+      return;
     }
 
     // Listen for changes to trigger auto-save
@@ -151,7 +175,7 @@ export function SheetEditor({
       disposable.dispose();
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       result.univer.dispose();
-      univerRef.current = null;
+      if (univerRef.current === result) univerRef.current = null;
       setUniverInstance(null);
     };
     // Only re-create on mount / language change
@@ -218,6 +242,16 @@ export function SheetEditor({
         ref={containerRef}
         className="h-full w-full sheet-editor-overrides"
       />
+      {initError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-surface-base p-6">
+          <div className="max-w-md text-center">
+            <p className="text-sm font-medium text-status-error">
+              {t("docs.sheetLoadFailed")}
+            </p>
+            <p className="mt-1 text-xs text-fg-muted">{initError}</p>
+          </div>
+        </div>
+      )}
       {relPath && (
         <SheetCursorOverlay
           nodeId={relPath ?? null}

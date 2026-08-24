@@ -45,7 +45,7 @@ export function KanbanColumn({
     <div
       data-group-id={group.id}
       className={cn(
-        "flex h-full w-[280px] shrink-0 flex-col rounded-lg bg-fill-quaternary dark:bg-surface-secondary transition-colors",
+        "flex h-full w-[280px] shrink-0 flex-col rounded-lg bg-fill-tertiary transition-colors",
         isDragOver &&
           "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)] dark:bg-[var(--accent-subtle)]",
       )}
