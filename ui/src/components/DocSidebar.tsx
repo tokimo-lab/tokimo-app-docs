@@ -2,6 +2,7 @@ import { cn, Dropdown, type DropdownMenuItem, Input, Spin } from "@tokimo/ui";
 import {
   ArrowUpDown,
   BrainCircuit,
+  ChevronsUpDown,
   Check,
   FileCode,
   FileText,
@@ -12,6 +13,7 @@ import {
   Plus,
   Presentation,
   Search,
+  Settings,
   Sheet,
   Star,
   Table2,
@@ -19,7 +21,11 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, type DocNodeListItem } from "../api/generated";
+import {
+  api,
+  type DocNodeListItem,
+  type DocSpaceOutput,
+} from "../api/generated";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
 import { apiNodeToLocal, parentRelPathOf } from "../lib/doc-node";
 import { DocNodeTipPanel, useDocNodeTip } from "./DocNodeTip";
@@ -32,6 +38,10 @@ export type SortDir = "asc" | "desc";
 
 interface DocSidebarProps {
   spaceId: string;
+  spaces: DocSpaceOutput[];
+  onSelectSpace: (spaceId: string) => void;
+  onCreateSpace: () => void;
+  onSpaceSettings: () => void;
   nodes: DocNodeListItem[];
   isLoadingNodes: boolean;
   selectedNodeId: string | null;
@@ -73,6 +83,10 @@ const NAV_ITEM_KEYS: { key: SidebarTab; labelKey: string; icon: typeof FileText 
 
 export function DocSidebar({
   spaceId,
+  spaces,
+  onSelectSpace,
+  onCreateSpace,
+  onSpaceSettings,
   nodes,
   isLoadingNodes,
   selectedNodeId,
@@ -117,8 +131,12 @@ export function DocSidebar({
   useEffect(() => {
     if (!selectedNodeId || !showTree) return;
 
-    const pathsToExpand: string[] = [selectedNodeId];
-    let currentPath: string | null = selectedNodeId;
+    const selectedRelPath = flatDocNodes.find(
+      (node) => node.id === selectedNodeId,
+    )?.relPath;
+    if (!selectedRelPath) return;
+    const pathsToExpand: string[] = [selectedRelPath];
+    let currentPath: string | null = selectedRelPath;
     while (currentPath) {
       const parentPath = parentRelPathOf(currentPath);
       if (parentPath) {
@@ -137,7 +155,7 @@ export function DocSidebar({
       }
       return next;
     });
-  }, [selectedNodeId, showTree]);
+  }, [selectedNodeId, showTree, flatDocNodes]);
 
   const toggleFolder = useCallback((relPath: string) => {
     setExpandedFolders((prev) => {
@@ -208,6 +226,27 @@ export function DocSidebar({
   }, [sortField, sortDir, onSetSortField, onSetSortDir, t]);
 
   const isArchived = tab === "archived";
+  const activeSpace = spaces.find((space) => space.id === spaceId);
+  const spaceMenuItems: DropdownMenuItem[] = [
+    ...spaces.map((space) => ({
+      key: space.id,
+      label: space.name,
+      icon:
+        space.id === spaceId ? (
+          <Check size={14} />
+        ) : (
+          <span className="inline-block w-3.5" />
+        ),
+      onClick: () => onSelectSpace(space.id),
+    })),
+    { type: "divider" as const },
+    {
+      key: "new-space",
+      label: t("spaceSidebar.newSpace"),
+      icon: <Plus size={14} />,
+      onClick: onCreateSpace,
+    },
+  ];
 
   const treeActions = {
     selectedRelPath: selectedNodeId,
@@ -232,7 +271,7 @@ export function DocSidebar({
 
   return (
     <div
-      className="flex shrink-0 flex-col overflow-hidden border-r border-border-base bg-[var(--color-surface-sidebar)] transition-[width] duration-200 ease-out"
+      className="flex shrink-0 flex-col overflow-hidden border-r border-border-base bg-surface-sidebar transition-[width] duration-200 ease-out"
       style={{ width: collapsed ? 40 : 256 }}
     >
       {collapsed ? (
@@ -248,6 +287,31 @@ export function DocSidebar({
         </div>
       ) : (
         <div className="flex w-64 flex-col">
+      <div className="flex items-center gap-1 border-b border-border-subtle px-2 py-2">
+        <Dropdown
+          menu={{ items: spaceMenuItems }}
+          trigger={["click"]}
+          placement="bottomLeft"
+        >
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm font-semibold text-fg-primary hover:bg-fill-tertiary"
+          >
+            <span className="min-w-0 flex-1 truncate">
+              {activeSpace?.name ?? t("header.root")}
+            </span>
+            <ChevronsUpDown size={14} className="shrink-0 text-fg-muted" />
+          </button>
+        </Dropdown>
+        <button
+          type="button"
+          className="shrink-0 cursor-pointer rounded p-1.5 text-fg-muted hover:bg-fill-tertiary hover:text-fg-secondary"
+          onClick={onSpaceSettings}
+          title={t("spaceSidebar.settings")}
+        >
+          <Settings size={15} />
+        </button>
+      </div>
       <div className="flex items-center gap-1 px-3 py-2">
         <div className="min-w-0 flex-1">
           <Input
@@ -292,7 +356,7 @@ export function DocSidebar({
               className={cn(
                 "flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
                 isActive
-                  ? "bg-[var(--accent-subtle)] font-medium text-[var(--accent)]"
+                  ? "bg-accent-subtle font-medium text-accent-text"
                   : "text-fg-secondary hover:bg-fill-tertiary",
               )}
               onClick={() => onSetTab(item.key)}
@@ -300,7 +364,7 @@ export function DocSidebar({
               <Icon
                 size={16}
                 className={cn(
-                  isActive ? "text-[var(--accent)]" : "text-fg-muted",
+                  isActive ? "text-accent-text" : "text-fg-muted",
                 )}
               />
               {t(item.labelKey)}
@@ -372,7 +436,7 @@ export function DocSidebar({
           >
             <button
               type="button"
-              className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-[var(--accent)]"
+              className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-accent-text"
               title={t("docs.newDocument")}
             >
               <Plus size={14} />
@@ -433,7 +497,7 @@ export function DocSidebar({
               <ArchivedNodeRow
                 key={node.relPath}
                 node={node}
-                isActive={node.relPath === selectedNodeId}
+                isActive={node.id === selectedNodeId}
                 onClick={() => onSelectNode(node)}
                 onRestore={() => onRestoreNode(node.relPath)}
                 onPermanentDelete={() => onPermanentDeleteNode(node.relPath)}

@@ -18,6 +18,7 @@ interface SlideEditorProps {
   content: unknown;
   onChange: (data: unknown) => void;
   spaceId: string;
+  nodeId: string;
   relPath: string;
   userName?: string;
 }
@@ -26,6 +27,7 @@ export function SlideEditor({
   content,
   onChange,
   spaceId,
+  nodeId,
   relPath,
   userName,
 }: SlideEditorProps) {
@@ -80,7 +82,7 @@ export function SlideEditor({
   // Collab
   useSlideCollab({
     spaceId,
-    relPath,
+    nodeId,
     userName: userName ?? "Anonymous",
     getPresentation: () => useSlideStore.getState().presentation,
     setPresentation: (p) => {

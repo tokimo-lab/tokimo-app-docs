@@ -1,5 +1,6 @@
 use axum::Json;
 use axum::extract::{Path, Query, State};
+use sea_orm::{ConnectionTrait, TransactionTrait};
 use serde::Deserialize;
 use std::sync::Arc;
 use ts_rs::TS;
@@ -33,7 +34,8 @@ pub struct CreateNodeInput {
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeQuery {
-    pub rel_path: String,
+    pub rel_path: Option<String>,
+    pub node_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, TS)]
@@ -59,48 +61,92 @@ pub struct MoveNodeQuery {
     pub to: String,
 }
 
-fn item_from_meta(space_id: uuid::Uuid, rel_path: String, is_dir: bool) -> DocNodeListItem {
+fn item_from_meta(meta: &crate::db::entities::docs_node_meta::Model, is_dir: bool) -> DocNodeListItem {
+    let rel_path = meta.rel_path.clone();
     DocNodeListItem {
+        id: meta.id.to_string(),
         rel_path: rel_path.clone(),
-        space_id: space_id.to_string(),
+        space_id: meta.space_id.to_string(),
         parent_id: path_utils::parent_of(&rel_path),
         r#type: path_utils::type_for_path(&rel_path, is_dir).to_string(),
         title: path_utils::title_for_path(&rel_path, is_dir),
-        icon: None,
-        tags: None,
-        is_favorite: false,
-        is_pinned: false,
-        is_archived: false,
-        word_count: 0,
-        sort_order: 0,
-        last_opened_at: None,
-        created_at: chrono::Utc::now().to_rfc3339(),
-        updated_at: chrono::Utc::now().to_rfc3339(),
+        icon: meta.icon.clone(),
+        tags: meta.tags.as_ref().and_then(|value| {
+            value.as_array().map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(ToOwned::to_owned))
+                    .collect()
+            })
+        }),
+        is_favorite: meta.is_favorite,
+        is_pinned: meta.is_pinned,
+        is_archived: meta.is_archived,
+        word_count: meta.word_count,
+        sort_order: meta.sort_order,
+        last_opened_at: meta.last_opened_at.map(|value| value.to_rfc3339()),
+        created_at: meta.created_at.to_rfc3339(),
+        updated_at: meta.updated_at.to_rfc3339(),
     }
 }
 
-async fn rename_related(
+async fn resolve_node(
     ctx: &AppCtx,
+    space_id: uuid::Uuid,
+    query: &NodeQuery,
+) -> Result<crate::db::entities::docs_node_meta::Model, AppError> {
+    if let Some(node_id) = query.node_id.as_deref() {
+        return DocNodeMetaRepo::find_by_node_id(&ctx.db, space_id, parse_uuid(node_id)?)
+            .await?
+            .ok_or_else(|| AppError::NotFound("document not found".into()));
+    }
+    let rel_path = query
+        .rel_path
+        .as_deref()
+        .ok_or_else(|| AppError::BadRequest("nodeId or relPath is required".into()))?;
+    path_utils::validate_relative_path(rel_path)?;
+    DocNodeMetaRepo::upsert(&ctx.db, space_id, rel_path, UpsertDocNodeMetaInput::default()).await
+}
+
+async fn rename_related<C: ConnectionTrait>(
+    db: &C,
     space_id: uuid::Uuid,
     old_rel: &str,
     new_rel: &str,
     is_dir: bool,
 ) -> Result<(), AppError> {
     if is_dir {
-        DocNodeMetaRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
-        DocNodeVersionRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
-        DocNodeCommentRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
-        AttachmentRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
-        DocNodeViewStateRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
-        BaseRecordRepo::rename_path_prefix(&ctx.db, space_id, old_rel, new_rel).await?;
+        DocNodeMetaRepo::rename_path_prefix(db, space_id, old_rel, new_rel).await?;
+        DocNodeVersionRepo::rename_path_prefix(db, space_id, old_rel, new_rel).await?;
+        DocNodeCommentRepo::rename_path_prefix(db, space_id, old_rel, new_rel).await?;
+        AttachmentRepo::rename_path_prefix(db, space_id, old_rel, new_rel).await?;
+        DocNodeViewStateRepo::rename_path_prefix(db, space_id, old_rel, new_rel).await?;
+        BaseRecordRepo::rename_path_prefix(db, space_id, old_rel, new_rel).await?;
     } else {
-        DocNodeMetaRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
-        DocNodeVersionRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
-        DocNodeCommentRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
-        AttachmentRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
-        DocNodeViewStateRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
-        BaseRecordRepo::rename_path(&ctx.db, space_id, old_rel, new_rel).await?;
+        DocNodeMetaRepo::rename_path(db, space_id, old_rel, new_rel).await?;
+        DocNodeVersionRepo::rename_path(db, space_id, old_rel, new_rel).await?;
+        DocNodeCommentRepo::rename_path(db, space_id, old_rel, new_rel).await?;
+        AttachmentRepo::rename_path(db, space_id, old_rel, new_rel).await?;
+        DocNodeViewStateRepo::rename_path(db, space_id, old_rel, new_rel).await?;
+        BaseRecordRepo::rename_path(db, space_id, old_rel, new_rel).await?;
     }
+    Ok(())
+}
+
+async fn commit_related_rename(
+    ctx: &AppCtx,
+    space_id: uuid::Uuid,
+    old_rel: &str,
+    new_rel: &str,
+    is_dir: bool,
+    archived: Option<bool>,
+) -> Result<(), AppError> {
+    let txn = ctx.db.begin().await?;
+    rename_related(&txn, space_id, old_rel, new_rel, is_dir).await?;
+    if let Some(archived) = archived {
+        DocNodeMetaRepo::set_archived(&txn, space_id, new_rel, archived).await?;
+    }
+    txn.commit().await?;
     Ok(())
 }
 
@@ -141,8 +187,23 @@ pub async fn create_node(
         let data = path_utils::default_content_for_type(&input.r#type, &input.title, input.content);
         vfs.put(&target, data).await.map_err(vfs_err)?;
     }
-    DocNodeMetaRepo::upsert(&ctx.db, space_id, &rel_path, UpsertDocNodeMetaInput::default()).await?;
-    Ok(ok(item_from_meta(space_id, rel_path, input.r#type == "folder")))
+    let meta = match DocNodeMetaRepo::upsert(&ctx.db, space_id, &rel_path, UpsertDocNodeMetaInput::default()).await {
+        Ok(meta) => meta,
+        Err(error) => {
+            let cleanup = if input.r#type == "folder" {
+                vfs.delete_dir(&target).await
+            } else {
+                vfs.delete_file(&target).await
+            };
+            if let Err(cleanup_error) = cleanup {
+                return Err(AppError::Internal(format!(
+                    "failed to create node metadata ({error}); VFS rollback also failed: {cleanup_error}"
+                )));
+            }
+            return Err(error);
+        }
+    };
+    Ok(ok(item_from_meta(&meta, input.r#type == "folder")))
 }
 
 pub async fn get_node(
@@ -151,27 +212,28 @@ pub async fn get_node(
     Query(q): Query<NodeQuery>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     let space_id = parse_uuid(&id)?;
-    path_utils::validate_relative_path(&q.rel_path)?;
+    let meta = resolve_node(&ctx, space_id, &q).await?;
+    let rel_path = meta.rel_path.clone();
     let space = get_space(&ctx, &id).await?;
     let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
-    let path = path_utils::vfs_path(&root_path, &q.rel_path);
+    let path = path_utils::vfs_path(&root_path, &rel_path);
     let info = vfs.stat(&path).await.map_err(vfs_err)?;
-    DocNodeMetaRepo::update_last_opened(&ctx.db, space_id, &q.rel_path).await?;
-    let node_type = path_utils::type_for_path(&q.rel_path, info.is_dir);
+    DocNodeMetaRepo::update_last_opened(&ctx.db, space_id, &rel_path).await?;
+    let node_type = path_utils::type_for_path(&rel_path, info.is_dir);
     let content = if info.is_dir {
         serde_json::Value::Null
     } else {
         path_utils::content_from_bytes(node_type, vfs.read_bytes(&path, 0, None).await.map_err(vfs_err)?)?
     };
-    let meta = DocNodeMetaRepo::find(&ctx.db, space_id, &q.rel_path).await?;
     Ok(ok(serde_json::json!({
+        "id": meta.id,
         "spaceId": id,
-        "relPath": q.rel_path,
-        "parentId": path_utils::parent_of(&info.path),
+        "relPath": rel_path,
+        "parentId": path_utils::parent_of(&meta.rel_path),
         "type": node_type,
         "title": path_utils::title_for_path(&info.name, info.is_dir),
         "content": content,
-        "meta": meta.map(crate::db::entities::DocNodeMetaOutput::from),
+        "meta": crate::db::entities::DocNodeMetaOutput::from(meta),
         "updatedAt": info.modified.map_or_else(|| chrono::Utc::now().to_rfc3339(), |d| d.to_rfc3339())
     })))
 }
@@ -183,25 +245,34 @@ pub async fn update_node(
     Json(input): Json<UpdateNodeInput>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     let space_id = parse_uuid(&id)?;
-    path_utils::validate_relative_path(&q.rel_path)?;
+    let meta = resolve_node(&ctx, space_id, &q).await?;
+    let original_rel = meta.rel_path.clone();
     let space = get_space(&ctx, &id).await?;
     let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
-    let old_path = path_utils::vfs_path(&root_path, &q.rel_path);
+    let old_path = path_utils::vfs_path(&root_path, &original_rel);
     let info = vfs.stat(&old_path).await.map_err(vfs_err)?;
-    let node_type = path_utils::type_for_path(&q.rel_path, info.is_dir).to_string();
-    let mut final_rel = q.rel_path.clone();
+    let node_type = path_utils::type_for_path(&original_rel, info.is_dir).to_string();
+    let mut final_rel = original_rel.clone();
     if let Some(title) = input.title.as_ref() {
         validate_node_name(title)?;
         let ext = path_utils::extension_for_type(&node_type).unwrap_or("");
         let filename = format!("{title}{ext}");
-        let new_rel = path_utils::parent_of(&q.rel_path).map_or(filename.clone(), |p| format!("{p}/{filename}"));
-        if new_rel != q.rel_path {
+        let new_rel = path_utils::parent_of(&original_rel).map_or(filename.clone(), |p| format!("{p}/{filename}"));
+        if new_rel != original_rel {
             let new_path = path_utils::vfs_path(&root_path, &new_rel);
             if vfs.stat(&new_path).await.is_ok() {
                 return Err(AppError::BadRequest("target already exists".into()));
             }
             vfs.rename(&old_path, &new_path).await.map_err(vfs_err)?;
-            rename_related(&ctx, space_id, &q.rel_path, &new_rel, info.is_dir).await?;
+            if let Err(error) = commit_related_rename(&ctx, space_id, &original_rel, &new_rel, info.is_dir, None).await
+            {
+                if let Err(rollback_error) = vfs.rename(&new_path, &old_path).await {
+                    return Err(AppError::Internal(format!(
+                        "database rename failed ({error}); VFS rollback also failed: {rollback_error}"
+                    )));
+                }
+                return Err(error);
+            }
             final_rel = new_rel;
         }
     }
@@ -235,7 +306,15 @@ pub async fn update_node(
         )
         .await?;
     }
-    get_node(State(ctx), Path(id), Query(NodeQuery { rel_path: final_rel })).await
+    get_node(
+        State(ctx),
+        Path(id),
+        Query(NodeQuery {
+            rel_path: None,
+            node_id: Some(meta.id.to_string()),
+        }),
+    )
+    .await
 }
 
 pub async fn move_node(
@@ -258,7 +337,14 @@ pub async fn move_node(
         return Err(AppError::BadRequest("target already exists".into()));
     }
     vfs.rename(&from, &to).await.map_err(vfs_err)?;
-    rename_related(&ctx, space_id, &q.from, &q.to, info.is_dir).await?;
+    if let Err(error) = commit_related_rename(&ctx, space_id, &q.from, &q.to, info.is_dir, None).await {
+        if let Err(rollback_error) = vfs.rename(&to, &from).await {
+            return Err(AppError::Internal(format!(
+                "database move failed ({error}); VFS rollback also failed: {rollback_error}"
+            )));
+        }
+        return Err(error);
+    }
     Ok(ok_empty())
 }
 
@@ -268,20 +354,26 @@ pub async fn archive_node(
     Query(q): Query<NodeQuery>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
     let space_id = parse_uuid(&id)?;
-    path_utils::validate_relative_path(&q.rel_path)?;
+    let meta = resolve_node(&ctx, space_id, &q).await?;
+    let rel_path = meta.rel_path;
     let space = get_space(&ctx, &id).await?;
     let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
-    let from = path_utils::vfs_path(&root_path, &q.rel_path);
+    let from = path_utils::vfs_path(&root_path, &rel_path);
     let info = vfs.stat(&from).await.map_err(vfs_err)?;
-    let mut trash_rel = format!(".trash/{}", q.rel_path);
+    let mut trash_rel = format!(".trash/{rel_path}");
     if vfs.stat(&path_utils::vfs_path(&root_path, &trash_rel)).await.is_ok() {
-        trash_rel = format!(".trash/{}.{}", chrono::Utc::now().timestamp(), q.rel_path);
+        trash_rel = format!(".trash/{}.{rel_path}", chrono::Utc::now().timestamp());
     }
-    vfs.rename(&from, &path_utils::vfs_path(&root_path, &trash_rel))
-        .await
-        .map_err(vfs_err)?;
-    rename_related(&ctx, space_id, &q.rel_path, &trash_rel, info.is_dir).await?;
-    DocNodeMetaRepo::set_archived(&ctx.db, space_id, &trash_rel, true).await?;
+    let trash_path = path_utils::vfs_path(&root_path, &trash_rel);
+    vfs.rename(&from, &trash_path).await.map_err(vfs_err)?;
+    if let Err(error) = commit_related_rename(&ctx, space_id, &rel_path, &trash_rel, info.is_dir, Some(true)).await {
+        if let Err(rollback_error) = vfs.rename(&trash_path, &from).await {
+            return Err(AppError::Internal(format!(
+                "database archive failed ({error}); VFS rollback also failed: {rollback_error}"
+            )));
+        }
+        return Err(error);
+    }
     Ok(ok_empty())
 }
 
@@ -291,10 +383,11 @@ pub async fn restore_node(
     Query(q): Query<NodeQuery>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
     let space_id = parse_uuid(&id)?;
-    let trash_rel = if q.rel_path.starts_with(".trash/") {
-        q.rel_path.clone()
+    let meta = resolve_node(&ctx, space_id, &q).await?;
+    let trash_rel = if meta.rel_path.starts_with(".trash/") {
+        meta.rel_path
     } else {
-        format!(".trash/{}", q.rel_path)
+        format!(".trash/{}", meta.rel_path)
     };
     let restore_rel = trash_rel.trim_start_matches(".trash/").to_string();
     let space = get_space(&ctx, &id).await?;
@@ -306,8 +399,15 @@ pub async fn restore_node(
         return Err(AppError::BadRequest("restore target already exists".into()));
     }
     vfs.rename(&from, &to).await.map_err(vfs_err)?;
-    rename_related(&ctx, space_id, &trash_rel, &restore_rel, info.is_dir).await?;
-    DocNodeMetaRepo::set_archived(&ctx.db, space_id, &restore_rel, false).await?;
+    if let Err(error) = commit_related_rename(&ctx, space_id, &trash_rel, &restore_rel, info.is_dir, Some(false)).await
+    {
+        if let Err(rollback_error) = vfs.rename(&to, &from).await {
+            return Err(AppError::Internal(format!(
+                "database restore failed ({error}); VFS rollback also failed: {rollback_error}"
+            )));
+        }
+        return Err(error);
+    }
     Ok(ok_empty())
 }
 
@@ -317,16 +417,17 @@ pub async fn delete_node(
     Query(q): Query<NodeQuery>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
     let space_id = parse_uuid(&id)?;
-    path_utils::validate_relative_path(&q.rel_path)?;
+    let meta = resolve_node(&ctx, space_id, &q).await?;
+    let rel_path = meta.rel_path;
     let space = get_space(&ctx, &id).await?;
     let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
-    let path = path_utils::vfs_path(&root_path, &q.rel_path);
+    let path = path_utils::vfs_path(&root_path, &rel_path);
     let info = vfs.stat(&path).await.map_err(vfs_err)?;
     if info.is_dir {
         vfs.delete_dir(&path).await.map_err(vfs_err)?;
     } else {
         vfs.delete_file(&path).await.map_err(vfs_err)?;
     }
-    DocNodeMetaRepo::delete(&ctx.db, space_id, &q.rel_path).await?;
+    DocNodeMetaRepo::delete(&ctx.db, space_id, &rel_path).await?;
     Ok(ok_empty())
 }

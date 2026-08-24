@@ -72,11 +72,11 @@ interface UniverInstance {
 
 // ── WebSocket URL builder ───────────────────────────────────────────────────
 
-function buildCollabWsUrl(spaceId: string, relPath: string): string {
+function buildCollabWsUrl(spaceId: string): string {
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host = window.location.hostname;
   const port = window.location.port === "5173" ? "5678" : window.location.port;
-  return `${proto}//${host}:${port}/api/apps/docs/spaces/${encodeURIComponent(spaceId)}/collab?relPath=${encodeURIComponent(relPath)}`;
+  return `${proto}//${host}:${port}/api/apps/docs/spaces/${encodeURIComponent(spaceId)}/collab`;
 }
 
 // ── Hook ────────────────────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ function buildCollabWsUrl(spaceId: string, relPath: string): string {
 interface UseSheetCollabOptions {
   /** Doc node ID. null disables collab. */
   spaceId: string | null;
-  relPath: string | null;
+  nodeId: string | null;
   /** User display name for presence. */
   userName: string;
   /** The Univer instance (from createUniver().univer). */
@@ -105,7 +105,7 @@ interface UseSheetCollabOptions {
  */
 export function useSheetCollab({
   spaceId,
-  relPath,
+  nodeId,
   userName,
   univer,
   univerAPI,
@@ -115,12 +115,12 @@ export function useSheetCollab({
   const cleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (!spaceId || !relPath || !univer || !univerAPI) return;
+    if (!spaceId || !nodeId || !univer || !univerAPI) return;
 
     const doc = new Y.Doc();
     const awareness = new Awareness(doc);
-    const roomKey = `${spaceId}:${relPath}`;
-    const wsUrl = buildCollabWsUrl(spaceId, relPath);
+    const roomKey = nodeId;
+    const wsUrl = buildCollabWsUrl(spaceId);
 
     // Set local awareness state
     awareness.setLocalStateField("user", {
@@ -131,6 +131,7 @@ export function useSheetCollab({
     const wsProvider = new WebsocketProvider(wsUrl, roomKey, doc, {
       connect: true,
       awareness,
+      params: { nodeId },
     });
 
     // Register in shared store for CollabPresenceBar
@@ -293,7 +294,7 @@ export function useSheetCollab({
     };
   }, [
     spaceId,
-    relPath,
+    nodeId,
     userName,
     univer,
     univerAPI,

@@ -14,7 +14,8 @@ use yrs::sync::protocol::{DefaultProtocol, MSG_AWARENESS, Protocol};
 use yrs::updates::decoder::{Decode, DecoderV1};
 use yrs::updates::encoder::{Encode, Encoder};
 
-use super::{ensure_space_vfs, get_space, parse_uuid};
+use super::{get_space, parse_uuid};
+use crate::db::repos::node_meta_repo::{DocNodeMetaRepo, UpsertDocNodeMetaInput};
 use crate::error::AppError;
 use crate::handlers::AppCtx;
 use crate::handlers::user::AuthUser;
@@ -25,7 +26,8 @@ use crate::services::path_utils;
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct CollabQuery {
-    pub rel_path: String,
+    pub node_id: Option<String>,
+    pub rel_path: Option<String>,
 }
 
 pub async fn collab_ws(
@@ -35,24 +37,47 @@ pub async fn collab_ws(
     Query(q): Query<CollabQuery>,
     ws: WebSocketUpgrade,
 ) -> Result<impl IntoResponse, AppError> {
-    let user_id: Uuid = auth;
-    let space = get_space(&ctx, &space_id).await?;
-    let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
-    let path = path_utils::vfs_path(&root_path, &q.rel_path);
-    let initial = vfs.read_bytes(&path, 0, None).await.ok();
-    let key = format!("{}:{}", parse_uuid(&space_id)?, q.rel_path);
-    Ok(ws.on_upgrade(move |socket| handle_collab_session(ctx, user_id, key, path, initial, socket)))
+    open_collab(ctx, auth, space_id, q, ws).await
 }
 
-async fn handle_collab_session(
+pub async fn collab_ws_room(
+    State(ctx): State<Arc<AppCtx>>,
+    AuthUser(auth): AuthUser,
+    Path((space_id, _room)): Path<(String, String)>,
+    Query(q): Query<CollabQuery>,
+    ws: WebSocketUpgrade,
+) -> Result<impl IntoResponse, AppError> {
+    open_collab(ctx, auth, space_id, q, ws).await
+}
+
+async fn open_collab(
     ctx: Arc<AppCtx>,
-    user_id: Uuid,
-    key: String,
-    path: std::path::PathBuf,
-    initial: Option<Vec<u8>>,
-    socket: WebSocket,
-) {
-    let room = match ctx.collab.get_or_create_room(key.clone(), initial).await {
+    auth: Uuid,
+    space_id: String,
+    q: CollabQuery,
+    ws: WebSocketUpgrade,
+) -> Result<impl IntoResponse, AppError> {
+    let user_id: Uuid = auth;
+    get_space(&ctx, &space_id).await?;
+    let parsed_space_id = parse_uuid(&space_id)?;
+    let meta = if let Some(node_id) = q.node_id.as_deref() {
+        DocNodeMetaRepo::find_by_node_id(&ctx.db, parsed_space_id, parse_uuid(node_id)?)
+            .await?
+            .ok_or_else(|| AppError::NotFound("document not found".into()))?
+    } else {
+        let rel_path = q
+            .rel_path
+            .as_deref()
+            .ok_or_else(|| AppError::BadRequest("nodeId or relPath is required".into()))?;
+        path_utils::validate_relative_path(rel_path)?;
+        DocNodeMetaRepo::upsert(&ctx.db, parsed_space_id, rel_path, UpsertDocNodeMetaInput::default()).await?
+    };
+    Ok(ws.on_upgrade(move |socket| handle_collab_session(ctx, user_id, meta.id, socket)))
+}
+
+async fn handle_collab_session(ctx: Arc<AppCtx>, user_id: Uuid, node_id: Uuid, socket: WebSocket) {
+    let key = node_id.to_string();
+    let room = match ctx.collab.get_or_create_room(node_id).await {
         Ok(r) => r,
         Err(e) => {
             tracing::error!("collab: failed to create room {key}: {e}");
@@ -76,7 +101,7 @@ async fn handle_collab_session(
     });
     while let Some(Ok(msg)) = ws_stream.next().await {
         match msg {
-            Message::Binary(data) => handle_incoming_message(&room, conn_id, &data, &key, user_id).await,
+            Message::Binary(data) => handle_incoming_message(&ctx, &room, conn_id, &data, &key, user_id).await,
             Message::Close(_) => break,
             _ => {}
         }
@@ -85,21 +110,11 @@ async fn handle_collab_session(
         room.broadcast_except(conn_id, &removal_msg).await;
     }
     room.remove_client(conn_id).await;
-    if room.connection_count() == 0 && room.is_dirty() {
-        let bytes = ctx.collab.encode_room_ctx(&room).await;
-        let _ = ctx
-            .sources
-            .ensure_vfs("local")
-            .await
-            .map_err(AppError::Internal)
-            .map(|_| ());
-        tracing::debug!(
-            "collab: room {key} dirty ctx size {} for path {}",
-            bytes.len(),
-            path.display()
-        );
-        room.clear_dirty();
-        ctx.collab.on_last_client_disconnect(key);
+    if room.connection_count() == 0
+        && room.is_dirty()
+        && let Err(error) = ctx.collab.persist_room(&room).await
+    {
+        tracing::error!(%error, "collab: disconnect persistence failed for room {key}");
     }
     send_task.abort();
 }
@@ -112,7 +127,10 @@ async fn send_initial_sync(room: &CollabRoom, conn_id: u64) -> Result<(), Box<dy
     room.send_to(conn_id, encoder.to_vec()).await;
     Ok(())
 }
-async fn handle_incoming_message(room: &CollabRoom, conn_id: u64, data: &[u8], key: &str, user_id: Uuid) {
+async fn handle_incoming_message(ctx: &AppCtx, room: &CollabRoom, conn_id: u64, data: &[u8], key: &str, user_id: Uuid) {
+    if room.is_invalidated() {
+        return;
+    }
     let awareness = room.awareness.read().await;
     let replies = match DefaultProtocol.handle(&awareness, data) {
         Ok(r) => r,
@@ -125,12 +143,36 @@ async fn handle_incoming_message(room: &CollabRoom, conn_id: u64, data: &[u8], k
     for reply in &replies {
         room.send_to(conn_id, reply.encode_v1()).await;
     }
-    room.broadcast_except(conn_id, data).await;
     if let Some(client_id) = parse_awareness_client_id(data) {
         room.track_awareness_client(conn_id, client_id).await;
-    } else if !replies.is_empty() || data.len() > 1 {
+        room.broadcast_except(conn_id, data).await;
+    } else if is_document_update(data) {
         room.mark_dirty();
+        if let Err(error) = ctx.collab.persist_room(room).await {
+            tracing::error!(%error, "collab: refused to broadcast unpersisted update for room {key}");
+            return;
+        }
+        room.broadcast_except(conn_id, data).await;
     }
+}
+
+fn is_document_update(data: &[u8]) -> bool {
+    let mut decoder = DecoderV1::from(data);
+    let outer: u8 = match decoder.read_var() {
+        Ok(value) => value,
+        Err(_) => return false,
+    };
+    if outer != yrs::sync::protocol::MSG_SYNC {
+        return false;
+    }
+    let inner: u8 = match decoder.read_var() {
+        Ok(value) => value,
+        Err(_) => return false,
+    };
+    matches!(
+        inner,
+        yrs::sync::protocol::MSG_SYNC_STEP_2 | yrs::sync::protocol::MSG_SYNC_UPDATE
+    )
 }
 fn parse_awareness_client_id(data: &[u8]) -> Option<u64> {
     let mut decoder = DecoderV1::from(data);

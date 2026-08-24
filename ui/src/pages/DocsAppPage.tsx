@@ -15,9 +15,17 @@ import {
   Upload,
 } from "lucide-react";
 import { useMenuBar } from "@tokimo/sdk";
-import { Component, type ErrorInfo, type ReactNode, memo, useMemo } from "react";
+import {
+  Component,
+  type ErrorInfo,
+  type ReactNode,
+  Suspense,
+  lazy,
+  memo,
+  useMemo,
+} from "react";
 import { useTranslation } from "react-i18next";
-import { BaseEditor } from "../components/base/BaseEditor";
+import type { DocSpaceOutput } from "../api/generated";
 import { CollabPresenceBar } from "../components/collab/CollabPresenceBar";
 import { DocBrowserView } from "../components/DocBrowserView";
 import { DocSidebar } from "../components/DocSidebar";
@@ -27,11 +35,6 @@ import {
   VersionPreviewBar,
 } from "../components/DocVersionHistory";
 import { CommentSidebar } from "../components/editor/elements/comment-sidebar";
-import { MarkdownEditor } from "../components/markdown/MarkdownEditor";
-import { MindEditor } from "../components/mind/MindEditor";
-import { SheetEditor } from "../components/sheet/SheetEditor";
-import { SlideEditor } from "../components/slide/SlideEditor";
-import { WhiteboardEditor } from "../components/whiteboard/WhiteboardEditor";
 import {
   apiNodeToLocal,
   nextUniqueName,
@@ -40,6 +43,37 @@ import {
 import { DocEditorArea } from "./DocEditorArea";
 import { DocPageHeader } from "./DocPageHeader";
 import { useDocsPage } from "./useDocsPage";
+
+const BaseEditor = lazy(() =>
+  import("../components/base/BaseEditor").then((module) => ({
+    default: module.BaseEditor,
+  })),
+);
+const MarkdownEditor = lazy(() =>
+  import("../components/markdown/MarkdownEditor").then((module) => ({
+    default: module.MarkdownEditor,
+  })),
+);
+const MindEditor = lazy(() =>
+  import("../components/mind/MindEditor").then((module) => ({
+    default: module.MindEditor,
+  })),
+);
+const SheetEditor = lazy(() =>
+  import("../components/sheet/SheetEditor").then((module) => ({
+    default: module.SheetEditor,
+  })),
+);
+const SlideEditor = lazy(() =>
+  import("../components/slide/SlideEditor").then((module) => ({
+    default: module.SlideEditor,
+  })),
+);
+const WhiteboardEditor = lazy(() =>
+  import("../components/whiteboard/WhiteboardEditor").then((module) => ({
+    default: module.WhiteboardEditor,
+  })),
+);
 
 class PageErrorBoundary extends Component<
   { children: ReactNode },
@@ -58,16 +92,14 @@ class PageErrorBoundary extends Component<
   render() {
     if (this.state.error) {
       return (
-        <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-red-500">
+        <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-state-danger-text">
           <p className="font-semibold">Page failed to load</p>
-          <pre className="max-w-lg overflow-auto whitespace-pre-wrap text-xs text-red-400">
+          <p className="max-w-lg text-center text-sm text-fg-muted">
             {this.state.error.message}
-            {"\n\n"}
-            {this.state.error.stack}
-          </pre>
+          </p>
           <button
             type="button"
-            className="mt-2 rounded bg-red-100 px-3 py-1 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300"
+            className="mt-2 cursor-pointer rounded bg-state-danger-subtle px-3 py-1 text-sm text-state-danger-text"
             onClick={() => this.setState({ error: null })}
           >
             Retry
@@ -79,15 +111,29 @@ class PageErrorBoundary extends Component<
   }
 }
 
-export default memo(function DocsAppPage({ spaceId }: { spaceId: string }) {
+interface DocsAppPageProps {
+  spaceId: string;
+  spaces: DocSpaceOutput[];
+  onSelectSpace: (spaceId: string) => void;
+  onCreateSpace: () => void;
+  onSpaceSettings: () => void;
+}
+
+export default memo(function DocsAppPage(props: DocsAppPageProps) {
   return (
     <PageErrorBoundary>
-      <DocsAppPageInner spaceId={spaceId} />
+      <DocsAppPageInner {...props} />
     </PageErrorBoundary>
   );
 });
 
-function DocsAppPageInner({ spaceId }: { spaceId: string }) {
+function DocsAppPageInner({
+  spaceId,
+  spaces,
+  onSelectSpace,
+  onCreateSpace,
+  onSpaceSettings,
+}: DocsAppPageProps) {
   const s = useDocsPage(spaceId);
   const { t } = useTranslation();
 
@@ -151,7 +197,11 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
       {/* ── Sidebar ──────────────────────────────────────────────────── */}
       <DocSidebar
         spaceId={s.spaceId}
-        nodes={s.listQuery.data?.items ?? []}
+        spaces={spaces}
+        onSelectSpace={onSelectSpace}
+        onCreateSpace={onCreateSpace}
+        onSpaceSettings={onSpaceSettings}
+        nodes={s.sidebarNodes}
         isLoadingNodes={s.listQuery.isLoading}
         selectedNodeId={s.selectedNodeId}
         onSelectNode={s.handleSelectNode}
@@ -189,7 +239,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
               relPath: node.relPath,
               spaceId: s.spaceId,
             });
-            if (s.selectedNodeId === node.relPath) {
+            if (s.selectedNodeId === node.id) {
               s.deselectNode();
             }
           }
@@ -225,7 +275,7 @@ function DocsAppPageInner({ spaceId }: { spaceId: string }) {
       />
 
       {/* ── Main area ────────────────────────────────────────────────── */}
-      <div className="flex flex-1 flex-col overflow-hidden bg-[var(--color-surface-content)]">
+      <div className="flex flex-1 flex-col overflow-hidden bg-surface-base">
         <DocsMainArea s={s} />
       </div>
 
@@ -335,18 +385,16 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
   let right: ReactNode = null;
   if (
     leaf &&
-    leaf !== s.selectedBase &&
-    leaf !== s.selectedMarkdown &&
-    leaf !== s.selectedDoc
+    (leaf === s.selectedSheet || leaf === s.selectedMind || leaf === s.selectedSlide)
   ) {
-    right = <CollabPresenceBar spaceId={s.spaceId} relPath={leaf.relPath} />;
+    right = <CollabPresenceBar nodeId={leaf.id} saveState={s.saveState} />;
   }
   if (s.selectedDoc && leaf === s.selectedDoc) {
     right = (
       <>
         <CollabPresenceBar
-          spaceId={s.spaceId}
-          relPath={s.selectedDoc.relPath}
+          nodeId={s.selectedDoc.id}
+          saveState={s.saveState}
         />
         <button
           type="button"
@@ -364,7 +412,7 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
           }}
           className={`flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
             s.versionHistoryOpen
-              ? "bg-[var(--accent-subtle)] text-[var(--accent)] dark:bg-[var(--accent-subtle)] dark:text-[var(--accent)]"
+              ? "bg-accent-subtle text-accent-text"
               : "text-fg-muted hover:bg-fill-tertiary hover:text-fg-secondary"
           }`}
         >
@@ -376,7 +424,7 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
           onClick={() => s.setCommentSidebarOpen((v: boolean) => !v)}
           className={`flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
             s.commentSidebarOpen
-              ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+              ? "bg-accent-subtle text-accent-text"
               : "text-fg-muted hover:bg-fill-tertiary hover:text-fg-secondary"
           }`}
         >
@@ -398,7 +446,9 @@ function DocsMainArea({ s }: { s: DocsPageState }) {
         viewModeSuffix={viewModeSuffix}
         right={right}
       />
-      <DocsMainBody s={s} />
+      <Suspense fallback={<DocMainLoading />}>
+        <DocsMainBody s={s} />
+      </Suspense>
     </>
   );
 }
@@ -415,6 +465,7 @@ function DocsMainBody({ s }: { s: DocsPageState }) {
         content={s.selectedSheet.content}
         onChange={s.handleSheetContentChange}
         spaceId={s.spaceId}
+        nodeId={s.selectedSheet.id}
         relPath={s.selectedSheet.relPath}
         userName={s.user?.name}
       />
@@ -429,6 +480,7 @@ function DocsMainBody({ s }: { s: DocsPageState }) {
         content={s.selectedMind.content}
         onChange={s.handleMindContentChange}
         spaceId={s.spaceId}
+        nodeId={s.selectedMind.id}
         relPath={s.selectedMind.relPath}
         userName={s.user?.name}
       />
@@ -443,6 +495,7 @@ function DocsMainBody({ s }: { s: DocsPageState }) {
         content={s.selectedSlide.content}
         onChange={s.handleSlideContentChange}
         spaceId={s.spaceId}
+        nodeId={s.selectedSlide.id}
         relPath={s.selectedSlide.relPath}
         userName={s.user?.name}
       />
@@ -509,7 +562,7 @@ function DocsMainBody({ s }: { s: DocsPageState }) {
                   onOk: () => {
                     s.restoreVersionMutation.mutate({
                       spaceId: s.spaceId,
-                      relPath: docId,
+                      relPath: s.selectedDoc?.relPath ?? "",
                       versionId,
                     });
                   },
@@ -521,8 +574,8 @@ function DocsMainBody({ s }: { s: DocsPageState }) {
           />
         )}
         {s.aiUndoContent && (
-          <div className="flex items-center justify-between border-b border-[var(--accent)]/30 bg-[var(--accent-subtle)] px-4 py-2 text-sm dark:border-[var(--accent)] dark:bg-[var(--accent-subtle)]">
-            <span className="text-[var(--accent)] dark:text-[var(--accent-text)]">
+          <div className="flex items-center justify-between border-b border-accent bg-accent-subtle px-4 py-2 text-sm">
+            <span className="text-accent-text">
               <Sparkles size={14} className="mr-1.5 inline" />
               {t("editor.aiModified")}{s.aiUndoSummary ? t("editor.aiSummary", { summary: s.aiUndoSummary }) : ""}
             </span>
@@ -530,7 +583,7 @@ function DocsMainBody({ s }: { s: DocsPageState }) {
               <button
                 type="button"
                 onClick={s.handleAiUndo}
-                className="cursor-pointer rounded px-2 py-0.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent-subtle)] dark:text-[var(--accent-text)] dark:hover:bg-[var(--accent-subtle-hover)]"
+                className="cursor-pointer rounded px-2 py-0.5 text-xs font-medium text-accent-text hover:bg-accent-subtle-hover"
               >
                 {t("editor.undo")}
               </button>
@@ -563,6 +616,7 @@ function DocsMainBody({ s }: { s: DocsPageState }) {
           <DocEditorArea
             doc={s.selectedDoc}
             spaceId={s.spaceId}
+            nodeId={s.selectedDoc.id}
             isLoading={s.isEditorLoading}
             onTitleChange={s.handleTitleChange}
             onContentChange={s.handleContentChange}

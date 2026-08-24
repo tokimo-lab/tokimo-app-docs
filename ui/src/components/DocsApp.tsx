@@ -9,11 +9,8 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/generated";
 import type { DocSpaceOutput } from "../api/generated";
-import { useContainerWidth } from "../hooks/use-container-width";
-import { useSidebarCollapsed } from "../hooks/use-sidebar-collapsed";
 import { registerBridge } from "../modal-bridge";
 import DocsAppPage from "../pages/DocsAppPage";
-import DocsSpaceSidebar from "./DocsSpaceSidebar";
 
 export default function DocsApp() {
   const { t } = useTranslation();
@@ -33,12 +30,6 @@ export default function DocsApp() {
   );
 
   const activeSpaceId = params.spaceId ?? null;
-  const [containerRef, containerWidth] = useContainerWidth();
-  const { collapsed: sidebarCollapsed, onToggleCollapse } = useSidebarCollapsed(
-    "docs",
-    containerWidth > 0 && containerWidth < 720,
-  );
-
   const { openModalWindow } = useWindowActions();
   const ctx = useRuntimeCtx();
 
@@ -116,31 +107,24 @@ export default function DocsApp() {
         onAction={() => {
           void openEditorModal();
         }}
-        buttonClassName="bg-[var(--accent)] hover:bg-[var(--accent-hover)]"
+        buttonClassName="bg-accent text-fg-on-accent hover:bg-accent-hover"
       />
     );
   }
 
   return (
-    <div ref={containerRef} className="relative flex h-full w-full">
-      <DocsSpaceSidebar
-        spaces={spaces as DocSpaceOutput[]}
-        activeId={activeSpaceId}
-        onSelect={handleSelectSpace}
-        collapsed={sidebarCollapsed}
-        onCreateClick={() => {
-          void openEditorModal();
-        }}
-        onSettingsClick={() => {
-          if (activeSpaceId) {
-            void openEditorModal({ spaceId: activeSpaceId });
+    <div className="relative h-full w-full overflow-hidden">
+      {activeSpaceId && (
+        <DocsAppPage
+          spaceId={activeSpaceId}
+          spaces={spaces as DocSpaceOutput[]}
+          onSelectSpace={handleSelectSpace}
+          onCreateSpace={() => void openEditorModal()}
+          onSpaceSettings={() =>
+            void openEditorModal({ spaceId: activeSpaceId })
           }
-        }}
-        onToggleCollapse={onToggleCollapse}
-      />
-      <div className="relative flex-1 min-w-0 overflow-hidden h-full">
-        {activeSpaceId && <DocsAppPage spaceId={activeSpaceId} />}
-      </div>
+        />
+      )}
     </div>
   );
 }

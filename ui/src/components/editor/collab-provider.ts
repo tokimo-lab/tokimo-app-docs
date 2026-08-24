@@ -23,6 +23,7 @@ export interface TokimoWsProviderOptions {
   url: string;
   /** Room name used for local awareness bookkeeping. */
   roomName: string;
+  nodeId: string;
 }
 
 interface ProviderEventHandlers {
@@ -107,6 +108,7 @@ class TokimoWsProvider {
         {
           connect: true,
           awareness: this._awareness,
+          params: { nodeId: this.options.nodeId },
         },
       );
 

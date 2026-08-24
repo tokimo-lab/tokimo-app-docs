@@ -3,4 +3,4 @@
 /**
  * Node list item (metadata enriched onto VFS nodes; content comes from VFS)
  */
-export type DocNodeListItem = { relPath: string, spaceId: string, parentId: string | null, type: string, title: string, icon: string | null, tags: Array<string> | null, isFavorite: boolean, isPinned: boolean, isArchived: boolean, wordCount: number, sortOrder: number, lastOpenedAt: string | null, createdAt: string, updatedAt: string, };
+export type DocNodeListItem = { id: string, relPath: string, spaceId: string, parentId: string | null, type: string, title: string, icon: string | null, tags: Array<string> | null, isFavorite: boolean, isPinned: boolean, isArchived: boolean, wordCount: number, sortOrder: number, lastOpenedAt: string | null, createdAt: string, updatedAt: string, };

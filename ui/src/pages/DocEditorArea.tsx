@@ -129,6 +129,7 @@ function getPlaceholderIndex(): number {
 export function DocEditorArea({
   doc,
   spaceId,
+  nodeId,
   isLoading,
   onTitleChange,
   onContentChange,
@@ -144,6 +145,7 @@ export function DocEditorArea({
 }: {
   doc: DocNodeDetail;
   spaceId: string;
+  nodeId?: string;
   isLoading: boolean;
   onTitleChange: (title: string) => void;
   onContentChange: (value: Value) => void;
@@ -311,7 +313,7 @@ export function DocEditorArea({
           onDropCapture={handleDrop}
         >
           {/* Title input */}
-          <div className="w-full pl-[28px] pr-3 pt-6 pb-2">
+          <div className="mx-auto w-full max-w-[820px] px-12 pt-12 pb-2">
             <input
               type="text"
               value={title}
@@ -328,14 +330,14 @@ export function DocEditorArea({
                   (e.target as HTMLInputElement).blur();
                 }
               }}
-              className="w-full border-none bg-transparent text-4xl font-bold text-fg-primary outline-none placeholder:text-fg-muted  "
+              className="w-full border-none bg-transparent text-4xl font-bold tracking-tight text-fg-primary outline-none placeholder:text-fg-muted"
               placeholder={t(untitledI18nKey(doc.type))}
             />
           </div>
 
           {/* Tags */}
           {!readOnly && (
-            <div className="w-full pl-[22px] pr-3 pb-2">
+            <div className="mx-auto w-full max-w-[820px] px-12 pb-2">
               <DocTagInput
                 spaceId={spaceId}
                 relPath={doc.relPath}
@@ -359,6 +361,7 @@ export function DocEditorArea({
               onAttachmentUpload={readOnly ? undefined : onAttachmentUpload}
               readOnly={readOnly}
               spaceId={readOnly ? undefined : spaceId}
+              nodeId={readOnly ? undefined : nodeId}
               relPath={readOnly ? undefined : doc.relPath}
               userName={user?.name}
             />

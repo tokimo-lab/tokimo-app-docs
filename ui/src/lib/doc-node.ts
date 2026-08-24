@@ -56,7 +56,7 @@ export interface DocTreeNode {
 /** Map an API list item to the local DocNode shape. */
 export function apiNodeToLocal(n: DocNodeListItem): DocNode {
   return {
-    id: n.relPath,
+    id: n.id,
     relPath: n.relPath,
     type: n.type as DocNodeType,
     parentId: n.parentId ?? null,
@@ -95,7 +95,7 @@ export function buildNodeTree(nodes: DocNode[]): DocTreeNode[] {
     children.sort(nodeCompare);
     return children.map((node) => ({
       node,
-      children: build(node.id),
+      children: build(node.relPath),
     }));
   }
 
@@ -117,11 +117,12 @@ export function getAncestorChain(
 ): DocNode[] {
   if (!nodeId) return [];
   const byId = new Map(nodes.map((n) => [n.id, n]));
+  const byRelPath = new Map(nodes.map((n) => [n.relPath, n]));
   const chain: DocNode[] = [];
   let cur = byId.get(nodeId);
   while (cur) {
     chain.unshift(cur);
-    cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+    cur = cur.parentId ? byRelPath.get(cur.parentId) : undefined;
   }
   return chain;
 }
@@ -250,14 +251,29 @@ export function decodeRelPath(
   }
 }
 
-export function buildNodePath(spaceId: string, relPath: string): string {
-  return `/space/${encodeURIComponent(spaceId)}/node/${encodeRelPath(relPath)}`;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isStableNodeId(value: string): boolean {
+  return UUID_PATTERN.test(value);
+}
+
+export function buildNodePath(spaceId: string, nodeIdOrRelPath: string): string {
+  if (isStableNodeId(nodeIdOrRelPath)) {
+    return `/space/${encodeURIComponent(spaceId)}/doc/${nodeIdOrRelPath}`;
+  }
+  return `/space/${encodeURIComponent(spaceId)}/node/${encodeRelPath(nodeIdOrRelPath)}`;
 }
 
 export function resolveNodeByPath(path: string): string | null {
   const queryIndex = path.indexOf("?");
   const pathname = queryIndex >= 0 ? path.slice(0, queryIndex) : path;
   const segments = pathname.split("/").filter(Boolean);
+  const docIndex = segments.indexOf("doc");
+  const stableNodeId = docIndex >= 0 ? segments[docIndex + 1] : undefined;
+  if (stableNodeId && isStableNodeId(stableNodeId)) {
+    return stableNodeId;
+  }
   const nodeIndex = segments.indexOf("node");
   const encodedRelPath = nodeIndex >= 0 ? segments[nodeIndex + 1] : undefined;
 

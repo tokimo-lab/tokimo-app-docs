@@ -42,6 +42,7 @@ interface MindEditorProps {
   onChange: (data: MindElixirData) => void;
   /** Doc node ID for collaboration room. */
   spaceId: string;
+  nodeId: string;
   relPath: string;
   /** User display name for collab presence. */
   userName?: string;
@@ -64,6 +65,7 @@ export function MindEditor({
   content,
   onChange,
   spaceId,
+  nodeId,
   relPath,
   userName,
 }: MindEditorProps) {
@@ -235,7 +237,7 @@ export function MindEditor({
   // ── Collab ─────────────────────────────────────────────────────────────
   useMindCollab({
     spaceId,
-    relPath,
+    nodeId,
     userName: userName ?? "Anonymous",
     mind: mindInstance,
     isReplayingRef,

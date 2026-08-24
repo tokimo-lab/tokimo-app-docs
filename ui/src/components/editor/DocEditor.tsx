@@ -130,6 +130,7 @@ interface DocEditorCtx {
    * need to fall back to REST API when Yjs state is stale (e.g. after a VFS
    * shell write repopulated docs_node_attachments rows). */
   spaceId?: string;
+  nodeId?: string;
   relPath?: string;
 }
 const DocEditorContext = createContext<DocEditorCtx>({});
@@ -150,6 +151,7 @@ export interface DocEditorProps {
   onAttachmentUpload?: () => void;
   /** Doc node ID — when provided, enables real-time collaborative editing. */
   spaceId?: string;
+  nodeId?: string;
   relPath?: string;
   /** User display name for remote cursor labels. */
   userName?: string;
@@ -374,6 +376,7 @@ export function DocEditor({
   onInsertVfsFile,
   onAttachmentUpload,
   spaceId,
+  nodeId,
   relPath,
   userName,
 }: DocEditorProps) {
@@ -381,20 +384,20 @@ export function DocEditor({
     () => (Array.isArray(value) && value.length > 0 ? value : EMPTY_VALUE),
     [value],
   );
-  const collabEnabled = !!spaceId && !!relPath && !readOnly;
+  const collabEnabled = !!spaceId && !!nodeId && !readOnly;
 
   // Stable random color for this tab instance (different across multi-tab)
   const tabColor = useMemo(() => randomCursorColor(), []);
 
   // Build plugin list — add Yjs collab plugin when nodeId is provided
   const allPlugins = useMemo(() => {
-    if (!collabEnabled || !spaceId || !relPath) return plugins;
+    if (!collabEnabled || !spaceId || !nodeId) return plugins;
 
     const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.hostname;
     const port =
       window.location.port === "5173" ? "5678" : window.location.port;
-    const wsUrl = `${proto}//${host}:${port}/api/apps/docs/spaces/${encodeURIComponent(spaceId)}/collab?relPath=${encodeURIComponent(relPath)}`;
+    const wsUrl = `${proto}//${host}:${port}/api/apps/docs/spaces/${encodeURIComponent(spaceId)}/collab`;
 
     return [
       ...plugins,
@@ -409,7 +412,8 @@ export function DocEditor({
           providers: [
             {
               options: {
-                roomName: `${spaceId}:${relPath}`,
+                roomName: nodeId,
+                nodeId,
                 url: wsUrl,
               } satisfies TokimoWsProviderOptions,
               type: PROVIDER_TYPE,
@@ -418,11 +422,11 @@ export function DocEditor({
         },
       }),
     ];
-  }, [collabEnabled, spaceId, relPath, userName, tabColor]);
+  }, [collabEnabled, spaceId, nodeId, userName, tabColor]);
 
   const editor = usePlateEditor(
     { plugins: allPlugins, value: initialValue },
-    collabEnabled ? [`${spaceId}:${relPath}`] : [initialValue],
+    collabEnabled ? [nodeId] : [initialValue],
   );
 
   // Initialize Yjs collab plugin — must be called explicitly after editor creation.
@@ -599,7 +603,7 @@ function EditorContent({
   localUserName?: string;
 }) {
   const content = (
-    <div className="relative w-full pl-[18px] pr-3 py-8">
+    <div className="relative mx-auto w-full max-w-[820px] px-12 py-8">
       <PlateContent
         className="doc-editor-content min-h-[200px] outline-none [&_[data-slate-placeholder]]:!text-fg-muted [&_[data-slate-placeholder]]:!opacity-100 dark:[&_[data-slate-placeholder]]:!text-fg-muted"
         placeholder={placeholder}

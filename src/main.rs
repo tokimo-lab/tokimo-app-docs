@@ -177,6 +177,7 @@ async fn run_server() -> anyhow::Result<()> {
         .build()
         .map_err(|e| anyhow::anyhow!("reqwest client: {e}"))?;
     let collab = Arc::new(services::collab::CollabService::new(db.clone()));
+    collab.start_background_tasks();
     let ctx = Arc::new(handlers::AppCtx {
         db,
         client: Arc::clone(&client_slot),

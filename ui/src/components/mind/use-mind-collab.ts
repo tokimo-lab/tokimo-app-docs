@@ -32,11 +32,11 @@ function stripTheme(data: MindElixirData): MindElixirData {
 
 // ── WebSocket URL builder ───────────────────────────────────────────────────
 
-function buildCollabWsUrl(spaceId: string, relPath: string): string {
+function buildCollabWsUrl(spaceId: string): string {
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host = window.location.hostname;
   const port = window.location.port === "5173" ? "5678" : window.location.port;
-  return `${proto}//${host}:${port}/api/apps/docs/spaces/${encodeURIComponent(spaceId)}/collab?relPath=${encodeURIComponent(relPath)}`;
+  return `${proto}//${host}:${port}/api/apps/docs/spaces/${encodeURIComponent(spaceId)}/collab`;
 }
 
 // ── Hook ────────────────────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ function buildCollabWsUrl(spaceId: string, relPath: string): string {
 interface UseMindCollabOptions {
   /** Doc node ID. null disables collab. */
   spaceId: string | null;
-  relPath: string | null;
+  nodeId: string | null;
   /** User display name for presence. */
   userName: string;
   /** The mind-elixir instance (null while initializing). */
@@ -63,7 +63,7 @@ interface UseMindCollabOptions {
  */
 export function useMindCollab({
   spaceId,
-  relPath,
+  nodeId,
   userName,
   mind,
   isReplayingRef,
@@ -74,12 +74,12 @@ export function useMindCollab({
   customThemeRef.current = customTheme;
 
   useEffect(() => {
-    if (!spaceId || !relPath || !mind) return;
+    if (!spaceId || !nodeId || !mind) return;
 
     const doc = new Y.Doc();
     const awareness = new Awareness(doc);
-    const roomKey = `${spaceId}:${relPath}`;
-    const wsUrl = buildCollabWsUrl(spaceId, relPath);
+    const roomKey = nodeId;
+    const wsUrl = buildCollabWsUrl(spaceId);
 
     // Set local awareness state
     awareness.setLocalStateField("user", {
@@ -90,6 +90,7 @@ export function useMindCollab({
     const wsProvider = new WebsocketProvider(wsUrl, roomKey, doc, {
       connect: true,
       awareness,
+      params: { nodeId },
     });
 
     // Register in shared store for CollabPresenceBar
@@ -193,7 +194,7 @@ export function useMindCollab({
       cleanupRef.current?.();
       cleanupRef.current = null;
     };
-  }, [spaceId, relPath, userName, mind, isReplayingRef]);
+  }, [spaceId, nodeId, userName, mind, isReplayingRef]);
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

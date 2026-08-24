@@ -138,7 +138,8 @@ impl DocNodeCommentRepo {
             DatabaseBackend::Postgres,
             r"UPDATE docs_node_comments
                SET rel_path = $3 || substring(rel_path from char_length($2) + 1), updated_at = NOW()
-               WHERE space_id = $1 AND left(rel_path, char_length($2)) = $2",
+               WHERE space_id = $1
+                 AND (rel_path = $2 OR left(rel_path, char_length($2) + 1) = $2 || '/')",
             vec![
                 space_id.into(),
                 old_prefix.to_string().into(),

@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(schema_name = "docs", table_name = "docs_node_meta")]
 pub struct Model {
+    pub id: Uuid,
     #[sea_orm(primary_key, auto_increment = false)]
     pub space_id: Uuid,
     #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
@@ -28,6 +29,8 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_one = "super::docs_collab_states::Entity")]
+    DocsCollabStates,
     #[sea_orm(
         belongs_to = "super::docs_spaces::Entity",
         from = "Column::SpaceId",
@@ -36,6 +39,12 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     DocsSpaces,
+}
+
+impl Related<super::docs_collab_states::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::DocsCollabStates.def()
+    }
 }
 
 impl Related<super::docs_spaces::Entity> for Entity {

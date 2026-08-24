@@ -52,6 +52,7 @@ interface SheetEditorProps {
   onChange: (snapshot: unknown) => void;
   /** Doc node ID — when provided, enables real-time collaborative editing. */
   spaceId?: string;
+  nodeId?: string;
   relPath?: string;
   /** User display name for remote presence labels. */
   userName?: string;
@@ -63,6 +64,7 @@ export function SheetEditor({
   content,
   onChange,
   spaceId,
+  nodeId,
   relPath,
   userName,
 }: SheetEditorProps) {
@@ -158,7 +160,7 @@ export function SheetEditor({
   // Real-time collaboration via Yjs
   useSheetCollab({
     spaceId: spaceId ?? null,
-    relPath: relPath ?? null,
+    nodeId: nodeId ?? null,
     userName: userName ?? "Anonymous",
     univer: univerInstance?.univer as never,
     univerAPI: univerInstance?.univerAPI as never,

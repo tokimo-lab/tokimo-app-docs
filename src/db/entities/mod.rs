@@ -1,6 +1,7 @@
 //! SeaORM entities for docs app
 
 pub mod docs_base_records;
+pub mod docs_collab_states;
 pub mod docs_node_attachments;
 pub mod docs_node_comments;
 pub mod docs_node_meta;
@@ -63,6 +64,7 @@ impl From<docs_spaces::Model> for DocSpaceOutput {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct DocNodeListItem {
+    pub id: String,
     pub rel_path: String,
     pub space_id: String,
     pub parent_id: Option<String>,
@@ -85,6 +87,7 @@ pub struct DocNodeListItem {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct DocNodeOutput {
+    pub id: String,
     pub space_id: String,
     pub rel_path: String,
     pub title: String,
@@ -213,6 +216,7 @@ impl From<docs_node_attachments::Model> for DocNodeAttachmentOutput {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct DocNodeMetaOutput {
+    pub id: String,
     pub space_id: String,
     pub rel_path: String,
     pub is_favorite: bool,
@@ -231,6 +235,7 @@ pub struct DocNodeMetaOutput {
 impl From<docs_node_meta::Model> for DocNodeMetaOutput {
     fn from(m: docs_node_meta::Model) -> Self {
         Self {
+            id: m.id.to_string(),
             space_id: m.space_id.to_string(),
             rel_path: m.rel_path,
             is_favorite: m.is_favorite,

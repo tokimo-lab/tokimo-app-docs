@@ -23,6 +23,7 @@ import type { VfsFileSelection } from "../components/VfsFilePickerWindow";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
 import {
   buildNodePath,
+  isStableNodeId,
   nextUniqueName,
   parentRelPathOf,
   resolveNodeByPath,
@@ -85,26 +86,41 @@ function buildDocNodeDetail(
   node: DocNodeListItem | null,
   detail: unknown,
 ): DocNodeDetail | null {
-  if (!node) return null;
   const record = asDetailRecord(detail);
+  if (!node && !record) return null;
+  const meta = asDetailRecord(record?.meta);
+  const id = stringField(record, "id") ?? stringField(meta, "id") ?? node?.id;
+  const relPath = stringField(record, "relPath") ?? node?.relPath;
+  const resolvedSpaceId = stringField(record, "spaceId") ?? node?.spaceId;
+  const type = stringField(record, "type") ?? node?.type;
+  const title = stringField(record, "title") ?? node?.title;
+  if (!id || !relPath || !resolvedSpaceId || !type || title == null) return null;
   return {
-    ...node,
-    id: stringField(record, "id") ?? node.relPath,
-    relPath: stringField(record, "relPath") ?? node.relPath,
-    spaceId: stringField(record, "spaceId") ?? node.spaceId,
-    parentId: stringField(record, "parentId") ?? node.parentId,
-    type: stringField(record, "type") ?? node.type,
-    title: stringField(record, "title") ?? node.title,
-    icon: stringField(record, "icon") ?? node.icon,
-    tags: stringArrayField(record, "tags") ?? node.tags,
-    isFavorite: booleanField(record, "isFavorite") ?? node.isFavorite,
-    isPinned: booleanField(record, "isPinned") ?? node.isPinned,
-    isArchived: booleanField(record, "isArchived") ?? node.isArchived,
-    wordCount: numberField(record, "wordCount") ?? node.wordCount,
-    sortOrder: numberField(record, "sortOrder") ?? node.sortOrder,
-    lastOpenedAt: stringField(record, "lastOpenedAt") ?? node.lastOpenedAt,
-    createdAt: stringField(record, "createdAt") ?? node.createdAt,
-    updatedAt: stringField(record, "updatedAt") ?? node.updatedAt,
+    id,
+    relPath,
+    spaceId: resolvedSpaceId,
+    parentId:
+      stringField(record, "parentId") ??
+      node?.parentId ??
+      parentRelPathOf(relPath) ??
+      undefined,
+    type,
+    title,
+    icon: stringField(meta, "icon") ?? node?.icon,
+    tags: stringArrayField(meta, "tags") ?? node?.tags,
+    isFavorite: booleanField(meta, "isFavorite") ?? node?.isFavorite ?? false,
+    isPinned: booleanField(meta, "isPinned") ?? node?.isPinned ?? false,
+    isArchived: booleanField(meta, "isArchived") ?? node?.isArchived ?? false,
+    wordCount: numberField(meta, "wordCount") ?? node?.wordCount ?? 0,
+    sortOrder: numberField(meta, "sortOrder") ?? node?.sortOrder ?? 0,
+    lastOpenedAt: stringField(meta, "lastOpenedAt") ?? node?.lastOpenedAt,
+    createdAt:
+      stringField(meta, "createdAt") ?? node?.createdAt ?? new Date().toISOString(),
+    updatedAt:
+      stringField(record, "updatedAt") ??
+      stringField(meta, "updatedAt") ??
+      node?.updatedAt ??
+      new Date().toISOString(),
     content: record?.content ?? null,
   };
 }
@@ -123,6 +139,27 @@ function mergeNodesByRelPath(
   return Array.from(nodesByRelPath.values());
 }
 
+function sortDocNodes(
+  nodes: readonly DocNodeListItem[],
+  field: SortField,
+  direction: SortDir,
+): DocNodeListItem[] {
+  const multiplier = direction === "asc" ? 1 : -1;
+  return [...nodes].sort((left, right) => {
+    if (left.type === "folder" && right.type !== "folder") return -1;
+    if (left.type !== "folder" && right.type === "folder") return 1;
+    const comparison =
+      field === "title"
+        ? left.title.localeCompare(right.title)
+        : field === "wordCount"
+          ? left.wordCount - right.wordCount
+          : new Date(left[field]).getTime() - new Date(right[field]).getTime();
+    return comparison === 0
+      ? left.title.localeCompare(right.title)
+      : comparison * multiplier;
+  });
+}
+
 export function useDocsPage(spaceId: string) {
   const { route, navigate, replace } = useWindowNav();
   const message = useMessage();
@@ -137,6 +174,9 @@ export function useDocsPage(spaceId: string) {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [filterTags, setFilterTags] = useState<string[]>([]);
+  const [saveState, setSaveState] = useState<
+    "saved" | "saving" | "error"
+  >("saved");
   const [commentSidebarOpen, setCommentSidebarOpen] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const [previewingVersionId, setPreviewingVersionId] = useState<string | null>(
@@ -165,47 +205,49 @@ export function useDocsPage(spaceId: string) {
   );
 
   // ── Route-derived selection ──────────────────────────────────────────
-  const selectedNodeId = useMemo(() => resolveNodeByPath(route), [route]);
-  const selectedParentPath = useMemo(
-    () => parentRelPathOf(selectedNodeId),
-    [selectedNodeId],
-  );
-  const selectedFolderListQuery = api.docs.list.useQuery(
+  // New routes contain a stable UUID. Legacy relPath routes remain readable
+  // and are replaced after the detail endpoint resolves their stable ID.
+  const selectedRouteRef = useMemo(() => resolveNodeByPath(route), [route]);
+  const detailQuery = api.docs.getById.useQuery(
     {
       spaceId: spaceId ?? "",
-      path: selectedParentPath ?? "",
-      tab: "all",
-      pageSize: 500,
+      ...(selectedRouteRef && isStableNodeId(selectedRouteRef)
+        ? { nodeId: selectedRouteRef }
+        : { relPath: selectedRouteRef ?? "" }),
     },
-    { enabled: !!spaceId && !!selectedNodeId },
+    {
+      enabled: !!selectedRouteRef && !!spaceId,
+      staleTime: 0,
+    },
   );
-  const selectedNode = useMemo(
+  const listedNode = useMemo(
     () =>
-      selectedFolderListQuery.data?.items.find(
-        (n: DocNodeListItem) => n.relPath === selectedNodeId,
-      ) ??
-      listQuery.data?.items.find((n: DocNodeListItem) => n.relPath === selectedNodeId) ??
-      null,
-    [selectedFolderListQuery.data, listQuery.data, selectedNodeId],
+      listQuery.data?.items.find(
+        (node: DocNodeListItem) =>
+          node.id === selectedRouteRef || node.relPath === selectedRouteRef,
+      ) ?? null,
+    [listQuery.data, selectedRouteRef],
   );
-  const selectedNodeType = (selectedNode?.type as DocNodeType) ?? null;
+  const selectedDetail = useMemo(
+    () => buildDocNodeDetail(listedNode, detailQuery.data),
+    [listedNode, detailQuery.data],
+  );
+  const selectedNodeId = selectedDetail?.id ?? selectedRouteRef;
+  const selectedNodeType = (selectedDetail?.type as DocNodeType) ?? null;
 
-  // Auto-repair route when node path changes
-  const prevRouteRef = useRef(route);
   useEffect(() => {
-    if (!selectedNodeId || !selectedNode) return;
-    const correctPath = buildNodePath(spaceId, selectedNodeId);
-    if (correctPath !== route && route !== "/") {
-      replace(correctPath, selectedNode.title);
+    if (!selectedDetail || route === "/") return;
+    const correctPath = buildNodePath(spaceId, selectedDetail.id);
+    if (correctPath !== route) {
+      replace(correctPath, selectedDetail.title);
     }
-    prevRouteRef.current = route;
-  }, [selectedNodeId, selectedNode, spaceId, route, replace]);
+  }, [selectedDetail, spaceId, route, replace]);
 
   // Navigation helpers
   const selectNode = useCallback(
-    (node: { relPath: string; title: string }) => {
+    (node: { id: string; title: string }) => {
       navigate(
-        buildNodePath(spaceId, node.relPath),
+        buildNodePath(spaceId, node.id),
         `TokimoDocs · ${node.title}`,
       );
       setPreviewingVersionId(null);
@@ -217,15 +259,15 @@ export function useDocsPage(spaceId: string) {
     [navigate, spaceId],
   );
 
-  const selectedDocId = selectedNodeType === "notion" ? selectedNodeId : null;
+  const selectedDocId = selectedNodeType === "notion" ? selectedDetail?.id ?? null : null;
   const selectedMarkdownId =
-    selectedNodeType === "markdown" ? selectedNodeId : null;
-  const selectedSheetId = selectedNodeType === "sheet" ? selectedNodeId : null;
-  const selectedMindId = selectedNodeType === "mind" ? selectedNodeId : null;
-  const selectedSlideId = selectedNodeType === "slide" ? selectedNodeId : null;
+    selectedNodeType === "markdown" ? selectedDetail?.id ?? null : null;
+  const selectedSheetId = selectedNodeType === "sheet" ? selectedDetail?.id ?? null : null;
+  const selectedMindId = selectedNodeType === "mind" ? selectedDetail?.id ?? null : null;
+  const selectedSlideId = selectedNodeType === "slide" ? selectedDetail?.id ?? null : null;
   const selectedWhiteboardId =
-    selectedNodeType === "whiteboard" ? selectedNodeId : null;
-  const selectedBaseId = selectedNodeType === "base" ? selectedNodeId : null;
+    selectedNodeType === "whiteboard" ? selectedDetail?.id ?? null : null;
+  const selectedBaseId = selectedNodeType === "base" ? selectedDetail?.id ?? null : null;
   const selectedContentNodeId =
     selectedDocId ??
     selectedMarkdownId ??
@@ -234,7 +276,8 @@ export function useDocsPage(spaceId: string) {
     selectedSlideId ??
     selectedWhiteboardId ??
     selectedBaseId;
-  const currentFolderId = selectedNodeType === "folder" ? selectedNodeId : null;
+  const currentFolderId =
+    selectedNodeType === "folder" ? selectedDetail?.relPath ?? null : null;
   const browserQuery = api.docs.list.useQuery(
     {
       spaceId: spaceId ?? "",
@@ -243,33 +286,49 @@ export function useDocsPage(spaceId: string) {
       pageSize: 500,
     },
     {
-      enabled: !!spaceId && (!selectedNodeId || selectedNodeType === "folder"),
+      enabled: !!spaceId && (!selectedRouteRef || selectedNodeType === "folder"),
     },
   );
   const treeNodes = useMemo(
     () =>
-      mergeNodesByRelPath(
-        listQuery.data?.items,
-        selectedFolderListQuery.data?.items,
-        browserQuery.data?.items,
-      ),
-    [listQuery.data, selectedFolderListQuery.data, browserQuery.data],
+      mergeNodesByRelPath(listQuery.data?.items, browserQuery.data?.items),
+    [listQuery.data, browserQuery.data],
   );
   const allNodes = useMemo(
     () =>
-      mergeNodesByRelPath(
-        listQuery.data?.items,
-        selectedFolderListQuery.data?.items,
-        browserQuery.data?.items,
-      ),
-    [listQuery.data, selectedFolderListQuery.data, browserQuery.data],
+      mergeNodesByRelPath(listQuery.data?.items, browserQuery.data?.items),
+    [listQuery.data, browserQuery.data],
   );
   const browserNodes = useMemo(() => {
-    if (tab !== "all") return listQuery.data?.items ?? [];
+    if (tab !== "all") {
+      return sortDocNodes(
+        listQuery.data?.items ?? [],
+        effectiveSortField,
+        effectiveSortDir,
+      );
+    }
     const nodes = browserQuery.data?.items ?? listQuery.data?.items ?? [];
-    if (currentFolderId) return nodes;
-    return nodes.filter((node: DocNodeListItem) => node.parentId === null);
-  }, [browserQuery.data, currentFolderId, listQuery.data, tab]);
+    const visible = currentFolderId
+      ? nodes
+      : nodes.filter((node: DocNodeListItem) => node.parentId === null);
+    return sortDocNodes(visible, effectiveSortField, effectiveSortDir);
+  }, [
+    browserQuery.data,
+    currentFolderId,
+    listQuery.data,
+    tab,
+    effectiveSortField,
+    effectiveSortDir,
+  ]);
+  const sidebarNodes = useMemo(
+    () =>
+      sortDocNodes(
+        listQuery.data?.items ?? [],
+        effectiveSortField,
+        effectiveSortDir,
+      ),
+    [listQuery.data, effectiveSortField, effectiveSortDir],
+  );
   const browserIsLoading =
     tab === "all"
       ? browserQuery.isLoading || browserQuery.isFetching
@@ -284,9 +343,14 @@ export function useDocsPage(spaceId: string) {
       // Don't require the node to exist in already-loaded queries —
       // ancestor folders may not be in treeNodes yet. Just navigate to the
       // relPath; the route-driven queries will resolve type/metadata.
-      const node = treeNodes.find((n: DocNodeListItem) => n.relPath === nodeId);
+      const node = treeNodes.find(
+        (n: DocNodeListItem) => n.id === nodeId || n.relPath === nodeId,
+      );
       const title = node?.title ?? nodeId.split("/").pop() ?? nodeId;
-      navigate(buildNodePath(spaceId, nodeId), `TokimoDocs · ${title}`);
+      navigate(
+        buildNodePath(spaceId, node?.id ?? nodeId),
+        `TokimoDocs · ${title}`,
+      );
       setPreviewingVersionId(null);
     },
     [treeNodes, navigate, spaceId, deselectNode],
@@ -297,25 +361,9 @@ export function useDocsPage(spaceId: string) {
     [selectNode],
   );
 
-  // ── Selected node detail ────────────────────────────────────────────
-  const detailQuery = api.docs.getById.useQuery(
-    { id: selectedContentNodeId ?? "", spaceId: spaceId ?? "" },
-    {
-      enabled: !!selectedContentNodeId && !!spaceId,
-      staleTime: 0,
-    },
-  );
-  const selectedDetail = useMemo(
-    () => buildDocNodeDetail(selectedNode, detailQuery.data),
-    [selectedNode, detailQuery.data],
-  );
   const isSelectedNodeLoading =
-    !!selectedNodeId &&
-    !selectedNode &&
-    (selectedFolderListQuery.isLoading ||
-      selectedFolderListQuery.isFetching ||
-      listQuery.isLoading ||
-      listQuery.isFetching);
+    !!selectedRouteRef &&
+    (detailQuery.isLoading || detailQuery.isFetching || !selectedDetail);
   const isEditorLoading =
     isSelectedNodeLoading ||
     (!!selectedContentNodeId &&
@@ -346,7 +394,7 @@ export function useDocsPage(spaceId: string) {
       listQuery.refetch();
       api.docs.listVersions.invalidate(queryClient, {
         spaceId: spaceId ?? "",
-        relPath: selectedDocId ?? "",
+        relPath: selectedDoc?.relPath ?? "",
       });
       // Force editor remount so the collab session is dropped and the doc is
       // reloaded from VFS (the Yjs cache otherwise still holds the pre-restore
@@ -366,15 +414,8 @@ export function useDocsPage(spaceId: string) {
   const refetchNodeQueries = useCallback(() => {
     api.docs.list.invalidate(queryClient);
     listQuery.refetch();
-    if (selectedNodeId) selectedFolderListQuery.refetch();
     browserQuery.refetch();
-  }, [
-    queryClient,
-    listQuery,
-    selectedFolderListQuery,
-    browserQuery,
-    selectedNodeId,
-  ]);
+  }, [queryClient, listQuery, browserQuery]);
 
   const createMutation = api.docs.create.useMutation({
     onSuccess: (node: DocNodeListItem) => {
@@ -385,23 +426,13 @@ export function useDocsPage(spaceId: string) {
   });
 
   const updateMutation = api.docs.update.useMutation({
-    onSuccess: (data: DocNodeListItem, variables: { relPath?: string; id?: string; nodeId?: string; content?: unknown; title?: string }) => {
+    onSuccess: (_data: DocNodeListItem, variables: { content?: unknown }) => {
       refetchNodeQueries();
-      // If the update renamed the file (title change → new rel_path),
-      // bring the URL along so the still-mounted route doesn't deselect
-      // the node and bounce the user back to the folder root.
-      const oldRel = variables.relPath ?? variables.nodeId ?? variables.id;
-      const newRel = (data as { relPath?: string } | null | undefined)?.relPath;
-      if (newRel && oldRel && newRel !== oldRel) {
-        const sid = stateRef.current.spaceId;
-        const oldUrl = buildNodePath(sid, oldRel);
-        // Only redirect if we still own the URL (user hasn't navigated away).
-        if (routeRef.current === oldUrl) {
-          const newTitle =
-            (data as { title?: string } | null | undefined)?.title ?? newRel;
-          replace(buildNodePath(sid, newRel), `TokimoDocs · ${newTitle}`);
-        }
-      }
+      if (variables.content !== undefined) setSaveState("saved");
+      else detailQueryRef.current.refetch();
+    },
+    onError: (_error, variables) => {
+      if (variables.content !== undefined) setSaveState("error");
     },
   });
 
@@ -465,8 +496,6 @@ export function useDocsPage(spaceId: string) {
   updateMutRef.current = updateMutation;
   const detailQueryRef = useRef(detailQuery);
   detailQueryRef.current = detailQuery;
-  const routeRef = useRef(route);
-  routeRef.current = route;
 
   // Close-and-reopen the currently selected doc to force the editor (and its
   // Yjs collab provider) to remount. Used after destructive operations like
@@ -474,12 +503,12 @@ export function useDocsPage(spaceId: string) {
   // would otherwise keep serving the stale Yjs doc.
   const reloadCurrentDoc = useCallback(() => {
     const sid = stateRef.current.spaceId;
-    const relPath = stateRef.current.selectedDocId;
+    const nodeId = stateRef.current.selectedDocId;
     const title = stateRef.current.selectedDocTitle;
-    if (!sid || !relPath) return;
+    if (!sid || !nodeId) return;
     navigate(`/space/${encodeURIComponent(sid)}`);
     setTimeout(() => {
-      navigate(buildNodePath(sid, relPath), `TokimoDocs · ${title ?? relPath}`);
+      navigate(buildNodePath(sid, nodeId), `TokimoDocs · ${title ?? nodeId}`);
     }, 200);
   }, [navigate]);
 
@@ -545,27 +574,52 @@ export function useDocsPage(spaceId: string) {
   );
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const pendingContentRef = useRef<{
+    nodeId: string;
+    spaceId: string;
+    content: unknown;
+  } | null>(null);
+
+  const flushPendingContent = useCallback(() => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    const pending = pendingContentRef.current;
+    if (!pending) return;
+    pendingContentRef.current = null;
+    updateMutRef.current.mutate({
+      nodeId: pending.nodeId,
+      spaceId: pending.spaceId,
+      content: pending.content,
+    });
+  }, []);
+
+  useEffect(
+    () => () => flushPendingContent(),
+    [selectedContentNodeId, flushPendingContent],
+  );
 
   const handleContentChange = useCallback(
     (value: Value) => {
       if (!selectedDocId) return;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(() => {
-        updateMutRef.current.mutate({
-          id: selectedDocId,
-          spaceId: stateRef.current.spaceId,
-          content: value,
-        });
-      }, 800);
+      setSaveState("saving");
+      pendingContentRef.current = {
+        nodeId: selectedDocId,
+        spaceId: stateRef.current.spaceId,
+        content: value,
+      };
+      saveTimerRef.current = setTimeout(flushPendingContent, 800);
     },
-    [selectedDocId],
+    [selectedDocId, flushPendingContent],
   );
 
   const handleTitleChange = useCallback(
     (title: string) => {
       if (!selectedDocId) return;
       updateMutRef.current.mutate({
-        id: selectedDocId,
+        nodeId: selectedDocId,
         spaceId: stateRef.current.spaceId,
         title,
       });
@@ -577,22 +631,22 @@ export function useDocsPage(spaceId: string) {
     (text: string) => {
       if (!selectedMarkdownId) return;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(() => {
-        updateMutRef.current.mutate({
-          id: selectedMarkdownId,
-          spaceId: stateRef.current.spaceId,
-          content: text,
-        });
-      }, 800);
+      setSaveState("saving");
+      pendingContentRef.current = {
+        nodeId: selectedMarkdownId,
+        spaceId: stateRef.current.spaceId,
+        content: text,
+      };
+      saveTimerRef.current = setTimeout(flushPendingContent, 800);
     },
-    [selectedMarkdownId],
+    [selectedMarkdownId, flushPendingContent],
   );
 
   const handleMarkdownTitleChange = useCallback(
     (title: string) => {
       if (!selectedMarkdownId) return;
       updateMutRef.current.mutate({
-        id: selectedMarkdownId,
+        nodeId: selectedMarkdownId,
         spaceId: stateRef.current.spaceId,
         title,
       });
@@ -604,7 +658,7 @@ export function useDocsPage(spaceId: string) {
     (snapshot: unknown) => {
       if (!selectedSheetId) return;
       updateMutRef.current.mutate({
-        id: selectedSheetId,
+        nodeId: selectedSheetId,
         spaceId: stateRef.current.spaceId,
         content: snapshot,
       });
@@ -616,7 +670,7 @@ export function useDocsPage(spaceId: string) {
     (data: unknown) => {
       if (!selectedMindId) return;
       updateMutRef.current.mutate({
-        id: selectedMindId,
+        nodeId: selectedMindId,
         spaceId: stateRef.current.spaceId,
         content: data,
       });
@@ -628,7 +682,7 @@ export function useDocsPage(spaceId: string) {
     (data: unknown) => {
       if (!selectedSlideId) return;
       updateMutRef.current.mutate({
-        id: selectedSlideId,
+        nodeId: selectedSlideId,
         spaceId: stateRef.current.spaceId,
         content: data,
       });
@@ -640,7 +694,7 @@ export function useDocsPage(spaceId: string) {
     (data: unknown) => {
       if (!selectedWhiteboardId) return;
       updateMutRef.current.mutate({
-        id: selectedWhiteboardId,
+        nodeId: selectedWhiteboardId,
         spaceId: stateRef.current.spaceId,
         content: data,
       });
@@ -652,7 +706,7 @@ export function useDocsPage(spaceId: string) {
     (data: unknown) => {
       if (!selectedBaseId) return;
       updateMutRef.current.mutate({
-        id: selectedBaseId,
+        nodeId: selectedBaseId,
         spaceId: stateRef.current.spaceId,
         content: data,
       });
@@ -673,7 +727,7 @@ export function useDocsPage(spaceId: string) {
       const docId = stateRef.current.selectedDocId;
       if (docId) {
         await updateMutRef.current.mutateAsync({
-          id: docId,
+          nodeId: docId,
           spaceId: stateRef.current.spaceId,
           content: value,
         });
@@ -865,7 +919,7 @@ export function useDocsPage(spaceId: string) {
       setAiUndoSummary(summary);
       const newValue = deserializeMd(editor, content);
       await updateMutRef.current.mutateAsync({
-        id: docId,
+        nodeId: docId,
         spaceId: stateRef.current.spaceId,
         content: newValue,
       });
@@ -878,7 +932,7 @@ export function useDocsPage(spaceId: string) {
     const docId = stateRef.current.selectedDocId;
     if (docId) {
       await updateMutRef.current.mutateAsync({
-        id: docId,
+        nodeId: docId,
         spaceId: stateRef.current.spaceId,
         content: aiUndoContent,
       });
@@ -908,6 +962,7 @@ export function useDocsPage(spaceId: string) {
     sidebarCollapsed,
     filterTags,
     setFilterTags,
+    saveState,
     commentSidebarOpen,
     setCommentSidebarOpen,
     versionHistoryOpen,
@@ -922,6 +977,7 @@ export function useDocsPage(spaceId: string) {
     treeNodes,
     allNodes,
     browserNodes,
+    sidebarNodes,
     browserIsLoading,
     isSelectedNodeLoading,
     isEditorLoading,

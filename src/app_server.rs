@@ -131,6 +131,7 @@ fn build_router(ctx: Arc<AppCtx>) -> Router {
         )
         // ── Collaboration ───────────────────────────────────────
         .route("/spaces/{id}/collab", get(collab::collab_ws))
+        .route("/spaces/{id}/collab/{room}", get(collab::collab_ws_room))
         // ── Whiteboard libraries ────────────────────────────────
         .route(
             "/whiteboard/libraries",

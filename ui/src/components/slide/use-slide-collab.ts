@@ -11,11 +11,11 @@ import type { SlidePresentation } from "./types";
 import { isSlidePresentation } from "./types";
 import { useSlideStore } from "./use-slide-store";
 
-function buildCollabWsUrl(spaceId: string, relPath: string): string {
+function buildCollabWsUrl(spaceId: string): string {
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host = window.location.hostname;
   const port = window.location.port === "5173" ? "5678" : window.location.port;
-  return `${proto}//${host}:${port}/api/apps/docs/spaces/${encodeURIComponent(spaceId)}/collab?relPath=${encodeURIComponent(relPath)}`;
+  return `${proto}//${host}:${port}/api/apps/docs/spaces/${encodeURIComponent(spaceId)}/collab`;
 }
 
 const CURSOR_COLORS = [
@@ -42,7 +42,7 @@ function randomCursorColor(): string {
 
 interface UseSlideCollabOptions {
   spaceId: string | null;
-  relPath: string | null;
+  nodeId: string | null;
   userName: string;
   getPresentation: () => SlidePresentation;
   setPresentation: (p: SlidePresentation) => void;
@@ -51,7 +51,7 @@ interface UseSlideCollabOptions {
 
 export function useSlideCollab({
   spaceId,
-  relPath,
+  nodeId,
   userName,
   getPresentation,
   setPresentation,
@@ -63,12 +63,12 @@ export function useSlideCollab({
   setPresentationRef.current = setPresentation;
 
   useEffect(() => {
-    if (!spaceId || !relPath) return;
+    if (!spaceId || !nodeId) return;
 
     const doc = new Y.Doc();
     const awareness = new Awareness(doc);
-    const roomKey = `${spaceId}:${relPath}`;
-    const wsUrl = buildCollabWsUrl(spaceId, relPath);
+    const roomKey = nodeId;
+    const wsUrl = buildCollabWsUrl(spaceId);
 
     awareness.setLocalStateField("user", {
       name: userName,
@@ -78,6 +78,7 @@ export function useSlideCollab({
     const wsProvider = new WebsocketProvider(wsUrl, roomKey, doc, {
       connect: true,
       awareness,
+      params: { nodeId },
     });
 
     registerAwareness(roomKey, awareness, false);
@@ -151,5 +152,5 @@ export function useSlideCollab({
       awareness.destroy();
       doc.destroy();
     };
-  }, [spaceId, relPath, userName, isReplayingRef]);
+  }, [spaceId, nodeId, userName, isReplayingRef]);
 }

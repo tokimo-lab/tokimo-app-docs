@@ -30,6 +30,7 @@ export interface DocSpaceOutput {
 }
 
 export interface DocNodeListItem {
+  id: string;
   relPath: string;
   spaceId: string;
   parentId?: string;
@@ -170,6 +171,16 @@ function appendRel(path: string, input: RelPathInput): string {
   return `${path}?relPath=${encode(relPath(input))}`;
 }
 
+function nodeRefParams(input: RelPathInput): Record<string, string> {
+  const nodeId = input.nodeId ?? input.id;
+  return nodeId ? { nodeId } : { relPath: input.relPath ?? "" };
+}
+
+function appendNodeRef(path: string, input: RelPathInput): string {
+  const params = new URLSearchParams(nodeRefParams(input));
+  return `${path}?${params.toString()}`;
+}
+
 // ── Docs API ─────────────────────────────────────────────────────────────────
 
 const docsApi = {
@@ -271,13 +282,13 @@ const docsApi = {
   getNode: createQuery<RelPathInput, unknown>({
     path: "/api/apps/docs/spaces/{spaceId}/node",
     pathFn: (input) => `/api/apps/docs/spaces/${encode(input.spaceId)}/node`,
-    paramsFn: (input) => ({ relPath: relPath(input) }),
+    paramsFn: nodeRefParams,
   }),
 
   getById: createQuery<RelPathInput, unknown>({
     path: "/api/apps/docs/spaces/{spaceId}/node",
     pathFn: (input) => `/api/apps/docs/spaces/${encode(input.spaceId)}/node`,
-    paramsFn: (input) => ({ relPath: relPath(input) }),
+    paramsFn: nodeRefParams,
   }),
 
   updateNode: createPathMutation<
@@ -292,7 +303,7 @@ const docsApi = {
   >({
     method: "PATCH",
     pathFn: (input) =>
-      appendRel(`/api/apps/docs/spaces/${encode(input.spaceId)}/node`, input),
+      appendNodeRef(`/api/apps/docs/spaces/${encode(input.spaceId)}/node`, input),
     bodyFn: (input) => {
       const { spaceId: _, relPath: __, id: ___, nodeId: ____, ...body } =
         input;
@@ -312,7 +323,7 @@ const docsApi = {
   >({
     method: "PATCH",
     pathFn: (input) =>
-      appendRel(`/api/apps/docs/spaces/${encode(input.spaceId)}/node`, input),
+      appendNodeRef(`/api/apps/docs/spaces/${encode(input.spaceId)}/node`, input),
     bodyFn: (input) => {
       const { spaceId: _, relPath: __, id: ___, nodeId: ____, ...body } =
         input;
@@ -323,13 +334,13 @@ const docsApi = {
   archive: createPathMutation<RelPathInput, void>({
     method: "DELETE",
     pathFn: (input) =>
-      appendRel(`/api/apps/docs/spaces/${encode(input.spaceId)}/node`, input),
+      appendNodeRef(`/api/apps/docs/spaces/${encode(input.spaceId)}/node`, input),
   }),
 
   restore: createPathMutation<RelPathInput, void>({
     method: "PATCH",
     pathFn: (input) =>
-      appendRel(
+      appendNodeRef(
         `/api/apps/docs/spaces/${encode(input.spaceId)}/node/restore`,
         input,
       ),
@@ -338,7 +349,7 @@ const docsApi = {
   permanentDelete: createPathMutation<RelPathInput, void>({
     method: "DELETE",
     pathFn: (input) =>
-      appendRel(
+      appendNodeRef(
         `/api/apps/docs/spaces/${encode(input.spaceId)}/node/permanent`,
         input,
       ),

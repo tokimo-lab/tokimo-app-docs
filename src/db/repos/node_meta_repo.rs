@@ -60,6 +60,54 @@ impl DocNodeMetaRepo {
             .await?)
     }
 
+    pub async fn find_by_node_id<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        node_id: Uuid,
+    ) -> Result<Option<docs_node_meta::Model>, AppError> {
+        Ok(docs_node_meta::Entity::find()
+            .filter(docs_node_meta::Column::Id.eq(node_id))
+            .filter(docs_node_meta::Column::SpaceId.eq(space_id))
+            .one(db)
+            .await?)
+    }
+
+    pub async fn ensure_paths<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        rel_paths: &[String],
+    ) -> Result<Vec<docs_node_meta::Model>, AppError> {
+        if rel_paths.is_empty() {
+            return Ok(Vec::new());
+        }
+        let now = chrono::Utc::now().fixed_offset();
+        let rows = rel_paths.iter().map(|rel_path| docs_node_meta::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            space_id: Set(space_id),
+            rel_path: Set(rel_path.clone()),
+            is_favorite: Set(false),
+            is_pinned: Set(false),
+            is_archived: Set(false),
+            icon: Set(None),
+            cover_image: Set(None),
+            tags: Set(None),
+            last_opened_at: Set(None),
+            sort_order: Set(0),
+            word_count: Set(0),
+            created_at: Set(now),
+            updated_at: Set(now),
+        });
+        docs_node_meta::Entity::insert_many(rows)
+            .on_conflict(
+                OnConflict::columns([docs_node_meta::Column::SpaceId, docs_node_meta::Column::RelPath])
+                    .do_nothing()
+                    .to_owned(),
+            )
+            .exec(db)
+            .await?;
+        Self::find_by_paths(db, space_id, rel_paths).await
+    }
+
     pub async fn list_favorites<C: ConnectionTrait>(
         db: &C,
         space_id: Uuid,
@@ -125,6 +173,7 @@ impl DocNodeMetaRepo {
         }
 
         let model = docs_node_meta::ActiveModel {
+            id: Set(Uuid::new_v4()),
             space_id: Set(space_id),
             rel_path: Set(rel_path.to_string()),
             is_favorite: Set(input.is_favorite.unwrap_or(false)),
@@ -153,6 +202,7 @@ impl DocNodeMetaRepo {
     pub async fn toggle_favorite<C: ConnectionTrait>(db: &C, space_id: Uuid, rel_path: &str) -> Result<bool, AppError> {
         let now = chrono::Utc::now().fixed_offset();
         let model = docs_node_meta::ActiveModel {
+            id: Set(Uuid::new_v4()),
             space_id: Set(space_id),
             rel_path: Set(rel_path.to_string()),
             is_favorite: Set(true),
@@ -246,7 +296,8 @@ impl DocNodeMetaRepo {
             DatabaseBackend::Postgres,
             r"UPDATE docs_node_meta
                SET rel_path = $3 || substring(rel_path from char_length($2) + 1), updated_at = NOW()
-               WHERE space_id = $1 AND left(rel_path, char_length($2)) = $2",
+               WHERE space_id = $1
+                 AND (rel_path = $2 OR left(rel_path, char_length($2) + 1) = $2 || '/')",
             vec![
                 space_id.into(),
                 old_prefix.to_string().into(),

@@ -12,6 +12,7 @@ use yrs::sync::protocol::MSG_AWARENESS;
 use yrs::updates::encoder::{Encode, Encoder, EncoderV1};
 use yrs::{Doc, Options, ReadTxn, Transact};
 
+use crate::db::repos::collab_state_repo::CollabStateRepo;
 use crate::error::AppError;
 
 const ROOM_IDLE_TIMEOUT: Duration = Duration::from_mins(5);
@@ -19,24 +20,30 @@ const PERSIST_INTERVAL: Duration = Duration::from_secs(30);
 const CLEANUP_INTERVAL: Duration = Duration::from_mins(1);
 
 pub struct CollabRoom {
+    pub node_id: uuid::Uuid,
     pub awareness: tokio::sync::RwLock<Awareness>,
     clients: tokio::sync::RwLock<HashMap<u64, mpsc::UnboundedSender<Vec<u8>>>>,
     awareness_client_ids: tokio::sync::RwLock<HashMap<u64, u64>>,
     client_count: AtomicU32,
     dirty: AtomicBool,
+    invalidated: AtomicBool,
     last_activity: std::sync::Mutex<Instant>,
     next_conn_id: AtomicU64,
+    persist_lock: tokio::sync::Mutex<()>,
 }
 impl CollabRoom {
-    fn new(awareness: Awareness) -> Self {
+    fn new(node_id: uuid::Uuid, awareness: Awareness) -> Self {
         Self {
+            node_id,
             awareness: tokio::sync::RwLock::new(awareness),
             clients: tokio::sync::RwLock::new(HashMap::new()),
             awareness_client_ids: tokio::sync::RwLock::new(HashMap::new()),
             client_count: AtomicU32::new(0),
             dirty: AtomicBool::new(false),
+            invalidated: AtomicBool::new(false),
             last_activity: std::sync::Mutex::new(Instant::now()),
             next_conn_id: AtomicU64::new(1),
+            persist_lock: tokio::sync::Mutex::new(()),
         }
     }
     pub async fn add_client(&self) -> (u64, mpsc::UnboundedReceiver<Vec<u8>>) {
@@ -94,6 +101,16 @@ impl CollabRoom {
     pub fn clear_dirty(&self) {
         self.dirty.store(false, Ordering::Relaxed);
     }
+    pub fn is_invalidated(&self) -> bool {
+        self.invalidated.load(Ordering::Acquire)
+    }
+    fn invalidate(&self) {
+        self.invalidated.store(true, Ordering::Release);
+        self.clear_dirty();
+    }
+    fn take_dirty(&self) -> bool {
+        self.dirty.swap(false, Ordering::AcqRel)
+    }
     fn touch(&self) {
         if let Ok(mut last) = self.last_activity.lock() {
             *last = Instant::now();
@@ -105,26 +122,34 @@ impl CollabRoom {
 }
 
 pub struct CollabService {
+    db: DatabaseConnection,
     rooms: DashMap<String, Arc<CollabRoom>>,
     creation_lock: tokio::sync::Mutex<()>,
 }
 impl CollabService {
-    pub fn new(_db: DatabaseConnection) -> Self {
+    pub fn new(db: DatabaseConnection) -> Self {
         Self {
+            db,
             rooms: DashMap::new(),
             creation_lock: tokio::sync::Mutex::new(()),
         }
     }
-    pub async fn get_or_create_room(&self, key: String, yjs_ctx: Option<Vec<u8>>) -> Result<Arc<CollabRoom>, AppError> {
-        if let Some(room) = self.rooms.get(&key) {
+    pub async fn get_or_create_room(&self, node_id: uuid::Uuid) -> Result<Arc<CollabRoom>, AppError> {
+        let key = node_id.to_string();
+        if let Some(room) = self.rooms.get(&key)
+            && !room.value().is_invalidated()
+        {
             return Ok(Arc::clone(room.value()));
         }
         let _guard = self.creation_lock.lock().await;
-        if let Some(room) = self.rooms.get(&key) {
+        if let Some(room) = self.rooms.get(&key)
+            && !room.value().is_invalidated()
+        {
             return Ok(Arc::clone(room.value()));
         }
-        let doc = Self::create_doc(&key, yjs_ctx.as_deref());
-        let room = Arc::new(CollabRoom::new(Awareness::new(doc)));
+        let persisted = CollabStateRepo::get(&self.db, node_id).await?;
+        let doc = Self::create_doc(&key, persisted.as_deref());
+        let room = Arc::new(CollabRoom::new(node_id, Awareness::new(doc)));
         self.rooms.insert(key, Arc::clone(&room));
         Ok(room)
     }
@@ -152,21 +177,77 @@ impl CollabService {
         let txn = doc.transact();
         txn.encode_state_as_update_v1(&yrs::StateVector::default())
     }
-    pub fn persist_dirty_rooms(&self) {
-        for entry in &self.rooms {
-            entry.value().clear_dirty();
+    pub async fn persist_room(&self, room: &CollabRoom) -> Result<(), AppError> {
+        let _guard = room.persist_lock.lock().await;
+        if room.is_invalidated() {
+            return Ok(());
+        }
+        if !room.take_dirty() {
+            return Ok(());
+        }
+        let state = self.encode_room_ctx(room).await;
+        if let Err(error) = CollabStateRepo::upsert(&self.db, room.node_id, state).await {
+            room.mark_dirty();
+            return Err(error);
+        }
+        Ok(())
+    }
+    pub async fn persist_dirty_rooms(&self) {
+        let rooms: Vec<Arc<CollabRoom>> = self
+            .rooms
+            .iter()
+            .filter(|entry| entry.value().is_dirty())
+            .map(|entry| Arc::clone(entry.value()))
+            .collect();
+        for room in rooms {
+            if let Err(error) = self.persist_room(&room).await {
+                tracing::error!(node_id = %room.node_id, %error, "collab: periodic persistence failed");
+            }
         }
     }
     pub fn cleanup_idle_rooms(&self) {
         let keys: Vec<String> = self
             .rooms
             .iter()
-            .filter(|e| e.value().connection_count() == 0 && e.value().idle_duration() > ROOM_IDLE_TIMEOUT)
+            .filter(|e| {
+                e.value().connection_count() == 0
+                    && !e.value().is_dirty()
+                    && e.value().idle_duration() > ROOM_IDLE_TIMEOUT
+            })
             .map(|e| e.key().clone())
             .collect();
         for key in keys {
             self.rooms.remove(&key);
         }
+    }
+    pub fn ensure_version_restore_allowed(&self, node_id: uuid::Uuid) -> Result<(), AppError> {
+        if self
+            .rooms
+            .get(&node_id.to_string())
+            .is_some_and(|room| room.connection_count() > 1)
+        {
+            return Err(AppError::BadRequest(
+                "version restore requires other collaborators to leave the document".into(),
+            ));
+        }
+        Ok(())
+    }
+    pub async fn reset_for_version_restore(&self, node_id: uuid::Uuid) -> Result<(), AppError> {
+        let _creation_guard = self.creation_lock.lock().await;
+        let key = node_id.to_string();
+        let room = self.rooms.get(&key).map(|entry| Arc::clone(entry.value()));
+        if let Some(room) = room {
+            if room.connection_count() > 1 {
+                return Err(AppError::BadRequest(
+                    "version restore requires other collaborators to leave the document".into(),
+                ));
+            }
+            let _persist_guard = room.persist_lock.lock().await;
+            room.invalidate();
+            self.rooms.remove(&key);
+        }
+        CollabStateRepo::delete(&self.db, node_id).await?;
+        Ok(())
     }
     pub fn start_background_tasks(self: &Arc<Self>) {
         let service = Arc::clone(self);
@@ -174,13 +255,38 @@ impl CollabService {
             let mut p = tokio::time::interval(PERSIST_INTERVAL);
             let mut c = tokio::time::interval(CLEANUP_INTERVAL);
             loop {
-                tokio::select! { _ = p.tick() => service.persist_dirty_rooms(), _ = c.tick() => service.cleanup_idle_rooms() }
+                tokio::select! {
+                    _ = p.tick() => service.persist_dirty_rooms().await,
+                    _ = c.tick() => service.cleanup_idle_rooms(),
+                }
             }
         });
     }
-    pub fn on_last_client_disconnect(&self, _key: String) {}
     pub fn invalidate_room(&self, key: String, _force: bool) -> Result<(), AppError> {
         self.rooms.remove(&key);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CollabService;
+    use yrs::{GetString, ReadTxn, Text, Transact, WriteTxn};
+
+    #[test]
+    fn restores_a_persisted_yjs_snapshot() {
+        let original = CollabService::create_doc("node-a", None);
+        {
+            let text = original.get_or_insert_text("content");
+            let mut txn = original.transact_mut();
+            text.insert(&mut txn, 0, "durable text");
+        }
+        let bytes = original
+            .transact()
+            .encode_state_as_update_v1(&yrs::StateVector::default());
+
+        let restored = CollabService::create_doc("node-a", Some(&bytes));
+        let text = restored.get_or_insert_text("content");
+        assert_eq!(text.get_string(&restored.transact()), "durable text");
     }
 }

@@ -153,7 +153,7 @@ export function NodeTreeItem({
 } & TreeActions) {
   const { t } = useTranslation();
   const isFolder = node.type === "folder";
-  const isActive = selectedRelPath === node.relPath;
+  const isActive = selectedRelPath === node.id;
   const isRenaming = renamingRelPath === node.relPath;
   const [localName, setLocalName] = useState(node.title);
   const [isDropTarget, setIsDropTarget] = useState(false);
@@ -331,9 +331,9 @@ export function NodeTreeItem({
           className={cn(
             "group w-full cursor-pointer items-center gap-1 rounded-md py-1 pr-2 text-left text-sm transition-colors",
             isDropTarget
-              ? "bg-blue-500/10 ring-1 ring-blue-400 ring-inset"
+              ? "bg-accent-subtle ring-1 ring-accent ring-inset"
               : isActive
-                ? "bg-[var(--accent-subtle)] font-medium text-[var(--accent)]"
+                ? "bg-accent-subtle font-medium text-accent-text"
                 : "text-fg-secondary hover:bg-fill-tertiary",
             "flex",
           )}
@@ -396,7 +396,7 @@ export function NodeTreeItem({
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="min-w-0 flex-1 rounded border border-[var(--accent)] bg-surface-elevated px-1.5 py-0 text-sm outline-none"
+              className="min-w-0 flex-1 rounded border border-accent bg-surface-elevated px-1.5 py-0 text-sm outline-none"
             />
           ) : (
             <span className="min-w-0 flex-1 truncate">
@@ -419,7 +419,7 @@ export function NodeTreeItem({
                 >
                   <button
                     type="button"
-                    className="cursor-pointer rounded p-0.5 text-fg-muted opacity-0 transition-opacity hover:text-[var(--accent)] group-hover:opacity-100"
+                    className="cursor-pointer rounded p-0.5 text-fg-muted opacity-0 transition-opacity hover:text-accent-text group-hover:opacity-100"
                     title={t("docs.newDocument")}
                   >
                     <Plus size={14} />
@@ -472,7 +472,7 @@ export function ArchivedNodeRow({
       className={cn(
         "group flex w-full cursor-pointer items-center gap-2 rounded-md py-1 pr-2.5 pl-7 text-left text-sm transition-colors",
         isActive
-          ? "bg-[var(--accent-subtle)] text-[var(--accent)]"
+          ? "bg-accent-subtle text-accent-text"
           : "text-fg-secondary hover:bg-fill-tertiary",
       )}
       onClick={onClick}
@@ -501,7 +501,7 @@ export function ArchivedNodeRow({
       >
         <button
           type="button"
-          className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-green-500"
+          className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-state-success-text"
           onClick={onRestore}
           title={t("tree.restore")}
         >
@@ -509,7 +509,7 @@ export function ArchivedNodeRow({
         </button>
         <button
           type="button"
-          className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-red-500"
+          className="cursor-pointer rounded p-0.5 text-fg-muted hover:text-state-danger-text"
           onClick={onPermanentDelete}
           title={t("tree.permanentDelete")}
         >

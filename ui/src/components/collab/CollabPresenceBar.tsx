@@ -6,46 +6,54 @@
  */
 
 import { Avatar } from "@tokimo/ui";
-import { Wifi, WifiOff } from "lucide-react";
+import { Check, LoaderCircle, TriangleAlert, WifiOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useCollabPresence } from "./awareness-store";
 
 interface CollabPresenceBarProps {
-  spaceId: string;
-  relPath: string;
+  nodeId: string;
+  saveState?: "saved" | "saving" | "error";
 }
 
 const MAX_AVATARS = 5;
 
 export function CollabPresenceBar({
-  spaceId,
-  relPath,
+  nodeId,
+  saveState = "saved",
 }: CollabPresenceBarProps) {
-  const { users, connected } = useCollabPresence(`${spaceId}:${relPath}`);
+  const { users, connected } = useCollabPresence(nodeId);
   const { t } = useTranslation();
 
-  if (!spaceId || !relPath) return null;
+  if (!nodeId) return null;
 
   const visibleUsers = users.slice(0, MAX_AVATARS);
   const overflow = users.length - MAX_AVATARS;
+  const status = !connected
+    ? { label: t("docs.offline", "离线，等待重连"), kind: "offline" as const }
+    : saveState === "saving"
+      ? { label: t("docs.saving", "保存中"), kind: "saving" as const }
+      : saveState === "error"
+        ? { label: t("docs.saveFailed", "保存失败"), kind: "error" as const }
+        : { label: t("docs.saved", "已保存"), kind: "saved" as const };
 
   return (
     <div className="flex items-center gap-1.5">
       {/* Connection status */}
       <div
         className="flex items-center gap-1 text-xs text-fg-muted"
-        title={
-          connected
-            ? t("docs.collabConnected", "Connected")
-            : t("docs.collabDisconnected", "Disconnected")
-        }
+        title={status.label}
       >
-        {connected ? (
-          <Wifi size={12} className="text-green-500" />
-        ) : (
+        {status.kind === "offline" ? (
           <WifiOff size={12} className="text-fg-disabled" />
+        ) : status.kind === "saving" ? (
+          <LoaderCircle size={12} className="animate-spin" />
+        ) : status.kind === "error" ? (
+          <TriangleAlert size={12} className="text-state-danger-text" />
+        ) : (
+          <Check size={12} className="text-state-success-text" />
         )}
+        <span>{status.label}</span>
       </div>
 
       {/* User avatars */}

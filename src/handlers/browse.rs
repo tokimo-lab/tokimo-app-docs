@@ -2,6 +2,7 @@ use axum::Json;
 use axum::extract::{Path, Query, State};
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::sync::Arc;
 use ts_rs::TS;
 
@@ -52,28 +53,26 @@ fn to_item(
     rel_path: String,
     is_dir: bool,
     modified: Option<chrono::DateTime<chrono::Utc>>,
-    meta: Option<&docs_node_meta::Model>,
+    meta: &docs_node_meta::Model,
 ) -> DocNodeListItem {
     let node_type = path_utils::type_for_path(&rel_path, is_dir).to_string();
     DocNodeListItem {
+        id: meta.id.to_string(),
         rel_path: rel_path.clone(),
         space_id: space_id.to_string(),
         parent_id: path_utils::parent_of(&rel_path),
         r#type: node_type,
         title: path_utils::title_for_path(&rel_path, is_dir),
-        icon: meta.and_then(|m| m.icon.clone()),
-        tags: meta.and_then(|m| tags_from_json(m.tags.clone())),
-        is_favorite: meta.is_some_and(|m| m.is_favorite),
-        is_pinned: meta.is_some_and(|m| m.is_pinned),
-        is_archived: meta.is_some_and(|m| m.is_archived),
-        word_count: meta.map_or(0, |m| m.word_count),
-        sort_order: meta.map_or(0, |m| m.sort_order),
-        last_opened_at: meta.and_then(|m| m.last_opened_at.map(|d| d.to_rfc3339())),
-        created_at: meta.map_or_else(|| chrono::Utc::now().to_rfc3339(), |m| m.created_at.to_rfc3339()),
-        updated_at: modified.map_or_else(
-            || meta.map_or_else(|| chrono::Utc::now().to_rfc3339(), |m| m.updated_at.to_rfc3339()),
-            |d| d.to_rfc3339(),
-        ),
+        icon: meta.icon.clone(),
+        tags: tags_from_json(meta.tags.clone()),
+        is_favorite: meta.is_favorite,
+        is_pinned: meta.is_pinned,
+        is_archived: meta.is_archived,
+        word_count: meta.word_count,
+        sort_order: meta.sort_order,
+        last_opened_at: meta.last_opened_at.map(|d| d.to_rfc3339()),
+        created_at: meta.created_at.to_rfc3339(),
+        updated_at: modified.map_or_else(|| meta.updated_at.to_rfc3339(), |d| d.to_rfc3339()),
     }
 }
 
@@ -111,18 +110,28 @@ pub async fn list_nodes(
         _ => {
             let sub = q.path.as_deref().unwrap_or("");
             path_utils::validate_relative_path(sub)?;
-            let dir = path_utils::vfs_path(&root_path, sub);
-            let entries = vfs.list(&dir).await.map_err(vfs_err)?;
-            for entry in entries {
-                if entry.name.starts_with('.') {
-                    continue;
+            let recursive = q.search.as_ref().is_some_and(|value| !value.trim().is_empty());
+            let mut directories = VecDeque::from([path_utils::normalize_rel_path(sub)]);
+            while let Some(directory) = directories.pop_front() {
+                let dir = path_utils::vfs_path(&root_path, &directory);
+                let entries = vfs.list(&dir).await.map_err(vfs_err)?;
+                for entry in entries {
+                    if entry.name.starts_with('.') {
+                        continue;
+                    }
+                    let rel = if directory.is_empty() {
+                        entry.name
+                    } else {
+                        format!("{directory}/{}", entry.name)
+                    };
+                    if recursive && entry.is_dir {
+                        directories.push_back(rel.clone());
+                    }
+                    raw.push((rel, entry.is_dir, entry.modified));
                 }
-                let rel = if sub.is_empty() {
-                    entry.name
-                } else {
-                    format!("{}/{}", path_utils::normalize_rel_path(sub), entry.name)
-                };
-                raw.push((rel, entry.is_dir, entry.modified));
+                if !recursive {
+                    break;
+                }
             }
         }
     }
@@ -131,16 +140,13 @@ pub async fn list_nodes(
         let needle = search.to_lowercase();
         raw.retain(|(p, is_dir, _)| path_utils::title_for_path(p, *is_dir).to_lowercase().contains(&needle));
     }
-    let paths: Vec<String> = raw
-        .iter()
-        .map(|(p, _, _)| p.trim_start_matches(".trash/").to_string())
-        .collect();
-    let meta = meta_map(DocNodeMetaRepo::find_by_paths(&ctx.db, space_id, &paths).await?);
+    let paths: Vec<String> = raw.iter().map(|(p, _, _)| p.clone()).collect();
+    let meta = meta_map(DocNodeMetaRepo::ensure_paths(&ctx.db, space_id, &paths).await?);
     let mut items: Vec<DocNodeListItem> = raw
         .into_iter()
         .map(|(p, d, m)| {
-            let meta_key = p.trim_start_matches(".trash/").to_string();
-            to_item(space_id, p, d, m, meta.get(&meta_key))
+            let row = meta.get(&p).expect("metadata ensured for every listed VFS node");
+            to_item(space_id, p, d, m, row)
         })
         .collect();
     if let Some(tags) = q.tags.as_ref().filter(|s| !s.trim().is_empty()) {

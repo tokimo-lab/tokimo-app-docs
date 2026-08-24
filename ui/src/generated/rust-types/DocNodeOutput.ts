@@ -3,4 +3,4 @@
 /**
  * Temporary compatibility stub; B3 will redesign node detail around VFS file reads.
  */
-export type DocNodeOutput = { spaceId: string, relPath: string, title: string, type: string, };
+export type DocNodeOutput = { id: string, spaceId: string, relPath: string, title: string, type: string, };
