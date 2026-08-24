@@ -12,6 +12,7 @@ use crate::db::repos::attachment_repo::AttachmentRepo;
 use crate::db::repos::base_record_repo::BaseRecordRepo;
 use crate::db::repos::comment_repo::DocNodeCommentRepo;
 use crate::db::repos::node_meta_repo::{DocNodeMetaRepo, UpsertDocNodeMetaInput};
+use crate::db::repos::node_purge_repo::NodePurgeRepo;
 use crate::db::repos::version_repo::DocNodeVersionRepo;
 use crate::db::repos::view_state_repo::DocNodeViewStateRepo;
 use crate::error::AppError;
@@ -19,6 +20,7 @@ use crate::handlers::AppCtx;
 use crate::handlers::{ApiResponse, ok, ok_empty};
 use crate::services::docs_service::DocsService;
 use crate::services::path_utils;
+use tracing::warn;
 
 #[derive(Debug, Deserialize, TS)]
 #[ts(export)]
@@ -464,12 +466,24 @@ pub async fn delete_node(
     let (vfs, root_path) = ensure_space_vfs(&ctx, &space).await?;
     let path = path_utils::vfs_path(&root_path, &rel_path);
     let info = vfs.stat(&path).await.map_err(vfs_err)?;
+    let txn = ctx.db.begin().await?;
+    let attachments = NodePurgeRepo::delete_related(&txn, space_id, &rel_path, info.is_dir).await?;
     if info.is_dir {
         vfs.delete_dir(&path).await.map_err(vfs_err)?;
     } else {
         vfs.delete_file(&path).await.map_err(vfs_err)?;
     }
-    DocNodeMetaRepo::delete(&ctx.db, space_id, &rel_path).await?;
+    txn.commit().await?;
+    for attachment in attachments {
+        if let Err(error) = ctx.storage.delete(FsPath::new(&attachment.storage_key)).await {
+            warn!(
+                attachment_id = %attachment.id,
+                storage_key = %attachment.storage_key,
+                %error,
+                "docs: permanent node deletion left attachment storage for later cleanup"
+            );
+        }
+    }
     Ok(ok_empty())
 }
 

@@ -109,10 +109,6 @@ interface AttachmentData {
   textEncoding?: string;
 }
 
-function getStorageUrl(storageKey: string): string {
-  return `/storage/${storageKey}`;
-}
-
 function isImageType(mime: string): boolean {
   return mime.startsWith("image/");
 }
@@ -293,7 +289,7 @@ function LazyViewport({
 }
 
 function PreviewContent({
-  storageKey,
+  url,
   fileType,
   fileName,
   height,
@@ -307,7 +303,7 @@ function PreviewContent({
   isBinary,
   activated,
 }: {
-  storageKey: string;
+  url: string;
   fileType: string;
   fileName: string;
   height: number | null | undefined;
@@ -321,7 +317,6 @@ function PreviewContent({
   isBinary?: boolean;
   activated?: boolean;
 }) {
-  const url = getStorageUrl(storageKey);
   const style = height ? { height: `${height}px` } : undefined;
   const kind = resolvePreviewKind(fileType, fileCategory, isBinary, fileName);
 
@@ -399,7 +394,7 @@ function PreviewContent({
       <MaterialFileIcon name={fileName} size={48} />
       <span className="text-xs text-fg-muted">该文件类型不支持预览</span>
       <a
-        href={getStorageUrl(storageKey)}
+        href={url}
         download={fileName}
         target="_blank"
         rel="noopener noreferrer"
@@ -614,7 +609,10 @@ export function AttachmentElement(props: PlateElementProps) {
     "fallback";
 
   const sizeLabel = formatFileSize(fileSize);
-  const downloadUrl = storageKey ? getStorageUrl(storageKey) : null;
+  const downloadUrl =
+    spaceId && attachmentId
+      ? docAttachmentApi.contentUrl(spaceId, attachmentId)
+      : null;
 
   const previewKind = resolvePreviewKind(
     fileType,
@@ -801,7 +799,7 @@ export function AttachmentElement(props: PlateElementProps) {
           </div>
 
           {/* Preview area — pointer-events disabled until block is activated */}
-          {storageKey && (
+          {downloadUrl && (
             <div
               className={`overflow-hidden ${needsScrollCapture && !isActivated ? "pointer-events-none" : ""}`}
             >
@@ -815,7 +813,7 @@ export function AttachmentElement(props: PlateElementProps) {
                   )}
                 >
                   <PreviewContent
-                    storageKey={storageKey}
+                    url={downloadUrl}
                     fileType={fileType}
                     fileName={fileName}
                     height={height}

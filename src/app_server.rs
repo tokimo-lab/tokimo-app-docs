@@ -104,6 +104,10 @@ fn build_router(ctx: Arc<AppCtx>) -> Router {
             delete(attachment::delete_attachment),
         )
         .route(
+            "/spaces/{id}/attachments/{attachmentId}/content",
+            get(attachment::get_attachment_content),
+        )
+        .route(
             "/spaces/{id}/attachments/{attachmentId}/restore",
             post(attachment::restore_attachment),
         )

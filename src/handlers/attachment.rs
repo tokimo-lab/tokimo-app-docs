@@ -1,5 +1,5 @@
 use axum::extract::{Multipart, Path, Query, State};
-use axum::http::StatusCode;
+use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use serde::Deserialize;
 use std::sync::Arc;
@@ -8,6 +8,7 @@ use uuid::Uuid;
 use super::parse_uuid;
 use crate::db::entities::DocNodeAttachmentOutput;
 use crate::db::repos::attachment_repo::{AttachmentRepo, CreateAttachmentParams};
+use crate::db::repos::node_meta_repo::DocNodeMetaRepo;
 use crate::handlers::AppCtx;
 use crate::handlers::user::AuthUser;
 use crate::handlers::{err_resp, ok, ok_empty};
@@ -25,6 +26,21 @@ pub async fn upload_attachment(
     AuthUser(_): AuthUser,
     mut multipart: Multipart,
 ) -> Response {
+    let space_id = match parse_uuid(&id) {
+        Ok(value) => value,
+        Err(e) => return err_resp(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+    };
+    match DocNodeMetaRepo::find(&ctx.db, space_id, &q.rel_path).await {
+        Ok(Some(node)) if !node.is_archived => {}
+        Ok(_) => return err_resp(StatusCode::NOT_FOUND, "Document not found".into()).into_response(),
+        Err(e) => {
+            return err_resp(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Document lookup failed: {e}"),
+            )
+            .into_response();
+        }
+    }
     let field = match multipart.next_field().await {
         Ok(Some(f)) => f,
         Ok(None) => return err_resp(StatusCode::BAD_REQUEST, "No file provided".into()).into_response(),
@@ -58,12 +74,9 @@ pub async fn upload_attachment(
     match AttachmentRepo::create(
         &ctx.db,
         CreateAttachmentParams {
-            space_id: match parse_uuid(&id) {
-                Ok(v) => v,
-                Err(e) => return err_resp(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
-            },
+            space_id,
             rel_path: q.rel_path,
-            storage_key,
+            storage_key: storage_key.clone(),
             file_name,
             file_type: content_type,
             file_size: data.len() as i32,
@@ -77,7 +90,10 @@ pub async fn upload_attachment(
     .await
     {
         Ok(r) => ok(DocNodeAttachmentOutput::from(r)).into_response(),
-        Err(e) => err_resp(StatusCode::INTERNAL_SERVER_ERROR, format!("DB insert failed: {e}")).into_response(),
+        Err(e) => {
+            let _ = ctx.storage.delete(std::path::Path::new(&storage_key)).await;
+            err_resp(StatusCode::INTERNAL_SERVER_ERROR, format!("DB insert failed: {e}")).into_response()
+        }
     }
 }
 pub async fn list_attachments(
@@ -100,13 +116,54 @@ pub async fn list_attachments(
         Err(e) => err_resp(StatusCode::INTERNAL_SERVER_ERROR, format!("List failed: {e}")).into_response(),
     }
 }
-pub async fn delete_attachment(
+
+pub async fn get_attachment_content(
     State(ctx): State<Arc<AppCtx>>,
-    Path((_space_id, id)): Path<(String, String)>,
+    Path((space_id, id)): Path<(String, String)>,
     AuthUser(_): AuthUser,
 ) -> Response {
+    let space_id = match parse_uuid(&space_id) {
+        Ok(value) => value,
+        Err(e) => return err_resp(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+    };
+    let id = match parse_uuid(&id) {
+        Ok(value) => value,
+        Err(e) => return err_resp(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+    };
+    let attachment = match AttachmentRepo::get_active_by_id(&ctx.db, space_id, id).await {
+        Ok(Some(value)) => value,
+        Ok(None) => return err_resp(StatusCode::NOT_FOUND, "Attachment not found".into()).into_response(),
+        Err(e) => {
+            return err_resp(StatusCode::INTERNAL_SERVER_ERROR, format!("Lookup failed: {e}")).into_response();
+        }
+    };
+    let content = match ctx.storage.read(std::path::Path::new(&attachment.storage_key)).await {
+        Ok(value) => value,
+        Err(e) => {
+            return err_resp(StatusCode::INTERNAL_SERVER_ERROR, format!("Storage read failed: {e}")).into_response();
+        }
+    };
+    let content_type = attachment
+        .detected_mime
+        .as_deref()
+        .unwrap_or(&attachment.file_type)
+        .parse()
+        .unwrap_or_else(|_| header::HeaderValue::from_static("application/octet-stream"));
+    ([(header::CONTENT_TYPE, content_type)], content).into_response()
+}
+
+pub async fn delete_attachment(
+    State(ctx): State<Arc<AppCtx>>,
+    Path((space_id, id)): Path<(String, String)>,
+    AuthUser(_): AuthUser,
+) -> Response {
+    let space_id = match parse_uuid(&space_id) {
+        Ok(v) => v,
+        Err(e) => return err_resp(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+    };
     match AttachmentRepo::soft_delete(
         &ctx.db,
+        space_id,
         match parse_uuid(&id) {
             Ok(v) => v,
             Err(e) => return err_resp(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
@@ -121,11 +178,16 @@ pub async fn delete_attachment(
 }
 pub async fn restore_attachment(
     State(ctx): State<Arc<AppCtx>>,
-    Path((_space_id, id)): Path<(String, String)>,
+    Path((space_id, id)): Path<(String, String)>,
     AuthUser(_): AuthUser,
 ) -> Response {
+    let space_id = match parse_uuid(&space_id) {
+        Ok(v) => v,
+        Err(e) => return err_resp(StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+    };
     match AttachmentRepo::restore(
         &ctx.db,
+        space_id,
         match parse_uuid(&id) {
             Ok(v) => v,
             Err(e) => return err_resp(StatusCode::BAD_REQUEST, e.to_string()).into_response(),

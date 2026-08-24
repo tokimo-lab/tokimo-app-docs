@@ -598,6 +598,9 @@ const docsApi = {
 // ── Attachment API ───────────────────────────────────────────────────────────
 
 const docAttachmentApi = {
+  contentUrl: (spaceId: string, id: string): string =>
+    `/api/apps/docs/spaces/${encode(spaceId)}/attachments/${encode(id)}/content`,
+
   list: createQuery<RelPathInput, DocNodeAttachmentOutput[]>({
     method: "GET",
     path: "/api/apps/docs/spaces/{spaceId}/node/attachments",

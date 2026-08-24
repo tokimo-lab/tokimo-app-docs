@@ -47,6 +47,19 @@ impl AttachmentRepo {
         Ok(docs_node_attachments::Entity::find_by_id(id).one(db).await?)
     }
 
+    /// Get one active attachment, scoped to its owning space.
+    pub async fn get_active_by_id<C: ConnectionTrait>(
+        db: &C,
+        space_id: Uuid,
+        id: Uuid,
+    ) -> Result<Option<docs_node_attachments::Model>, AppError> {
+        Ok(docs_node_attachments::Entity::find_by_id(id)
+            .filter(docs_node_attachments::Column::SpaceId.eq(space_id))
+            .filter(docs_node_attachments::Column::DeletedAt.is_null())
+            .one(db)
+            .await?)
+    }
+
     /// Insert a new attachment record and return it.
     pub async fn create<C: ConnectionTrait>(
         db: &C,
@@ -74,9 +87,10 @@ impl AttachmentRepo {
     }
 
     /// Soft-delete: set deleted_at = now().
-    pub async fn soft_delete<C: ConnectionTrait>(db: &C, id: Uuid) -> Result<bool, AppError> {
+    pub async fn soft_delete<C: ConnectionTrait>(db: &C, space_id: Uuid, id: Uuid) -> Result<bool, AppError> {
         let result = docs_node_attachments::Entity::update_many()
             .filter(docs_node_attachments::Column::Id.eq(id))
+            .filter(docs_node_attachments::Column::SpaceId.eq(space_id))
             .filter(docs_node_attachments::Column::DeletedAt.is_null())
             .col_expr(
                 docs_node_attachments::Column::DeletedAt,
@@ -88,9 +102,11 @@ impl AttachmentRepo {
     }
 
     /// Restore a soft-deleted attachment (clear deleted_at).
-    pub async fn restore<C: ConnectionTrait>(db: &C, id: Uuid) -> Result<bool, AppError> {
+    pub async fn restore<C: ConnectionTrait>(db: &C, space_id: Uuid, id: Uuid) -> Result<bool, AppError> {
         let result = docs_node_attachments::Entity::update_many()
             .filter(docs_node_attachments::Column::Id.eq(id))
+            .filter(docs_node_attachments::Column::SpaceId.eq(space_id))
+            .filter(docs_node_attachments::Column::DeletedAt.is_not_null())
             .col_expr(
                 docs_node_attachments::Column::DeletedAt,
                 Expr::value(Option::<chrono::DateTime<chrono::FixedOffset>>::None),
