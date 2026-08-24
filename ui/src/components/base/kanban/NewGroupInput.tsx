@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { SELECT_COLORS } from "../types";
 
 interface NewGroupInputProps {
@@ -7,6 +8,7 @@ interface NewGroupInputProps {
 }
 
 export function NewGroupInput({ onAdd }: NewGroupInputProps) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState("");
   const [color, setColor] = useState<string>(SELECT_COLORS[0]);
@@ -28,7 +30,7 @@ export function NewGroupInput({ onAdd }: NewGroupInputProps) {
           onClick={() => setEditing(true)}
         >
           <Plus size={14} />
-          新建分组
+          {t("base.kanban.newGroup")}
         </button>
       </div>
     );
@@ -37,8 +39,8 @@ export function NewGroupInput({ onAdd }: NewGroupInputProps) {
   return (
     <div className="flex h-fit w-[280px] shrink-0 flex-col rounded-lg bg-fill-tertiary p-3">
       <input
-        className="mb-2 w-full rounded border border-border-base bg-surface-base px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-        placeholder="请输入标题"
+        className="mb-2 w-full rounded border border-border-base bg-surface-sunken px-2 py-1.5 text-sm text-fg-primary outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+        placeholder={t("base.kanban.groupNamePlaceholder")}
         value={label}
         onChange={(e) => setLabel(e.target.value)}
         onKeyDown={(e) => {
@@ -53,7 +55,7 @@ export function NewGroupInput({ onAdd }: NewGroupInputProps) {
           <button
             key={c}
             type="button"
-            className={`h-5 w-5 cursor-pointer rounded-full border-2 transition-all ${color === c ? "scale-110 border-[var(--accent)]" : "border-transparent hover:scale-105"}`}
+            className={`h-5 w-5 cursor-pointer rounded-full border-2 transition-all ${color === c ? "scale-110 border-accent" : "border-transparent hover:scale-105"}`}
             style={{ backgroundColor: c }}
             onClick={() => setColor(c)}
           />
@@ -65,14 +67,14 @@ export function NewGroupInput({ onAdd }: NewGroupInputProps) {
           className="cursor-pointer rounded px-3 py-1 text-xs text-fg-muted hover:bg-fill-tertiary"
           onClick={() => setEditing(false)}
         >
-          取消
+          {t("common.cancel")}
         </button>
         <button
           type="button"
-          className="cursor-pointer rounded bg-[var(--accent)] px-3 py-1 text-xs text-white hover:bg-[var(--accent-hover)]"
+          className="cursor-pointer rounded bg-accent px-3 py-1 text-xs text-fg-on-accent hover:bg-accent-hover"
           onClick={handleSubmit}
         >
-          确定
+          {t("common.confirm")}
         </button>
       </div>
     </div>

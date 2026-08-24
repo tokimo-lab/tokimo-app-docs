@@ -1,7 +1,8 @@
 import type { DropdownMenuItem } from "@tokimo/ui";
 import { cn, Dropdown } from "@tokimo/ui";
 import { MoreHorizontal, Plus } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { BaseEditorState } from "../useBaseEditor";
 import type { KanbanGroup } from "../utils";
 import { KanbanCard } from "./KanbanCard";
@@ -28,6 +29,9 @@ export function KanbanColumn({
   draggingRecordId,
   onPointerDragStart,
 }: KanbanColumnProps) {
+  const { t } = useTranslation();
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(group.label);
   const isUncategorized =
     group.id === "__uncategorized" || group.id === "__false";
 
@@ -41,19 +45,40 @@ export function KanbanColumn({
     state.addRecordToGroup(val);
   }, [group.id, state]);
 
+  const commitRename = useCallback(() => {
+    const nextName = renameValue.trim();
+    if (nextName && nextName !== group.label) {
+      state.renameKanbanGroup(group.id, nextName);
+    }
+    setIsRenaming(false);
+  }, [group.id, group.label, renameValue, state]);
+
   return (
     <div
       data-group-id={group.id}
       className={cn(
         "flex h-full w-[280px] shrink-0 flex-col rounded-lg bg-fill-tertiary transition-colors",
-        isDragOver &&
-          "ring-2 ring-[var(--accent)] bg-[var(--accent-subtle)] dark:bg-[var(--accent-subtle)]",
+        isDragOver && "bg-accent-subtle ring-2 ring-accent",
       )}
     >
       {/* Column header */}
       <div className="flex items-center gap-2 px-3 py-2.5">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          {group.color ? (
+          {isRenaming ? (
+            <input
+              // biome-ignore lint/a11y/noAutofocus: rename is explicitly initiated from the group menu
+              autoFocus
+              aria-label={t("base.kanban.renameGroup")}
+              value={renameValue}
+              onChange={(event) => setRenameValue(event.target.value)}
+              onBlur={commitRename}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") event.currentTarget.blur();
+                if (event.key === "Escape") setIsRenaming(false);
+              }}
+              className="h-6 min-w-0 flex-1 rounded border border-border-base bg-surface-sunken px-2 text-xs text-fg-primary outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            />
+          ) : group.color ? (
             <span
               className="inline-block shrink-0 rounded px-2 py-0.5 text-xs font-medium"
               style={{ backgroundColor: group.color }}
@@ -75,16 +100,15 @@ export function KanbanColumn({
               items: [
                 {
                   key: "rename",
-                  label: "重命名",
+                  label: t("base.kanban.rename"),
                   onClick: () => {
-                    const newName = prompt("重命名分组", group.label);
-                    if (newName?.trim())
-                      state.renameKanbanGroup(group.id, newName.trim());
+                    setRenameValue(group.label);
+                    setIsRenaming(true);
                   },
                 },
                 {
                   key: "delete",
-                  label: "删除分组",
+                  label: t("base.kanban.deleteGroup"),
                   danger: true,
                   onClick: () => state.deleteKanbanGroup(group.id),
                 },
@@ -118,7 +142,7 @@ export function KanbanColumn({
       {/* Add record button */}
       <button
         type="button"
-        className="flex cursor-pointer items-center gap-1 px-3 py-2 text-xs text-fg-muted hover:text-[var(--accent)]"
+        className="flex cursor-pointer items-center gap-1 px-3 py-2 text-xs text-fg-muted hover:text-accent-text"
         onClick={handleAddRecord}
       >
         <Plus size={14} />

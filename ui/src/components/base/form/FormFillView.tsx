@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { CellValue, Field, RecordData } from "../types";
 import type { BaseEditorState } from "../useBaseEditor";
 
@@ -7,17 +8,18 @@ interface FormFillViewProps {
 }
 
 export function FormFillView({ state }: FormFillViewProps) {
+  const { t } = useTranslation();
   const { activeView, fields } = state;
   const rawConfig = activeView?.formConfig;
   const config = useMemo(
     () =>
       rawConfig ?? {
-        title: "表单",
+        title: t("base.form.defaultTitle"),
         description: "",
         visibleFieldIds: fields.map((f) => f.id),
         requiredFieldIds: [],
       },
-    [rawConfig, fields],
+    [rawConfig, fields, t],
   );
   const [formData, setFormData] = useState<RecordData>({});
   const [submitted, setSubmitted] = useState(false);
@@ -44,7 +46,7 @@ export function FormFillView({ state }: FormFillViewProps) {
     });
   }, []);
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     // Validate required fields
     const newErrors = new Set<string>();
     for (const fieldId of config?.requiredFieldIds ?? []) {
@@ -57,9 +59,13 @@ export function FormFillView({ state }: FormFillViewProps) {
       setErrors(newErrors);
       return;
     }
-    state.submitForm(formData);
-    setFormData({});
-    setSubmitted(true);
+    try {
+      await state.submitForm(formData);
+      setFormData({});
+      setSubmitted(true);
+    } catch {
+      // The mutation owns the error toast. Preserve the values so the user can retry.
+    }
   }, [config, formData, state]);
 
   const handleReset = useCallback(() => {
@@ -73,14 +79,18 @@ export function FormFillView({ state }: FormFillViewProps) {
       <div className="flex h-full items-center justify-center bg-fill-tertiary">
         <div className="rounded-lg bg-surface-base p-8 text-center shadow-lg">
           <div className="mb-4 text-5xl">✓</div>
-          <h2 className="mb-2 text-xl font-bold">提交成功</h2>
-          <p className="mb-6 text-sm text-fg-muted">你的回答已成功记录</p>
+          <h2 className="mb-2 text-xl font-bold">
+            {t("base.form.submitSuccess")}
+          </h2>
+          <p className="mb-6 text-sm text-fg-muted">
+            {t("base.form.responseRecorded")}
+          </p>
           <button
             type="button"
-            className="cursor-pointer rounded-lg bg-[var(--accent-subtle)]0 px-6 py-2 text-sm text-white hover:bg-[var(--accent-hover)]"
+            className="cursor-pointer rounded-lg bg-accent px-6 py-2 text-sm text-fg-on-accent hover:bg-accent-hover"
             onClick={handleReset}
           >
-            再次填写
+            {t("base.form.submitAnother")}
           </button>
         </div>
       </div>
@@ -90,7 +100,7 @@ export function FormFillView({ state }: FormFillViewProps) {
   return (
     <div className="h-full overflow-y-auto bg-fill-tertiary">
       {/* Blue decorative header */}
-      <div className="relative h-40 overflow-hidden bg-gradient-to-r from-[var(--accent)] via-[var(--accent)] to-[var(--accent-hover)]">
+      <div className="relative h-40 overflow-hidden bg-gradient-to-r from-accent via-accent to-accent-hover">
         <div className="absolute inset-0">
           <svg
             className="h-full w-full opacity-20"
@@ -114,7 +124,9 @@ export function FormFillView({ state }: FormFillViewProps) {
 
       {/* Form card */}
       <div className="relative z-10 mx-auto -mt-12 mb-8 max-w-xl rounded-lg bg-surface-base p-6 shadow-lg">
-        <h1 className="mb-1 text-2xl font-bold">{config.title || "表单"}</h1>
+        <h1 className="mb-1 text-2xl font-bold">
+          {config.title || t("base.form.defaultTitle")}
+        </h1>
         {config.description && (
           <p className="mb-6 text-sm text-fg-muted">{config.description}</p>
         )}
@@ -134,10 +146,20 @@ export function FormFillView({ state }: FormFillViewProps) {
 
         <button
           type="button"
-          className="mt-8 w-full cursor-pointer rounded-lg bg-[var(--accent-subtle)]0 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)]"
-          onClick={handleSubmit}
+          aria-busy={state.isAddingRecord}
+          disabled={state.isAddingRecord}
+          className="mt-8 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-medium text-fg-on-accent hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={() => void handleSubmit()}
         >
-          提交
+          {state.isAddingRecord && (
+            <span
+              aria-hidden="true"
+              className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-r-transparent"
+            />
+          )}
+          {state.isAddingRecord
+            ? t("base.form.submitting")
+            : t("base.form.submit")}
         </button>
       </div>
     </div>
@@ -157,14 +179,19 @@ function FormInput({
   hasError: boolean;
   onChange: (val: CellValue) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div>
       <div className="mb-1.5 flex items-center gap-1 text-sm font-medium">
         {field.name}
-        {isRequired && <span className="text-red-500">*</span>}
+        {isRequired && <span className="text-state-danger-text">*</span>}
       </div>
       {renderInput(field, value, hasError, onChange)}
-      {hasError && <p className="mt-1 text-xs text-red-500">此字段为必填项</p>}
+      {hasError && (
+        <p className="mt-1 text-xs text-state-danger-text">
+          {t("base.form.required")}
+        </p>
+      )}
     </div>
   );
 }
@@ -176,8 +203,8 @@ function renderInput(
   onChange: (val: CellValue) => void,
 ) {
   const borderClass = hasError
-    ? "border-red-400 focus:ring-red-200"
-    : "border-border-subtle focus:ring-[var(--accent)]/40";
+    ? "border-state-danger-text focus:ring-state-danger-subtle"
+    : "border-border-subtle focus:ring-accent-subtle";
 
   switch (field.type) {
     case "text":

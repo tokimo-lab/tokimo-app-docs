@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "../../api/generated";
 import { useMessage } from "../../hooks/use-message";
 import type {
@@ -62,56 +63,181 @@ function parseRecordData(raw: unknown): RecordData {
 export function useBaseEditor({ spaceId, relPath }: UseBaseEditorOptions) {
   const queryClient = useQueryClient();
   const message = useMessage();
+  const { t } = useTranslation();
   const defaults = useRef(createDefaultBaseContent());
+  const fieldsRef = useRef(defaults.current.fields);
+  const viewsRef = useRef(defaults.current.views);
+  const activeViewIdRef = useRef(defaults.current.activeViewId);
+  const recordsRef = useRef<BaseRecord[]>([]);
+  const metaQueryInput = useMemo(
+    () => ({ spaceId, relPath }),
+    [relPath, spaceId],
+  );
+  const recordsQueryInput = useMemo(
+    () => ({ spaceId, relPath, pageSize: 1000 }),
+    [relPath, spaceId],
+  );
 
   // ── Queries ─────────────────────────────────────────────────────────────
   const metaQuery = api.docs.bitable.getMeta.useQuery(
-    { spaceId, relPath },
+    metaQueryInput,
     { enabled: !!spaceId && !!relPath },
   );
 
   const recordsQuery = api.docs.bitable.listRecords.useQuery(
-    { spaceId, relPath, pageSize: 1000 },
+    recordsQueryInput,
     { enabled: !!spaceId && !!relPath },
   );
 
   // ── Mutations ───────────────────────────────────────────────────────────
   const updateMetaMut = api.docs.bitable.updateMeta.useMutation({
+    scope: { id: `base-meta:${spaceId}:${relPath}` },
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({
+        queryKey: api.docs.bitable.getMeta.queryKey(metaQueryInput),
+      });
+      api.docs.bitable.getMeta.setData(
+        queryClient,
+        metaQueryInput,
+        (current) => ({
+          relPath,
+          fields:
+            variables.fields ??
+            current?.fields ??
+            defaults.current.fields,
+          views:
+            variables.views ?? current?.views ?? defaults.current.views,
+          activeViewId:
+            variables.activeViewId === undefined
+              ? (current?.activeViewId ?? defaults.current.activeViewId)
+              : (variables.activeViewId ?? undefined),
+        }),
+      );
+    },
     onSuccess: () => {
-      api.docs.bitable.getMeta.invalidate(queryClient, { spaceId, relPath });
+      api.docs.bitable.getMeta.setData(queryClient, metaQueryInput, {
+        relPath,
+        fields: fieldsRef.current,
+        views: viewsRef.current,
+        activeViewId: activeViewIdRef.current,
+      });
+    },
+    onError: (error) => {
+      message.error(
+        error instanceof Error ? error.message : t("base.metaSaveFailed"),
+      );
+      void api.docs.bitable.getMeta.invalidate(queryClient, metaQueryInput);
     },
   });
 
   const createRecordMut = api.docs.bitable.createRecord.useMutation({
     onSuccess: () => {
-      api.docs.bitable.listRecords.invalidate(queryClient, {
-        spaceId,
-        relPath,
-        pageSize: 1000,
-      });
+      void api.docs.bitable.listRecords.invalidate(
+        queryClient,
+        recordsQueryInput,
+      );
     },
     onError: (error) => {
-      message.error(error instanceof Error ? error.message : "添加记录失败");
+      message.error(
+        error instanceof Error ? error.message : t("base.addRecordFailed"),
+      );
     },
   });
 
   const updateRecordMut = api.docs.bitable.updateRecord.useMutation({
-    onSuccess: () => {
-      api.docs.bitable.listRecords.invalidate(queryClient, {
-        spaceId,
-        relPath,
-        pageSize: 1000,
+    scope: { id: `base-record-update:${spaceId}:${relPath}` },
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({
+        queryKey: api.docs.bitable.listRecords.queryKey(recordsQueryInput),
       });
+      api.docs.bitable.listRecords.setData(
+        queryClient,
+        recordsQueryInput,
+        (current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.map((record) =>
+                  record.id === variables.recordId
+                    ? {
+                        ...record,
+                        data: variables.data ?? record.data,
+                        sortOrder:
+                          variables.sortOrder ?? record.sortOrder,
+                      }
+                    : record,
+                ),
+              }
+            : current,
+      );
+    },
+    onSuccess: (updated, variables) => {
+      api.docs.bitable.listRecords.setData(
+        queryClient,
+        recordsQueryInput,
+        (current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.map((record) =>
+                  record.id === updated.id
+                    ? {
+                        ...updated,
+                        data: record.data,
+                        sortOrder:
+                          variables.sortOrder ?? record.sortOrder,
+                      }
+                    : record,
+                ),
+              }
+            : current,
+      );
+    },
+    onError: (error) => {
+      message.error(
+        error instanceof Error ? error.message : t("base.updateRecordFailed"),
+      );
+      void api.docs.bitable.listRecords.invalidate(
+        queryClient,
+        recordsQueryInput,
+      );
     },
   });
 
   const deleteRecordMut = api.docs.bitable.deleteRecord.useMutation({
-    onSuccess: () => {
-      api.docs.bitable.listRecords.invalidate(queryClient, {
-        spaceId,
-        relPath,
-        pageSize: 1000,
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({
+        queryKey: api.docs.bitable.listRecords.queryKey(recordsQueryInput),
       });
+      api.docs.bitable.listRecords.setData(
+        queryClient,
+        recordsQueryInput,
+        (current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.filter(
+                  (record) => record.id !== variables.recordId,
+                ),
+                total: Math.max(0, current.total - 1),
+              }
+            : current,
+      );
+    },
+    onSuccess: () => {
+      void api.docs.bitable.listRecords.invalidate(
+        queryClient,
+        recordsQueryInput,
+      );
+    },
+    onError: (error) => {
+      message.error(
+        error instanceof Error ? error.message : t("base.deleteRecordFailed"),
+      );
+      void api.docs.bitable.listRecords.invalidate(
+        queryClient,
+        recordsQueryInput,
+      );
     },
   });
 
@@ -152,6 +278,7 @@ export function useBaseEditor({ spaceId, relPath }: UseBaseEditorOptions) {
       updatedAt: r.updatedAt,
     }));
   }, [recordsQuery.data]);
+  recordsRef.current = records;
 
   const visibleFields = useMemo(
     () => (activeView ? getVisibleFields(fields, activeView) : []),
@@ -183,6 +310,12 @@ export function useBaseEditor({ spaceId, relPath }: UseBaseEditorOptions) {
 
   const isLoading = metaQuery.isLoading || recordsQuery.isLoading;
 
+  // Snapshot refs are updated synchronously before queued metadata writes,
+  // preventing rapid field/view edits from rebuilding on stale query data.
+  fieldsRef.current = fields;
+  viewsRef.current = views;
+  activeViewIdRef.current = activeViewId;
+
   // ── Meta update helper ────────────────────────────────────────────────
   const commitMeta = useCallback(
     (partial: {
@@ -190,24 +323,23 @@ export function useBaseEditor({ spaceId, relPath }: UseBaseEditorOptions) {
       views?: BaseView[];
       activeViewId?: string;
     }) => {
+      const nextFields = partial.fields ?? fieldsRef.current;
+      const nextViews = partial.views ?? viewsRef.current;
+      const nextActiveViewId =
+        partial.activeViewId ?? activeViewIdRef.current;
+      fieldsRef.current = nextFields;
+      viewsRef.current = nextViews;
+      activeViewIdRef.current = nextActiveViewId;
       updateMetaMut.mutate({
         spaceId,
         relPath,
-        fields: partial.fields,
-        views: partial.views,
-        activeViewId: partial.activeViewId,
+        fields: nextFields,
+        views: nextViews,
+        activeViewId: nextActiveViewId,
       });
     },
     [spaceId, relPath, updateMetaMut],
   );
-
-  // Snapshot refs for current fields/views to avoid stale closures
-  const fieldsRef = useRef(fields);
-  fieldsRef.current = fields;
-  const viewsRef = useRef(views);
-  viewsRef.current = views;
-  const activeViewIdRef = useRef(activeViewId);
-  activeViewIdRef.current = activeViewId;
 
   // ── View helpers ──────────────────────────────────────────────────────
   const setActiveView = useCallback(
@@ -320,17 +452,22 @@ export function useBaseEditor({ spaceId, relPath }: UseBaseEditorOptions) {
 
   const updateCell = useCallback(
     (recordId: string, fieldId: string, value: CellValue) => {
-      // Find the current record to merge data
-      const rec = records.find((r) => r.id === recordId);
+      const rec = recordsRef.current.find((r) => r.id === recordId);
       const newData = { ...(rec?.data ?? {}), [fieldId]: value };
+      recordsRef.current = recordsRef.current.map((record) =>
+        record.id === recordId ? { ...record, data: newData } : record,
+      );
       updateRecordMut.mutate({ spaceId, recordId, data: newData });
     },
-    [records, updateRecordMut, spaceId],
+    [updateRecordMut, spaceId],
   );
 
   const updateRecordSortOrder = useCallback(
     (recordId: string, sortOrder: number) => {
-      const rec = records.find((r) => r.id === recordId);
+      const rec = recordsRef.current.find((r) => r.id === recordId);
+      recordsRef.current = recordsRef.current.map((record) =>
+        record.id === recordId ? { ...record, sortOrder } : record,
+      );
       updateRecordMut.mutate({
         spaceId,
         recordId,
@@ -338,7 +475,7 @@ export function useBaseEditor({ spaceId, relPath }: UseBaseEditorOptions) {
         sortOrder,
       });
     },
-    [records, updateRecordMut, spaceId],
+    [updateRecordMut, spaceId],
   );
 
   // ── Filter/Sort/Group shortcuts ───────────────────────────────────────
@@ -746,15 +883,18 @@ export function useBaseEditor({ spaceId, relPath }: UseBaseEditorOptions) {
       );
       const cfg = view?.ganttConfig;
       if (!cfg) return;
-      const rec = records.find((r) => r.id === recordId);
+      const rec = recordsRef.current.find((r) => r.id === recordId);
       const newData = {
         ...(rec?.data ?? {}),
         [cfg.startDateFieldId]: startDate,
         [cfg.endDateFieldId]: endDate,
       };
+      recordsRef.current = recordsRef.current.map((record) =>
+        record.id === recordId ? { ...record, data: newData } : record,
+      );
       updateRecordMut.mutate({ spaceId, recordId, data: newData });
     },
-    [records, updateRecordMut, spaceId],
+    [updateRecordMut, spaceId],
   );
 
   // ── Gallery operations ──────────────────────────────────────────────
@@ -865,9 +1005,8 @@ export function useBaseEditor({ spaceId, relPath }: UseBaseEditorOptions) {
   );
 
   const submitForm = useCallback(
-    (data: RecordData) => {
-      createRecordMut.mutate({ spaceId, relPath, data });
-    },
+    (data: RecordData) =>
+      createRecordMut.mutateAsync({ spaceId, relPath, data }),
     [spaceId, relPath, createRecordMut],
   );
 
@@ -888,6 +1027,11 @@ export function useBaseEditor({ spaceId, relPath }: UseBaseEditorOptions) {
       void recordsQuery.refetch();
     },
     isAddingRecord: createRecordMut.isPending,
+    isSaving:
+      updateMetaMut.isPending ||
+      createRecordMut.isPending ||
+      updateRecordMut.isPending ||
+      deleteRecordMut.isPending,
 
     // View
     setActiveView,
