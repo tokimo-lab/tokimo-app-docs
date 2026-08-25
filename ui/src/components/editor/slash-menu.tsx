@@ -648,11 +648,18 @@ export function SlashInputElement(props: PlateElementProps) {
 
   const executeItem = useCallback(
     (item: SlashMenuItem) => {
+      // Preserve the browser's trusted user gesture for native file pickers.
+      // Unmounting the slash input first can make input.click() a no-op in
+      // embedded browsers and automation-controlled WebViews.
+      if (item.attachmentUpload && onAttachmentUpload) {
+        onAttachmentUpload();
+        removeInput();
+        return;
+      }
+
       removeInput();
       if (item.vfsAction && onInsertVfsFile) {
         onInsertVfsFile();
-      } else if (item.attachmentUpload && onAttachmentUpload) {
-        onAttachmentUpload();
       } else if (item.aiActionId && onAiAction) {
         onAiAction(item.aiActionId);
       } else {

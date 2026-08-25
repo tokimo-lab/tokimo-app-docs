@@ -7,16 +7,26 @@
  * - Debounced auto-save to doc_nodes.content
  */
 
-import { Excalidraw, MainMenu } from "@excalidraw/excalidraw";
+import {
+  convertToExcalidrawElements,
+  Excalidraw,
+  MainMenu,
+} from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
-import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import type {
+  ExcalidrawElement,
+  FileId,
+} from "@excalidraw/excalidraw/element/types";
 import type {
   AppState,
+  BinaryFileData,
   BinaryFiles,
+  DataURL,
   ExcalidrawImperativeAPI,
 } from "@excalidraw/excalidraw/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useMessage } from "../../hooks/use-message";
 import { useThemeCore } from "../../hooks/use-theme";
 import { useDocViewport } from "../../hooks/use-doc-viewport";
 import { useWhiteboardLibraryAdapter } from "./useWhiteboardLibraryAdapter";
@@ -47,6 +57,46 @@ interface WhiteboardEditorProps {
 }
 
 const SAVE_DEBOUNCE_MS = 800;
+const MAX_IMAGE_WIDTH = 640;
+const MAX_IMAGE_HEIGHT = 400;
+
+function readFileAsDataUrl(file: File): Promise<DataURL> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error("File read failed"));
+    reader.onload = () => resolve(reader.result as DataURL);
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageSize(dataUrl: DataURL): Promise<{
+  width: number;
+  height: number;
+}> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onerror = () => reject(new Error("Image decode failed"));
+    image.onload = () =>
+      resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    image.src = dataUrl;
+  });
+}
+
+function sceneSnapshotSignature(scene: WhiteboardData): string {
+  return JSON.stringify({
+    elements: (scene.elements ?? []).map((element) => [
+      element.id,
+      element.version,
+      element.versionNonce,
+    ]),
+    appState: scene.appState,
+    files: Object.values(scene.files ?? {}).map((file) => [
+      file.id,
+      file.created,
+      file.dataURL.length,
+    ]),
+  });
+}
 
 export function WhiteboardEditor({
   content,
@@ -55,10 +105,12 @@ export function WhiteboardEditor({
   relPath,
 }: WhiteboardEditorProps) {
   const { theme } = useThemeCore();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
+  const message = useMessage();
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI | null>(null);
   const [showLibraryPanel, setShowLibraryPanel] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Persist user library to backend
   useWhiteboardLibraryAdapter(excalidrawAPI);
@@ -80,6 +132,7 @@ export function WhiteboardEditor({
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSceneRef = useRef<WhiteboardData | null>(null);
+  const lastQueuedSceneSignatureRef = useRef<string | null>(null);
   // Track whether this is the initial mount to avoid saving the initial load
   const initializedRef = useRef(false);
 
@@ -110,6 +163,33 @@ export function WhiteboardEditor({
     pendingSceneRef.current = null;
     onChangeRef.current(pending);
   }, []);
+
+  const queueSceneSave = useCallback(
+    (
+      elements: readonly ExcalidrawElement[],
+      appState: AppState,
+      files: BinaryFiles,
+    ) => {
+      const snapshot: WhiteboardData = {
+        elements: elements.filter((element) => !element.isDeleted),
+        appState: {
+          viewBackgroundColor: appState.viewBackgroundColor,
+          gridSize: appState.gridSize,
+        },
+        files,
+      };
+      const signature = sceneSnapshotSignature(snapshot);
+      if (signature === lastQueuedSceneSignatureRef.current) return;
+      lastQueuedSceneSignatureRef.current = signature;
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      pendingSceneRef.current = snapshot;
+      saveTimerRef.current = setTimeout(() => {
+        saveTimerRef.current = null;
+        flushPendingSave();
+      }, SAVE_DEBOUNCE_MS);
+    },
+    [flushPendingSave],
+  );
 
   // Flush the last edit before switching documents or closing the window.
   useEffect(() => {
@@ -168,7 +248,8 @@ export function WhiteboardEditor({
     return unsubscribe;
   }, [excalidrawAPI, saveViewport]);
 
-  // Intercept native "Browse libraries" link to open our custom panel
+  // Intercept native integrations that do not work reliably in an embedded
+  // browser, while preserving Excalidraw's own toolbar affordances.
   useEffect(() => {
     const container = document.querySelector(".whiteboard-editor");
     if (!container) return;
@@ -178,11 +259,99 @@ export function WhiteboardEditor({
         e.preventDefault();
         e.stopPropagation();
         setShowLibraryPanel(true);
+        return;
+      }
+
+      const toolbarLabel = target.closest("label");
+      if (
+        target.closest('[data-testid="toolbar-image"]') ||
+        toolbarLabel?.querySelector('[data-testid="toolbar-image"]')
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        imageInputRef.current?.click();
       }
     };
     container.addEventListener("click", handler, true);
     return () => container.removeEventListener("click", handler, true);
   }, []);
+
+  const handleImageFileChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.currentTarget.files?.[0];
+      event.currentTarget.value = "";
+      if (!file || !excalidrawAPI) return;
+
+      try {
+        const dataURL = await readFileAsDataUrl(file);
+        const naturalSize = await loadImageSize(dataURL);
+        if (naturalSize.width <= 0 || naturalSize.height <= 0) {
+          throw new Error("Invalid image dimensions");
+        }
+
+        const fileId = crypto.randomUUID() as FileId;
+        const scale = Math.min(
+          1,
+          MAX_IMAGE_WIDTH / naturalSize.width,
+          MAX_IMAGE_HEIGHT / naturalSize.height,
+        );
+        const width = naturalSize.width * scale;
+        const height = naturalSize.height * scale;
+        const appState = excalidrawAPI.getAppState();
+        const x =
+          appState.width / (2 * appState.zoom.value) -
+          appState.scrollX -
+          width / 2;
+        const y =
+          appState.height / (2 * appState.zoom.value) -
+          appState.scrollY -
+          height / 2;
+
+        const [imageElement] = convertToExcalidrawElements(
+          [
+            {
+              type: "image",
+              x,
+              y,
+              width,
+              height,
+              fileId,
+              status: "saved",
+              scale: [1, 1],
+            },
+          ],
+          { regenerateIds: true },
+        );
+        const fileData: BinaryFileData = {
+          id: fileId,
+          dataURL,
+          mimeType: file.type as BinaryFileData["mimeType"],
+          created: Date.now(),
+        };
+        const nextElements = [
+          ...excalidrawAPI.getSceneElements(),
+          imageElement,
+        ];
+        const nextFiles = {
+          ...excalidrawAPI.getFiles(),
+          [fileId]: fileData,
+        };
+
+        excalidrawAPI.addFiles([fileData]);
+        excalidrawAPI.updateScene({
+          elements: nextElements,
+        });
+        // updateScene does not guarantee that the React onChange prop runs.
+        // Persist the same complete scene snapshot explicitly.
+        queueSceneSave(nextElements, appState, nextFiles);
+      } catch (error) {
+        console.error("Failed to insert whiteboard image", error);
+        message.error(t("docs.whiteboardImageUploadFailed"));
+      }
+    },
+    [excalidrawAPI, message, queueSceneSave, t],
+  );
 
   // Patch Excalidraw built-in locale strings and hide unwanted menu items
   useEffect(() => {
@@ -306,31 +475,20 @@ export function WhiteboardEditor({
         return;
       }
 
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      const activeElements = elements.filter((el) => !el.isDeleted);
-      const {
-        collaborators: _c,
-        selectedElementIds: _s,
-        ...persistAppState
-      } = appState;
-      pendingSceneRef.current = {
-        elements: activeElements,
-        appState: {
-          viewBackgroundColor: persistAppState.viewBackgroundColor,
-          gridSize: persistAppState.gridSize,
-        },
-        files,
-      };
-      saveTimerRef.current = setTimeout(() => {
-        saveTimerRef.current = null;
-        flushPendingSave();
-      }, SAVE_DEBOUNCE_MS);
+      queueSceneSave(elements, appState, files);
     },
-    [flushPendingSave],
+    [queueSceneSave],
   );
 
   return (
     <div className="relative h-full w-full whiteboard-editor">
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => void handleImageFileChange(event)}
+      />
       {/* Hide unwanted Excalidraw UI elements */}
       <style>{`
         .whiteboard-editor .App-toolbar__extra-tools-dropdown .dropdown-menu-container > div:not([class]),
