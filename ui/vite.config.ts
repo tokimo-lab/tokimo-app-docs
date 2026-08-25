@@ -58,10 +58,6 @@ function reactCompilerRuntimeShim(): Plugin {
 const base = defineTokimoApp();
 export default {
   ...base,
-  resolve: {
-    ...base.resolve,
-    dedupe: ["i18next", "react-i18next"],
-  },
   plugins: [
     ...(base.plugins ?? []),
     reactCompilerRuntimeShim(),

@@ -14,6 +14,7 @@ import {
 import { FileText, FolderPlus } from "lucide-react";
 import { type ComponentProps, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 import type { DocNode, DocNodeType } from "../lib/doc-node";
 import { DocNodeIcon } from "./DocNodeIcon";
 
@@ -229,6 +230,7 @@ export function DocBrowserView({
           </div>
         ) : (
           <FileGrid
+            i18n={i18n}
             nodes={fileNodes}
             selectedPaths={selectedPaths}
             viewMode="list"
