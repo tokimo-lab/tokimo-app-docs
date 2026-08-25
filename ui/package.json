@@ -50,7 +50,7 @@
     "@tiptap/react": "^2.12.0",
     "@tiptap/starter-kit": "^2.12.0",
     "@tokimo/sdk": "github:tokimo-lab/tokimo-package-sdk#84fc98c8c0af8688d12568e3ec8d14e5b3e5c865",
-    "@tokimo/ui": "github:tokimo-lab/tokimo-ui#532415833d6bf77a76f3e1a3583c6af3a82ceb7f",
+    "@tokimo/ui": "github:tokimo-lab/tokimo-ui#dd810986525076e5992a5cec314c06f10aaadeca",
     "@tokimo/viewers": "github:tokimo-lab/tokimo-viewers#e0caf1fad80486cde8a4682695c73298c1401945",
     "@univerjs/core": "0.20.1",
     "@univerjs/icons": "1.10.0",

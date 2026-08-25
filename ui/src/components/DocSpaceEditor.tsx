@@ -23,6 +23,7 @@ import { Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/generated";
+import i18n from "../i18n";
 
 interface DocSpaceEditorProps {
   spaceId?: string;
@@ -216,6 +217,7 @@ export default function DocSpaceEditor({
               minBindings={1}
               maxBindings={1}
               shell={ctx.shell}
+              i18n={i18n}
             />
           </div>
         </ScrollArea>

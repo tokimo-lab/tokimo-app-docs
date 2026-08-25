@@ -143,8 +143,8 @@ importers:
         specifier: github:tokimo-lab/tokimo-package-sdk#84fc98c8c0af8688d12568e3ec8d14e5b3e5c865
         version: https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/84fc98c8c0af8688d12568e3ec8d14e5b3e5c865(@tanstack/react-query@5.101.0(react@19.2.7))(@tokimo/viewers@https://codeload.github.com/tokimo-lab/tokimo-viewers/tar.gz/e0caf1fad80486cde8a4682695c73298c1401945(emoji-mart@5.6.0)(i18next@26.3.1(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tokimo/ui':
-        specifier: github:tokimo-lab/tokimo-ui#532415833d6bf77a76f3e1a3583c6af3a82ceb7f
-        version: https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/532415833d6bf77a76f3e1a3583c6af3a82ceb7f(emoji-mart@5.6.0)(i18next@26.3.1(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)
+        specifier: github:tokimo-lab/tokimo-ui#dd810986525076e5992a5cec314c06f10aaadeca
+        version: https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/dd810986525076e5992a5cec314c06f10aaadeca(emoji-mart@5.6.0)(i18next@26.3.1(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)
       '@tokimo/viewers':
         specifier: github:tokimo-lab/tokimo-viewers#e0caf1fad80486cde8a4682695c73298c1401945
         version: https://codeload.github.com/tokimo-lab/tokimo-viewers/tar.gz/e0caf1fad80486cde8a4682695c73298c1401945(emoji-mart@5.6.0)(i18next@26.3.1(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)
@@ -1719,8 +1719,8 @@ packages:
       '@tokimo/viewers':
         optional: true
 
-  '@tokimo/ui@https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/532415833d6bf77a76f3e1a3583c6af3a82ceb7f':
-    resolution: {tarball: https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/532415833d6bf77a76f3e1a3583c6af3a82ceb7f}
+  '@tokimo/ui@https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/dd810986525076e5992a5cec314c06f10aaadeca':
+    resolution: {tarball: https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/dd810986525076e5992a5cec314c06f10aaadeca}
     version: 0.1.0
     peerDependencies:
       react: ^19.0.0
@@ -5869,7 +5869,7 @@ snapshots:
     optionalDependencies:
       '@tokimo/viewers': https://codeload.github.com/tokimo-lab/tokimo-viewers/tar.gz/e0caf1fad80486cde8a4682695c73298c1401945(emoji-mart@5.6.0)(i18next@26.3.1(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)
 
-  '@tokimo/ui@https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/532415833d6bf77a76f3e1a3583c6af3a82ceb7f(emoji-mart@5.6.0)(i18next@26.3.1(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)':
+  '@tokimo/ui@https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/dd810986525076e5992a5cec314c06f10aaadeca(emoji-mart@5.6.0)(i18next@26.3.1(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)':
     dependencies:
       '@emoji-mart/data': 1.2.1
       '@emoji-mart/react': 1.1.1(emoji-mart@5.6.0)(react@19.2.7)
@@ -5894,7 +5894,7 @@ snapshots:
   '@tokimo/viewers@https://codeload.github.com/tokimo-lab/tokimo-viewers/tar.gz/e0caf1fad80486cde8a4682695c73298c1401945(emoji-mart@5.6.0)(i18next@26.3.1(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)':
     dependencies:
       '@monaco-editor/react': 4.7.0(monaco-editor@0.55.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@tokimo/ui': https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/532415833d6bf77a76f3e1a3583c6af3a82ceb7f(emoji-mart@5.6.0)(i18next@26.3.1(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)
+      '@tokimo/ui': https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/dd810986525076e5992a5cec314c06f10aaadeca(emoji-mart@5.6.0)(i18next@26.3.1(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)
       lucide-react: 1.11.0(react@19.2.7)
       monaco-editor: 0.55.1
       pdfjs-dist: 5.7.284
