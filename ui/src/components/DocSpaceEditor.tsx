@@ -159,6 +159,7 @@ export default function DocSpaceEditor({
         className="flex min-h-0 flex-1 flex-col"
       >
         <ScrollArea
+          direction="vertical"
           className="min-h-0 flex-1"
           innerClassName="space-y-5 px-5 py-5"
         >
