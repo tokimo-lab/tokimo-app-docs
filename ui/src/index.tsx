@@ -55,6 +55,11 @@ export default defineApp({
     defaultSize: { width: 1200, height: 800 },
     category: "app",
   },
+  standalone: {
+    createWindow: (route) => ({ type: "docs", route }),
+    getRoute: (window) =>
+      window.type === "docs" ? (window.route ?? "/") : null,
+  },
   mount(container, ctx): Dispose {
     const root: Root = createRoot(container);
     const locale = ctx.locale.startsWith("zh") ? uiZhCN : uiEnUS;

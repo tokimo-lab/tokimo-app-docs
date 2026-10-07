@@ -19,7 +19,7 @@ export default function DocsApp() {
 
   // Parse route params (e.g. /space/:spaceId)
   const params = useMemo(() => {
-    const segments = route.split("/").filter(Boolean);
+    const segments = route.split(/[?#]/, 1)[0].split("/").filter(Boolean);
     const spaceIdx = segments.indexOf("space");
     return { spaceId: spaceIdx >= 0 ? segments[spaceIdx + 1] : undefined };
   }, [route]);
