@@ -5,12 +5,14 @@
  * fullscreen, and re-center. Button style matches the top-left view switcher.
  */
 
+import { autoUpdate, flip, shift, size, useFloating } from "@floating-ui/react";
 import type { MindElixirInstance } from "mind-elixir";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useWindowActions, useWindowId } from "@tokimo/sdk";
 import { useThemeCore } from "../../hooks/use-theme";
+import { getSafeAreaPadding } from "../../lib/safe-area";
 import {
   angularMain,
   angularSub,
@@ -72,24 +74,36 @@ function PortalPopover({
   onMouseEnter,
   onMouseLeave,
 }: PortalPopoverProps) {
-  const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
+  const { refs, floatingStyles } = useFloating({
+    placement: "right-end",
+    strategy: "fixed",
+    middleware: [
+      flip(getSafeAreaPadding(8)),
+      shift(getSafeAreaPadding(8)),
+      size((state) => ({
+        ...getSafeAreaPadding(8)(state),
+        apply({ availableHeight, availableWidth, elements }) {
+          Object.assign(elements.floating.style, {
+            maxHeight: `${Math.max(0, availableHeight)}px`,
+            maxWidth: `${Math.max(0, availableWidth)}px`,
+            overflow: "auto",
+          });
+        },
+      })),
+    ],
+    whileElementsMounted: autoUpdate,
+  });
 
-  useEffect(() => {
-    const el = anchorRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setPos({ left: rect.right, bottom: window.innerHeight - rect.bottom });
-  }, [anchorRef]);
-
-  if (!pos) return null;
+  useLayoutEffect(() => {
+    refs.setReference(anchorRef.current);
+  }, [anchorRef, refs.setReference]);
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: hover bridge for portal popover
     <div
+      ref={refs.setFloating}
       style={{
-        position: "fixed",
-        left: pos.left,
-        bottom: pos.bottom,
+        ...floatingStyles,
         zIndex: 9999,
         paddingLeft: 8,
       }}

@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWindowActions, useWindowId } from "@tokimo/sdk";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { AudioElement } from "./elements/AudioElement";
 import { ChartElement } from "./elements/ChartElement";
 import { ImageElement } from "./elements/ImageElement";
@@ -39,8 +46,28 @@ export function SlidePresenter({
   const [animStep, setAnimStep] = useState(0);
   const slideContainerRef = useRef<HTMLDivElement>(null);
   const outerRef = useRef<HTMLDivElement>(null);
+  const [presenterSize, setPresenterSize] = useState({ width: 0, height: 0 });
+  useLayoutEffect(() => {
+    const container = outerRef.current;
+    if (!container) return;
+    const bounds = container.getBoundingClientRect();
+    setPresenterSize({ width: bounds.width, height: bounds.height });
+    const observer = new ResizeObserver(([entry]) => {
+      setPresenterSize({
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+      });
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
   const windowActions = useWindowActions();
-  const toggleFullscreen = (windowActions as unknown as { toggleFullscreen?: (id: string, flag?: boolean) => void }).toggleFullscreen ?? (() => {});
+  const toggleFullscreen =
+    (
+      windowActions as unknown as {
+        toggleFullscreen?: (id: string, flag?: boolean) => void;
+      }
+    ).toggleFullscreen ?? (() => {});
   const windowId = useWindowId();
 
   // Presenter feature states
@@ -347,8 +374,8 @@ export function SlidePresenter({
     return null;
   }
 
-  const screenW = window.innerWidth;
-  const screenH = window.innerHeight;
+  const screenW = presenterSize.width;
+  const screenH = presenterSize.height;
   const scale = Math.min(screenW / VIEWPORT_WIDTH, screenH / VIEWPORT_HEIGHT);
 
   const bgStyle = getBackgroundStyle(slide.background);
@@ -442,92 +469,99 @@ export function SlidePresenter({
   const progressPercent = ((currentIndex + 1) / slides.length) * 100;
 
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard navigation handled via global keydown listener
-    // biome-ignore lint/a11y/noStaticElementInteractions: presentation overlay needs click to advance
-    <div
-      ref={outerRef}
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black"
-      style={{
-        cursor: penActive ? "crosshair" : laserActive ? "none" : "pointer",
-      }}
-      onClick={handleClick}
-      onMouseMove={handleMouseMove}
-    >
-      {/* Slide content with transition */}
-      <div style={transitionStyle}>
-        <div
-          ref={slideContainerRef}
-          className="relative"
-          style={{
-            width: VIEWPORT_WIDTH,
-            height: VIEWPORT_HEIGHT,
-            transform: `scale(${scale})`,
-            transformOrigin: "center center",
-            ...bgStyle,
-          }}
-        >
-          {slide.elements.map(renderElement)}
+    <>
+      <div className="fixed inset-0 z-[9998] bg-black" />
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard navigation handled via global keydown listener */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: presentation overlay needs click to advance */}
+      <div
+        ref={outerRef}
+        className="fixed z-[9999] flex items-center justify-center bg-black"
+        style={{
+          top: "var(--safe-area-top, env(safe-area-inset-top, 0px))",
+          right: "var(--safe-area-right, env(safe-area-inset-right, 0px))",
+          bottom: "var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))",
+          left: "var(--safe-area-left, env(safe-area-inset-left, 0px))",
+          cursor: penActive ? "crosshair" : laserActive ? "none" : "pointer",
+        }}
+        onClick={handleClick}
+        onMouseMove={handleMouseMove}
+      >
+        {/* Slide content with transition */}
+        <div style={transitionStyle}>
+          <div
+            ref={slideContainerRef}
+            className="relative"
+            style={{
+              width: VIEWPORT_WIDTH,
+              height: VIEWPORT_HEIGHT,
+              transform: `scale(${scale})`,
+              transformOrigin: "center center",
+              ...bgStyle,
+            }}
+          >
+            {slide.elements.map(renderElement)}
 
-          <DrawingCanvas
-            active={penActive}
-            slideIndex={currentIndex}
-            viewportWidth={VIEWPORT_WIDTH}
-            viewportHeight={VIEWPORT_HEIGHT}
-            scale={scale}
+            <DrawingCanvas
+              active={penActive}
+              slideIndex={currentIndex}
+              viewportWidth={VIEWPORT_WIDTH}
+              viewportHeight={VIEWPORT_HEIGHT}
+              scale={scale}
+            />
+          </div>
+        </div>
+
+        {/* Laser pointer */}
+        <LaserPointer active={laserActive} containerRef={outerRef} />
+
+        {/* Blackout overlay */}
+        {blackout && <div className="absolute inset-0 z-[9999] bg-black" />}
+
+        {/* Progress bar */}
+        <div className="absolute inset-x-0 bottom-0 z-[10001] h-[3px]">
+          <div
+            className="h-full bg-white/40 transition-[width] duration-300"
+            style={{ width: `${progressPercent}%` }}
           />
         </div>
-      </div>
 
-      {/* Laser pointer */}
-      <LaserPointer active={laserActive} containerRef={outerRef} />
-
-      {/* Blackout overlay */}
-      {blackout && <div className="fixed inset-0 z-[9999] bg-black" />}
-
-      {/* Progress bar */}
-      <div className="fixed inset-x-0 bottom-0 z-[10001] h-[3px]">
+        {/* Toolbar */}
         <div
-          className="h-full bg-white/40 transition-[width] duration-300"
-          style={{ width: `${progressPercent}%` }}
-        />
-      </div>
-
-      {/* Toolbar */}
-      <div
-        className="fixed inset-x-0 bottom-4 z-[10001] flex justify-center transition-opacity duration-300"
-        style={{
-          opacity: showToolbar ? 1 : 0,
-          pointerEvents: showToolbar ? "auto" : "none",
-        }}
-      >
-        <PresenterToolbar
-          currentIndex={currentIndex}
-          totalSlides={slides.length}
-          onPrev={goPrev}
-          onNext={goNext}
-          onExit={onExit}
-          penActive={penActive}
-          onTogglePen={togglePen}
-          laserActive={laserActive}
-          onToggleLaser={toggleLaser}
-          blackout={blackout}
-          onToggleBlackout={toggleBlackout}
-          onShowOverview={toggleOverview}
-        />
-      </div>
-
-      {/* Slide overview */}
-      {showOverview && (
-        <SlideOverview
-          slides={slides}
-          currentIndex={currentIndex}
-          onSelect={(index) => {
-            goToSlide(index);
-            setShowOverview(false);
+          className="absolute inset-x-0 bottom-4 z-[10001] flex justify-center transition-opacity duration-300"
+          style={{
+            opacity: showToolbar ? 1 : 0,
+            pointerEvents: showToolbar ? "auto" : "none",
           }}
-          onClose={() => setShowOverview(false)}
-        />
-      )}
-    </div>
+        >
+          <PresenterToolbar
+            currentIndex={currentIndex}
+            totalSlides={slides.length}
+            onPrev={goPrev}
+            onNext={goNext}
+            onExit={onExit}
+            penActive={penActive}
+            onTogglePen={togglePen}
+            laserActive={laserActive}
+            onToggleLaser={toggleLaser}
+            blackout={blackout}
+            onToggleBlackout={toggleBlackout}
+            onShowOverview={toggleOverview}
+          />
+        </div>
+
+        {/* Slide overview */}
+        {showOverview && (
+          <SlideOverview
+            slides={slides}
+            currentIndex={currentIndex}
+            onSelect={(index) => {
+              goToSlide(index);
+              setShowOverview(false);
+            }}
+            onClose={() => setShowOverview(false)}
+          />
+        )}
+      </div>
+    </>
   );
 }

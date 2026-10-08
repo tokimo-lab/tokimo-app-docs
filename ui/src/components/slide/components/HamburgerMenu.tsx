@@ -134,8 +134,7 @@ export function HamburgerMenu() {
           className={cn(
             "flex cursor-pointer items-center justify-center rounded-md p-1.5",
             "hover:bg-black/5 dark:hover:bg-white/5",
-            open &&
-              "bg-accent-subtle text-accent-text",
+            open && "bg-accent-subtle text-accent-text",
           )}
           onClick={() => setOpen(!open)}
           title={t("docs.slideMenu")}
@@ -270,14 +269,26 @@ export function HamburgerMenu() {
 
       {/* Shortcuts modal */}
       {shortcutsOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center"
+          style={{
+            paddingTop:
+              "max(1rem, var(--safe-area-top, env(safe-area-inset-top, 0px)))",
+            paddingRight:
+              "max(1rem, var(--safe-area-right, env(safe-area-inset-right, 0px)))",
+            paddingBottom:
+              "max(1rem, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)))",
+            paddingLeft:
+              "max(1rem, var(--safe-area-left, env(safe-area-inset-left, 0px)))",
+          }}
+        >
           {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay */}
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: no keyboard interaction needed */}
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setShortcutsOpen(false)}
           />
-          <div className="relative z-10 w-[420px] rounded-lg bg-white p-5 shadow-2xl dark:bg-neutral-800">
+          <div className="relative z-10 max-h-full w-[420px] max-w-full overflow-y-auto rounded-lg bg-white p-5 shadow-2xl dark:bg-neutral-800">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-sm font-semibold">
                 {t("docs.slideShortcuts")}

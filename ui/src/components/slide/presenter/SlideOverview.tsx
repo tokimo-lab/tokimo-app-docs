@@ -18,7 +18,7 @@ export function SlideOverview({
     // biome-ignore lint/a11y/useKeyWithClickEvents: escape handled by parent
     // biome-ignore lint/a11y/noStaticElementInteractions: overview modal backdrop
     <div
-      className="fixed inset-0 z-[10000] flex items-start justify-center overflow-auto bg-black/80 p-8 backdrop-blur-sm"
+      className="absolute inset-0 z-[10000] flex items-start justify-center overflow-auto bg-black/80 p-8 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

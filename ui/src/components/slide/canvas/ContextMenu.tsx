@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useSafeFloatingMenu } from "../../../lib/use-safe-floating-menu";
 import type { SlideElement } from "../types";
 import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from "../types";
 import { useSlideStore } from "../use-slide-store";
@@ -39,6 +40,8 @@ export function ContextMenu({ viewportRef }: ContextMenuProps) {
   const [subMenu, setSubMenu] = useState<SubMenuState | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const subMenuRef = useRef<HTMLDivElement>(null);
+  const menuFloating = useSafeFloatingMenu(position);
+  const subMenuFloating = useSafeFloatingMenu(subMenu?.parentRect ?? null);
 
   const selectedIds = useSlideStore((s) => s.selectedElementIds);
   const setSelectedIds = useSlideStore((s) => s.setSelectedElementIds);
@@ -417,9 +420,12 @@ export function ContextMenu({ viewportRef }: ContextMenuProps) {
   return createPortal(
     <>
       <div
-        ref={menuRef}
+        ref={(node) => {
+          menuRef.current = node;
+          menuFloating.refs.setFloating(node);
+        }}
         className="fixed z-[9999] min-w-[180px] rounded-lg bg-white py-1 shadow-lg dark:bg-neutral-800"
-        style={{ left: position.x, top: position.y }}
+        style={menuFloating.floatingStyles}
       >
         {items.map((item) =>
           item.separator ? (
@@ -453,12 +459,12 @@ export function ContextMenu({ viewportRef }: ContextMenuProps) {
       </div>
       {subMenu?.parentRect && (
         <div
-          ref={subMenuRef}
-          className="fixed z-[10000] min-w-[120px] rounded-lg bg-white py-1 shadow-lg dark:bg-neutral-800"
-          style={{
-            left: subMenu.parentRect.right + 2,
-            top: subMenu.parentRect.top,
+          ref={(node) => {
+            subMenuRef.current = node;
+            subMenuFloating.refs.setFloating(node);
           }}
+          className="fixed z-[10000] min-w-[120px] rounded-lg bg-white py-1 shadow-lg dark:bg-neutral-800"
+          style={subMenuFloating.floatingStyles}
         >
           {subMenu.items.map((item) => (
             // biome-ignore lint/a11y/noStaticElementInteractions: submenu item

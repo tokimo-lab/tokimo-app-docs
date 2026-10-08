@@ -99,13 +99,23 @@ export function FormulaEditDialog({
     // biome-ignore lint/a11y/noStaticElementInteractions: modal backdrop
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30"
+      style={{
+        paddingTop:
+          "max(1rem, var(--safe-area-top, env(safe-area-inset-top, 0px)))",
+        paddingRight:
+          "max(1rem, var(--safe-area-right, env(safe-area-inset-right, 0px)))",
+        paddingBottom:
+          "max(1rem, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)))",
+        paddingLeft:
+          "max(1rem, var(--safe-area-left, env(safe-area-inset-left, 0px)))",
+      }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) handleCancel();
       }}
     >
       {/* biome-ignore lint/a11y/noStaticElementInteractions: dialog container */}
       <div
-        className="flex max-h-[85vh] w-[760px] flex-col rounded-lg bg-white shadow-2xl dark:bg-neutral-800"
+        className="flex max-h-full w-[760px] max-w-full flex-col rounded-lg bg-white shadow-2xl dark:bg-neutral-800"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}

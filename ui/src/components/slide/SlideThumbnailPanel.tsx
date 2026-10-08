@@ -2,6 +2,7 @@ import { ChevronDown, ChevronsLeft, ChevronsRight, Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { useSafeFloatingMenu } from "../../lib/use-safe-floating-menu";
 import { SLIDE_LAYOUTS } from "./lib/layouts";
 import { SlideRenderer } from "./SlideRenderer";
 import { VIEWPORT_HEIGHT, VIEWPORT_WIDTH } from "./types";
@@ -49,6 +50,7 @@ export function SlideThumbnailPanel({
     y: number;
     index: number;
   } | null>(null);
+  const menuFloating = useSafeFloatingMenu(contextMenu);
   const [layoutDropdownOpen, setLayoutDropdownOpen] = useState(false);
   const splitBtnGroupRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -284,8 +286,9 @@ export function SlideThumbnailPanel({
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: no keyboard interaction needed for backdrop */}
           <div className="fixed inset-0 z-[200]" onClick={closeMenu} />
           <div
+            ref={menuFloating.refs.setFloating}
             className="fixed z-[200] min-w-[140px] rounded-md border border-border-subtle bg-white py-1 shadow-lg dark:bg-neutral-800"
-            style={{ left: contextMenu.x, top: contextMenu.y }}
+            style={menuFloating.floatingStyles}
           >
             <button
               type="button"
@@ -342,13 +345,17 @@ interface LayoutDropdownProps {
 
 const LayoutDropdown = forwardRef<HTMLDivElement, LayoutDropdownProps>(
   function LayoutDropdown({ top, left, onSelect, t }, ref) {
+    const floating = useSafeFloatingMenu({ x: left, y: top }, "bottom-start");
     return (
       <div
-        ref={ref}
-        className="fixed z-[200] w-[460px] rounded-lg bg-white dark:bg-neutral-800"
+        ref={(node) => {
+          floating.refs.setFloating(node);
+          if (typeof ref === "function") ref(node);
+          else if (ref) ref.current = node;
+        }}
+        className="fixed z-[200] flex w-[460px] flex-col rounded-lg bg-white dark:bg-neutral-800"
         style={{
-          top,
-          left,
+          ...floating.floatingStyles,
           border: "1px solid rgb(222,224,227)",
           boxShadow:
             "rgba(31,35,41,0.04) 0px 8px 24px 8px, rgba(31,35,41,0.04) 0px 6px 12px 0px, rgba(31,35,41,0.06) 0px 4px 8px -8px",
@@ -363,19 +370,19 @@ const LayoutDropdown = forwardRef<HTMLDivElement, LayoutDropdownProps>(
         `}</style>
         {/* Header — 46px tall */}
         <div
-          className="flex h-[46px] items-center text-sm text-[rgb(31,35,41)] dark:text-neutral-200"
+          className="flex h-[46px] shrink-0 items-center text-sm text-[rgb(31,35,41)] dark:text-neutral-200"
           style={{ padding: "0 12px" }}
         >
           {t("docs.slideSelectLayout")}
         </div>
         {/* Scrollable content */}
-        <div className="max-h-[440px] overflow-y-auto px-3 pb-3">
+        <div className="min-h-0 max-h-[440px] overflow-y-auto px-3 pb-3">
           {/* Section label */}
           <div className="mb-2 text-xs text-[rgb(100,106,115)] dark:text-neutral-400">
             {t("docs.slideDefaultTemplate")}
           </div>
           {/* Grid — 3 columns */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {SLIDE_LAYOUTS.map((layout) => (
               // biome-ignore lint/a11y/useKeyWithClickEvents: layout grid item
               // biome-ignore lint/a11y/noStaticElementInteractions: layout grid item
