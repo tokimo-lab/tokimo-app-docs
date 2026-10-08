@@ -272,7 +272,7 @@ export function DocSidebar({
 
   return (
     <div
-      className="flex shrink-0 flex-col overflow-hidden border-r border-border-base bg-surface-sidebar transition-[width] duration-200 ease-out"
+      className="app-safe-area flex shrink-0 flex-col overflow-hidden border-r border-border-base bg-surface-sidebar transition-[width] duration-200 ease-out"
       style={{ width: collapsed ? 40 : 256 }}
     >
       {collapsed ? (
